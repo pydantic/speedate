@@ -3,3 +3,7 @@ name = "not8601"
 authors = ["Samuel Colvin <s@muelcolvin.com>"]
 version = "0.1.0"
 edition = "2021"
+
+[dev-dependencies]
+chrono = "0.4.19"
+iso8601 = "0.4.1"

@@ -14,6 +14,22 @@ fn dt_z(bench: &mut Bencher) {
 }
 
 #[bench]
+fn dt_z_iso8601(bench: &mut Bencher) {
+    let s = black_box("1997-09-09T09:09:09Z");
+    bench.iter(|| {
+        black_box(iso8601::datetime(&s).unwrap());
+    })
+}
+
+#[bench]
+fn dt_z_chrono(bench: &mut Bencher) {
+    let s = black_box("1997-09-09T09:09:09Z");
+    bench.iter(|| {
+        black_box(chrono::DateTime::parse_from_rfc3339(&s).unwrap());
+    })
+}
+
+#[bench]
 fn dt_custom_tz(bench: &mut Bencher) {
     let s = black_box("1997-09-09T09:09:09-09:09");
     bench.iter(|| {
