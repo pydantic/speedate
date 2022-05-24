@@ -1,6 +1,6 @@
 # not8601
 
-[![CI](https://github.com/samuelcolvin/not8601/workflows/ci/badge.svg?event=push)](https://github.com/samuelcolvin/not8601/actions?query=event%3Apush+branch%3Amain+workflow%3Aci)
+[![CI](https://github.com/samuelcolvin/not8601/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/samuelcolvin/not8601/actions/workflows/ci.yml?query=branch%3Amain)
 
 RFC 3339 & Common ISO 8601 date-time parsing.
 
