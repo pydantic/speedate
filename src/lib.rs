@@ -1,5 +1,6 @@
 use std::fmt;
-use std::str::Bytes;
+use std::iter::Copied;
+use std::slice::Iter;
 
 /// Parsing datetime values
 /// Taken from toml-rs and modified extensively.
@@ -34,14 +35,18 @@ impl fmt::Display for Date {
 }
 
 impl Date {
-    pub fn parse(date: &str) -> Result<Self, ParseError> {
-        // Accepted formats:
-        // 0000-00-00
-        let mut bytes = date.bytes();
-        Self::parse_bytes(&mut bytes)
+    #[inline]
+    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
+        Self::parse_bytes(str.as_bytes())
     }
 
-    fn parse_bytes(bytes: &mut Bytes<'_>) -> Result<Self, ParseError> {
+    #[inline]
+    pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
+        let mut bytes = date.iter().copied();
+        Self::parse_iter(&mut bytes)
+    }
+
+    fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
         let y1 = digit!(bytes) as u16;
         let y2 = digit!(bytes) as u16;
         let y3 = digit!(bytes) as u16;
@@ -122,14 +127,18 @@ impl fmt::Display for Time {
 }
 
 impl Time {
-    pub fn parse(date: &str) -> Result<Self, ParseError> {
-        // Accepted formats:
-        // 00:00:00.00
-        let mut bytes = date.bytes();
-        Self::parse_bytes(&mut bytes)
+    #[inline]
+    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
+        Self::parse_bytes(str.as_bytes())
     }
 
-    fn parse_bytes(bytes: &mut Bytes<'_>) -> Result<Self, ParseError> {
+    #[inline]
+    pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
+        let mut bytes = date.iter().copied();
+        Self::parse_iter(&mut bytes)
+    }
+
+    fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
         let h1 = digit!(bytes);
         let h2 = digit!(bytes);
 
@@ -229,26 +238,28 @@ impl fmt::Display for DateTime {
 }
 
 impl DateTime {
-    pub fn parse(date: &str) -> Result<Self, ParseError> {
-        // Accepted formats:
-        // 0000-00-00T00:00:00.00Z
-        // 0000-00-00T00:00:00.00
-        // 0000-00-00T00:00:00.00+12:00
-        if date.len() < 3 {
+    #[inline]
+    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
+        Self::parse_bytes(str.as_bytes())
+    }
+
+    pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
+        let mut bytes = date.iter().copied();
+        if bytes.len() < 3 {
             return Err(ParseError::TooShort);
         }
-        let mut bytes = date.bytes();
 
         // First up, parse the full date if we can
-        let date = Date::parse_bytes(&mut bytes)?;
+        let date = Date::parse_iter(&mut bytes)?;
 
-        // Next parse the "partial-time" if available
+        // Next parse the separator between date and time
         let sep = bytes.next();
         if sep != Some(b'T') && sep != Some(b't') && sep != Some(b' ') {
             return Err(ParseError::InvalidChar);
         }
 
-        let time = Time::parse_bytes(&mut bytes)?;
+        // Next try to parse the time
+        let time = Time::parse_iter(&mut bytes)?;
 
         // And finally, parse the offset
         let mut offset: Option<i16> = None;

@@ -9,7 +9,7 @@ use test::{black_box, Bencher};
 fn dt_z(bench: &mut Bencher) {
     let s = black_box("1997-09-09T09:09:09Z");
     bench.iter(|| {
-        black_box(DateTime::parse(&s).unwrap());
+        black_box(DateTime::parse_str(&s).unwrap());
     })
 }
 
@@ -33,7 +33,7 @@ fn dt_z_chrono(bench: &mut Bencher) {
 fn dt_custom_tz(bench: &mut Bencher) {
     let s = black_box("1997-09-09T09:09:09-09:09");
     bench.iter(|| {
-        black_box(DateTime::parse(&s).unwrap());
+        black_box(DateTime::parse_str(&s).unwrap());
     })
 }
 
@@ -41,7 +41,7 @@ fn dt_custom_tz(bench: &mut Bencher) {
 fn dt_naive(bench: &mut Bencher) {
     let s = black_box("1997-09-09T09:09:09");
     bench.iter(|| {
-        black_box(DateTime::parse(&s).unwrap());
+        black_box(DateTime::parse_str(&s).unwrap());
     })
 }
 
@@ -49,7 +49,7 @@ fn dt_naive(bench: &mut Bencher) {
 fn date(bench: &mut Bencher) {
     let s = black_box("1997-09-09");
     bench.iter(|| {
-        black_box(Date::parse(&s).unwrap());
+        black_box(Date::parse_str(&s).unwrap());
     })
 }
 
@@ -57,6 +57,6 @@ fn date(bench: &mut Bencher) {
 fn time(bench: &mut Bencher) {
     let s = black_box("09:09:09.09");
     bench.iter(|| {
-        black_box(Time::parse(&s).unwrap());
+        black_box(Time::parse_str(&s).unwrap());
     })
 }
