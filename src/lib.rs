@@ -7,7 +7,7 @@ use std::str::Bytes;
 macro_rules! digit {
     ($bytes:expr) => {
         match $bytes.next() {
-            Some(c) if (b'0'..=b'9').contains(&c) => c as u8 - b'0',
+            Some(c) if (b'0'..=b'9').contains(&c) => c - b'0',
             _ => return Err(ParseError::InvalidChar),
         }
     };
@@ -265,17 +265,15 @@ impl DateTime {
 
                 let h1 = digit!(bytes) as i16;
                 let h2 = digit!(bytes) as i16;
-                match bytes.next() {
-                    Some(b':') => (),
+
+                let m1 = match bytes.next() {
+                    Some(b':') => digit!(bytes) as i16,
+                    Some(c) if (b'0'..=b'9').contains(&c) => (c - b'0') as i16,
                     _ => return Err(ParseError::InvalidChar),
-                }
-                let m1 = digit!(bytes) as i16;
+                };
                 let m2 = digit!(bytes) as i16;
 
-                let hours = h1 * 10 + h2;
-                let minutes = m1 * 10 + m2;
-
-                offset = Some(sign * hours * 60 + minutes);
+                offset = Some(sign * h1 * 600 + h2 * 60 + m1 * 10 + m2);
             }
         }
 

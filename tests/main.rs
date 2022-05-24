@@ -1,4 +1,3 @@
-#[cfg(test)]
 use not8601::{Date, DateTime, Time};
 
 #[test]
@@ -49,8 +48,9 @@ fn test_datetime_naive() {
 
 #[test]
 fn test_datetime_tz_z() {
+    let dt = DateTime::parse("2020-01-01 12:13:14z").unwrap();
     assert_eq!(
-        DateTime::parse("2020-01-01 12:13:14z").unwrap(),
+        dt,
         DateTime {
             date: Date {
                 year: 2020,
@@ -66,12 +66,14 @@ fn test_datetime_tz_z() {
             offset: Some(0),
         }
     );
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14Z");
 }
 
 #[test]
 fn test_datetime_tz_2hours() {
+    let dt = DateTime::parse("2020-01-01T12:13:14+02:00").unwrap();
     assert_eq!(
-        DateTime::parse("2020-01-01T12:13:14+02:00").unwrap(),
+        dt,
         DateTime {
             date: Date {
                 year: 2020,
@@ -87,4 +89,12 @@ fn test_datetime_tz_2hours() {
             offset: Some(120),
         }
     );
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14+02:00");
+}
+
+#[test]
+fn test_datetime_tz_no_colon() {
+    let dt = DateTime::parse("2020-01-01T12:13:14+1234").unwrap();
+    assert_eq!(dt.offset, Some(12 * 60 + 34));
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14+12:34");
 }
