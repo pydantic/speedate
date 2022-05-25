@@ -226,6 +226,7 @@ fn datetime_seconds_break() {
 fn datetime_error() {
     expect_error!(DateTime::parse_str("xxx"), InvalidCharYear);
     expect_error!(DateTime::parse_str("2020-01-01x"), InvalidCharDateTimeSep);
+    expect_error!(DateTime::parse_str("2020-01-01Tx"), InvalidCharHour);
     expect_error!(DateTime::parse_str("2020-01-01T12:00:00x"), InvalidCharTzSign);
     expect_error!(DateTime::parse_str("2020-01-01T12:00:00+x"), InvalidCharTzHour);
     expect_error!(DateTime::parse_str("2020-01-01T12:00:00+00x"), InvalidCharTzMinute);
