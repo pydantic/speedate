@@ -278,7 +278,6 @@ impl DateTime {
                 };
                 let m2 = next_digit!(bytes, InvalidCharTzMinute) as i16;
 
-                dbg!(sign, h1, h2, m1, m2);
                 offset = Some(sign * (h1 * 600 + h2 * 60 + m1 * 10 + m2));
             }
         }
