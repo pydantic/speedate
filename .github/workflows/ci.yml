@@ -23,6 +23,15 @@ jobs:
     - run: rustup default ${{ matrix.rust }}
 
     - run: cargo test
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - run: rustup update nightly
+    - run: rustup default nightly
+
     - run: cargo bench
 
   link:

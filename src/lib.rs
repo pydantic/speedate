@@ -5,11 +5,11 @@ use std::slice::Iter;
 /// Parsing datetime values
 /// Taken from toml-rs and modified extensively.
 
-macro_rules! digit {
-    ($bytes:expr) => {
+macro_rules! next_digit {
+    ($bytes:ident, $error:ident) => {
         match $bytes.next() {
             Some(c) if (b'0'..=b'9').contains(&c) => c - b'0',
-            _ => return Err(ParseError::InvalidChar),
+            _ => return Err(ParseError::$error),
         }
     };
 }
@@ -47,26 +47,26 @@ impl Date {
     }
 
     fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
-        let y1 = digit!(bytes) as u16;
-        let y2 = digit!(bytes) as u16;
-        let y3 = digit!(bytes) as u16;
-        let y4 = digit!(bytes) as u16;
+        let y1 = next_digit!(bytes, InvalidCharYear) as u16;
+        let y2 = next_digit!(bytes, InvalidCharYear) as u16;
+        let y3 = next_digit!(bytes, InvalidCharYear) as u16;
+        let y4 = next_digit!(bytes, InvalidCharYear) as u16;
 
         match bytes.next() {
             Some(b'-') => (),
-            _ => return Err(ParseError::InvalidChar),
+            _ => return Err(ParseError::InvalidCharDateSep),
         }
 
-        let m1 = digit!(bytes);
-        let m2 = digit!(bytes);
+        let m1 = next_digit!(bytes, InvalidCharMonth);
+        let m2 = next_digit!(bytes, InvalidCharMonth);
 
         match bytes.next() {
             Some(b'-') => (),
-            _ => return Err(ParseError::InvalidChar),
+            _ => return Err(ParseError::InvalidCharDateSep),
         }
 
-        let d1 = digit!(bytes);
-        let d2 = digit!(bytes);
+        let d1 = next_digit!(bytes, InvalidCharDay);
+        let d2 = next_digit!(bytes, InvalidCharDay);
 
         let year = y1 * 1000 + y2 * 100 + y3 * 10 + y4;
         let month = m1 * 10 + m2;
@@ -83,13 +83,13 @@ impl Date {
                     28
                 }
             }
-            _ => return Err(ParseError::OutOfRange),
+            _ => return Err(ParseError::OutOfRangeMonth),
         };
 
         let day = d1 * 10 + d2;
 
         if day < 1 || day > max_days {
-            return Err(ParseError::OutOfRange);
+            return Err(ParseError::OutOfRangeDay);
         }
 
         Ok(Date { year, month, day })
@@ -119,7 +119,7 @@ impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:02}:{:02}:{:02}", self.hour, self.minute, self.second)?;
         if self.microsecond != 0 {
-            let s = format!("{:09}", self.microsecond);
+            let s = format!("{:06}", self.microsecond);
             write!(f, ".{}", s.trim_end_matches('0'))?;
         }
         Ok(())
@@ -139,22 +139,22 @@ impl Time {
     }
 
     fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
-        let h1 = digit!(bytes);
-        let h2 = digit!(bytes);
+        let h1 = next_digit!(bytes, InvalidCharHour);
+        let h2 = next_digit!(bytes, InvalidCharHour);
 
         match bytes.next() {
             Some(b':') => (),
-            _ => return Err(ParseError::InvalidChar),
+            _ => return Err(ParseError::InvalidCharTimeSep),
         }
-        let m1 = digit!(bytes);
-        let m2 = digit!(bytes);
+        let m1 = next_digit!(bytes, InvalidCharMinute);
+        let m2 = next_digit!(bytes, InvalidCharMinute);
 
         match bytes.next() {
             Some(b':') => (),
-            _ => return Err(ParseError::InvalidChar),
+            _ => return Err(ParseError::InvalidCharTimeSep),
         }
-        let s1 = digit!(bytes);
-        let s2 = digit!(bytes);
+        let s1 = next_digit!(bytes, InvalidCharSecond);
+        let s2 = next_digit!(bytes, InvalidCharSecond);
 
         let mut microsecond = 0;
         let mut micro_bytes = bytes.clone();
@@ -163,20 +163,20 @@ impl Time {
             for digit in micro_bytes {
                 match digit {
                     b'0'..=b'9' => {
-                        i += 1;
-                        if i > 6 {
-                            return Err(ParseError::InvalidChar);
-                        }
                         microsecond *= 10;
                         microsecond += (digit - b'0') as u32;
                     }
                     _ => {
-                        if i == 0 {
-                            return Err(ParseError::InvalidChar);
-                        }
                         break;
                     }
                 }
+                i += 1;
+                if i > 6 {
+                    return Err(ParseError::SecondFractionTooLong);
+                }
+            }
+            if i == 0 {
+                return Err(ParseError::SecondFractionMissing);
             }
             if i < 6 {
                 microsecond *= 10_u32.pow(6 - i);
@@ -191,17 +191,14 @@ impl Time {
             microsecond,
         };
 
-        if time.hour > 24 {
-            return Err(ParseError::OutOfRange);
+        if time.hour > 23 {
+            return Err(ParseError::OutOfRangeHour);
         }
         if time.minute > 59 {
-            return Err(ParseError::OutOfRange);
+            return Err(ParseError::OutOfRangeMinute);
         }
         if time.second > 59 {
-            return Err(ParseError::OutOfRange);
-        }
-        if time.microsecond > 999_999 {
-            return Err(ParseError::OutOfRange);
+            return Err(ParseError::OutOfRangeSecond);
         }
 
         Ok(time)
@@ -230,7 +227,7 @@ impl fmt::Display for DateTime {
             if offset == 0 {
                 write!(f, "Z")?;
             } else {
-                write!(f, "{:+03}:{:02}", offset / 60, offset % 60)?;
+                write!(f, "{:+03}:{:02}", offset / 60, (offset % 60).abs())?;
             }
         }
         Ok(())
@@ -245,9 +242,6 @@ impl DateTime {
 
     pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
         let mut bytes = date.iter().copied();
-        if bytes.len() < 3 {
-            return Err(ParseError::TooShort);
-        }
 
         // First up, parse the full date if we can
         let date = Date::parse_iter(&mut bytes)?;
@@ -255,7 +249,7 @@ impl DateTime {
         // Next parse the separator between date and time
         let sep = bytes.next();
         if sep != Some(b'T') && sep != Some(b't') && sep != Some(b' ') {
-            return Err(ParseError::InvalidChar);
+            return Err(ParseError::InvalidCharDateTimeSep);
         }
 
         // Next try to parse the time
@@ -271,35 +265,53 @@ impl DateTime {
                 let sign = match next {
                     b'+' => 1,
                     b'-' => -1,
-                    _ => return Err(ParseError::TooShort),
+                    _ => return Err(ParseError::InvalidCharTzSign),
                 };
 
-                let h1 = digit!(bytes) as i16;
-                let h2 = digit!(bytes) as i16;
+                let h1 = next_digit!(bytes, InvalidCharTzHour) as i16;
+                let h2 = next_digit!(bytes, InvalidCharTzHour) as i16;
 
                 let m1 = match bytes.next() {
-                    Some(b':') => digit!(bytes) as i16,
+                    Some(b':') => next_digit!(bytes, InvalidCharTzMinute) as i16,
                     Some(c) if (b'0'..=b'9').contains(&c) => (c - b'0') as i16,
-                    _ => return Err(ParseError::InvalidChar),
+                    _ => return Err(ParseError::InvalidCharTzMinute),
                 };
-                let m2 = digit!(bytes) as i16;
+                let m2 = next_digit!(bytes, InvalidCharTzMinute) as i16;
 
-                offset = Some(sign * h1 * 600 + h2 * 60 + m1 * 10 + m2);
+                dbg!(sign, h1, h2, m1, m2);
+                offset = Some(sign * (h1 * 600 + h2 * 60 + m1 * 10 + m2));
             }
         }
 
         if bytes.next().is_some() {
-            return Err(ParseError::TooLong);
+            return Err(ParseError::ExtraCharacters);
         }
 
         Ok(DateTime { date, time, offset })
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ParseError {
-    TooShort,
-    TooLong,
-    InvalidChar,
-    OutOfRange,
+    ExtraCharacters,
+    InvalidCharDateTimeSep,
+    InvalidCharDateSep,
+    InvalidCharYear,
+    InvalidCharMonth,
+    InvalidCharDay,
+    InvalidCharTimeSep,
+    InvalidCharHour,
+    InvalidCharMinute,
+    InvalidCharSecond,
+    InvalidCharSecondFraction,
+    InvalidCharTzSign,
+    InvalidCharTzHour,
+    InvalidCharTzMinute,
+    OutOfRangeMonth,
+    OutOfRangeDay,
+    OutOfRangeHour,
+    OutOfRangeMinute,
+    OutOfRangeSecond,
+    SecondFractionTooLong,
+    SecondFractionMissing,
 }
