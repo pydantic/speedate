@@ -288,10 +288,11 @@ fn datetime_underscore() {
 
 expect_error_tests! {
     DateTime,
-    dt: "xxx", TooShort;
+    dt_short_date: "xxx", TooShort;
+    dt_short_time: "2020-01-01T12:0", TooShort;
     dt: "202x-01-01", InvalidCharYear;
     dt: "2020-01-01x", InvalidCharDateTimeSep;
-    dt: "2020-01-01Tx", InvalidCharHour;
+    dt: "2020-01-01Txx:00", InvalidCharHour;
     dt_1: "2020-01-01T12:00:00x", InvalidCharTzSign;
     // same first byte as U+2212, different second b'\xe2\x89\x92'.decode()
     dt_2: "2020-01-01T12:00:00≒", InvalidCharTzSign;

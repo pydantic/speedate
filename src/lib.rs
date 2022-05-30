@@ -61,7 +61,7 @@ impl Date {
     }
 
     fn parse_iter(bytes: &mut ByteIter) -> Result<Self, ParseError> {
-        if bytes.len() < 10 {
+        if bytes.remaining() < 10 {
             return Err(ParseError::TooShort);
         }
         let year: u16;
@@ -165,7 +165,7 @@ impl Time {
     }
 
     fn parse_iter(bytes: &mut ByteIter) -> Result<Self, ParseError> {
-        if bytes.len() < 5 {
+        if bytes.remaining() < 5 {
             return Err(ParseError::TooShort);
         }
         let hour: u8;
@@ -369,6 +369,7 @@ pub enum ParseError {
     SecondFractionMissing,
 }
 
+#[derive(Debug)]
 struct ByteIter<'a> {
     index: usize,
     bytes: &'a [u8],
@@ -379,8 +380,8 @@ impl<'a> ByteIter<'a> {
         Self { index: 0, bytes }
     }
 
-    fn len(&self) -> usize {
-        self.bytes.len()
+    fn remaining(&self) -> usize {
+        self.bytes.len() - self.index
     }
 
     fn peek(&self) -> Option<u8> {
