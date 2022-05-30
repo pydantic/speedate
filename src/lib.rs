@@ -154,7 +154,6 @@ impl Time {
 
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        // let mut bytes = ByteIter::new(date);
         let (t, length) = Self::parse_bytes_internal(bytes, 0)?;
 
         if bytes.len() > length {
@@ -229,7 +228,7 @@ impl Time {
                     if i < 6 {
                         microsecond *= 10_u32.pow(6 - i as u32);
                     }
-                    length += i as usize;
+                    length += i;
                 }
                 (second, microsecond)
             }
