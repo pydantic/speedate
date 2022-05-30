@@ -43,7 +43,13 @@ impl Date {
     #[inline]
     pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
         let mut bytes = date.iter().copied();
-        Self::parse_iter(&mut bytes)
+        let d = Self::parse_iter(&mut bytes)?;
+
+        if bytes.next().is_some() {
+            return Err(ParseError::ExtraCharacters);
+        }
+
+        Ok(d)
     }
 
     fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
@@ -99,7 +105,7 @@ impl Date {
 /// A parsed Time
 ///
 /// May be part of a `DateTime`.
-/// Allowed values: `07:32:00`, `00:32:00.999999`
+/// Allowed values: `07:32`, `07:32:00`, `00:32:00.999999`
 ///
 /// Fractions of a second are to millisecond precision, if the value contains greater
 /// precision, an error is raised (TODO).

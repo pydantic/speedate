@@ -2,6 +2,31 @@
 
 use not8601::{Date, DateTime, ParseError, Time};
 
+/// macro for expected ParseError errors
+macro_rules! expect_error {
+    ($type:ty, $input:expr, $error:ident) => {
+        match <$type>::parse_str($input) {
+            Ok(t) => panic!("unexpectedly valid: {:?} -> {:?}", $input, t),
+            Err(e) => assert_eq!(e, ParseError::$error),
+        }
+    };
+}
+
+/// macro to define many tests for unexpected errors
+macro_rules! expect_error_tests {
+    ($type:ty, $($name:ident: $input:expr, $error:ident;)*) => {
+    $(
+        paste::item! {
+            #[allow(non_snake_case)]
+            #[test]
+            fn [< expect_error_ $name _ $error >]() {
+                expect_error!($type, $input, $error);
+            }
+        }
+    )*
+    }
+}
+
 #[test]
 fn date() {
     let d = Date::parse_str("2020-01-01").unwrap();
@@ -17,29 +42,6 @@ fn date() {
     assert_eq!(format!("{:?}", d), "Date { year: 2020, month: 1, day: 1 }");
 }
 
-macro_rules! expect_error {
-    ($type:ty, $input:expr, $error:ident) => {
-        match <$type>::parse_str($input) {
-            Ok(t) => panic!(r"unexpectedly valid: {:?}", t),
-            Err(e) => assert_eq!(e, ParseError::$error),
-        }
-    };
-}
-
-macro_rules! expect_error_tests {
-    ($type:ty, $($name:ident: $input:expr, $error:ident;)*) => {
-    $(
-        paste::item! {
-            #[allow(non_snake_case)]
-            #[test]
-            fn [< expect_error_ $name _ $error >]() {
-                expect_error!($type, $input, $error);
-            }
-        }
-    )*
-    }
-}
-
 expect_error_tests! {
     Date,
     date: "xxx", InvalidCharYear;
@@ -47,6 +49,8 @@ expect_error_tests! {
     date_mo_sep: "2020-12x", InvalidCharDateSep;
     date: "2020-13-01", OutOfRangeMonth;
     date: "2020-04-31", OutOfRangeDay;
+    date_extra_space: "2020-04-01 ", ExtraCharacters;
+    date_extra_xxx: "2020-04-01xxx", ExtraCharacters;
 }
 
 #[test]
@@ -145,7 +149,8 @@ expect_error_tests! {
     time: "24:00:00", OutOfRangeHour;
     time: "23:60:00", OutOfRangeMinute;
     time: "23:59:60", OutOfRangeSecond;
-    time: "23:59:59xxx", ExtraCharacters;
+    time_extra_x: "23:59:59xxx", ExtraCharacters;
+    time_extra_space: "23:59:59 ", ExtraCharacters;
 }
 
 #[test]
@@ -286,5 +291,6 @@ expect_error_tests! {
     dt_3: "2020-01-01T12:00:00∓", InvalidCharTzSign;
     dt: "2020-01-01T12:00:00+x", InvalidCharTzHour;
     dt: "2020-01-01T12:00:00+00x", InvalidCharTzMinute;
-    dt: "2020-01-01T12:00:00Z ", ExtraCharacters;
+    dt_extra_space: "2020-01-01T12:00:00Z ", ExtraCharacters;
+    dt_extra_xxx: "2020-01-01T12:00:00Zxxx", ExtraCharacters;
 }
