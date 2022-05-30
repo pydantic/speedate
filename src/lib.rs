@@ -1,10 +1,9 @@
 use std::fmt;
-use std::iter::Copied;
-use std::slice::Iter;
 
 /// Parsing datetime values
 /// Taken from toml-rs and modified extensively.
 
+// Get the next character from the bytes iterator as a decimal
 macro_rules! next_digit {
     ($bytes:ident, $error:ident) => {
         match $bytes.next() {
@@ -12,6 +11,56 @@ macro_rules! next_digit {
             _ => return Err(ParseError::$error),
         }
     };
+}
+
+struct ByteIter<'a> {
+    index: usize,
+    length: usize,
+    bytes: &'a [u8],
+}
+
+impl<'a> ByteIter<'a> {
+    fn new(bytes: &'a [u8]) -> Self {
+        Self {
+            index: 0,
+            length: bytes.len(),
+            bytes,
+        }
+    }
+
+    fn peak(&self) -> Option<u8> {
+        if self.index < self.length {
+            let b = unsafe { self.bytes.get_unchecked(self.index) };
+            Some(*b)
+        } else {
+            None
+        }
+    }
+
+    fn advance(&mut self) {
+        self.index += 1;
+    }
+
+    fn back(&mut self) {
+        if self.index > 0 {
+            self.index -= 1;
+        }
+    }
+}
+
+impl<'a> Iterator for ByteIter<'a> {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = self.index;
+        self.index += 1;
+        if index < self.length {
+            let b = unsafe { self.bytes.get_unchecked(index) };
+            Some(*b)
+        } else {
+            None
+        }
+    }
 }
 
 /// A parsed Date
@@ -42,7 +91,7 @@ impl Date {
 
     #[inline]
     pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
-        let mut bytes = date.iter().copied();
+        let mut bytes = ByteIter::new(date);
         let d = Self::parse_iter(&mut bytes)?;
 
         if bytes.next().is_some() {
@@ -52,7 +101,7 @@ impl Date {
         Ok(d)
     }
 
-    fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
+    fn parse_iter(bytes: &mut ByteIter) -> Result<Self, ParseError> {
         let y1 = next_digit!(bytes, InvalidCharYear) as u16;
         let y2 = next_digit!(bytes, InvalidCharYear) as u16;
         let y3 = next_digit!(bytes, InvalidCharYear) as u16;
@@ -140,7 +189,7 @@ impl Time {
 
     #[inline]
     pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
-        let mut bytes = date.iter().copied();
+        let mut bytes = ByteIter::new(date);
         let t = Self::parse_iter(&mut bytes)?;
 
         if bytes.next().is_some() {
@@ -150,7 +199,7 @@ impl Time {
         Ok(t)
     }
 
-    fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
+    fn parse_iter(bytes: &mut ByteIter) -> Result<Self, ParseError> {
         let h1 = next_digit!(bytes, InvalidCharHour);
         let h2 = next_digit!(bytes, InvalidCharHour);
         let hour = h1 * 10 + h2;
@@ -171,9 +220,9 @@ impl Time {
             return Err(ParseError::OutOfRangeMinute);
         }
 
-        let (second, microsecond) = match bytes.clone().next() {
+        let (second, microsecond) = match bytes.peak() {
             Some(b':') => {
-                bytes.next();
+                bytes.advance();
                 let s1 = next_digit!(bytes, InvalidCharSecond);
                 let s2 = next_digit!(bytes, InvalidCharSecond);
                 let second = s1 * 10 + s2;
@@ -182,17 +231,18 @@ impl Time {
                 }
 
                 let mut microsecond = 0;
-                let mut micro_bytes = bytes.clone();
-                let frac_sep = micro_bytes.next();
+                let frac_sep = bytes.peak();
                 if frac_sep == Some(b'.') || frac_sep == Some(b',') {
+                    bytes.advance();
                     let mut i: u32 = 0;
-                    for digit in micro_bytes {
-                        match digit {
-                            b'0'..=b'9' => {
+                    loop {
+                        match bytes.next() {
+                            Some(c) if (b'0'..=b'9').contains(&c) => {
                                 microsecond *= 10;
-                                microsecond += (digit - b'0') as u32;
+                                microsecond += (c - b'0') as u32;
                             }
                             _ => {
+                                bytes.back();
                                 break;
                             }
                         }
@@ -207,7 +257,6 @@ impl Time {
                     if i < 6 {
                         microsecond *= 10_u32.pow(6 - i);
                     }
-                    bytes.nth(i as usize);
                 }
                 (second, microsecond)
             }
@@ -259,7 +308,7 @@ impl DateTime {
     }
 
     pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
-        let mut bytes = date.iter().copied();
+        let mut bytes = ByteIter::new(date);
 
         // First up, parse the full date if we can
         let date = Date::parse_iter(&mut bytes)?;

@@ -210,6 +210,12 @@ fn datetime_bytes() {
 }
 
 #[test]
+fn datetime_longest() {
+    let dt = DateTime::parse_str("2020-01-01T12:13:14.123456−02:15").unwrap();
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123456-02:15");
+}
+
+#[test]
 fn datetime_tz_2hours() {
     let dt = DateTime::parse_str("2020-01-01T12:13:14+02:00").unwrap();
     assert_eq!(
