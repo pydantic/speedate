@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::Read;
+
 use not8601::{Date, DateTime, ParseError, Time};
 
 /// macro for expected ParseError errors
@@ -304,4 +307,33 @@ expect_error_tests! {
     dt_extra_space_tz1: "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
     dt_extra_space_tz2: "2020-01-01T12:00:00+0000 ", ExtraCharacters;
     dt_extra_xxx: "2020-01-01T12:00:00Zxxx", ExtraCharacters;
+}
+
+#[test]
+fn test_rfc_3339_values_txt() {
+    let mut f = File::open("./tests/rfc-3339-values.txt").unwrap();
+    let mut contents = String::new();
+    f.read_to_string(&mut contents).unwrap();
+    let mut success = 0;
+    for line in contents.split("\n") {
+        if line.starts_with("#") || line.is_empty() {
+            continue;
+        } else if line.starts_with("date:") {
+            Date::parse_str(line.trim_start_matches("date:").trim())
+                .map_err(|e| panic!("error on line {:?}: {:?}", line, e))
+                .unwrap();
+        } else if line.starts_with("time:") {
+            Time::parse_str(line.trim_start_matches("time:").trim())
+                .map_err(|e| panic!("error on line {:?}: {:?}", line, e))
+                .unwrap();
+        } else if line.starts_with("dt:") {
+            DateTime::parse_str(line.trim_start_matches("dt:").trim())
+                .map_err(|e| panic!("error on line {:?}: {:?}", line, e))
+                .unwrap();
+        } else {
+            panic!("unexpected line: {:?}", line);
+        }
+        success += 1;
+    }
+    println!("{} formats successfully parsed", success);
 }
