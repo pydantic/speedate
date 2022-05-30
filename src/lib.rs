@@ -13,56 +13,6 @@ macro_rules! next_digit {
     };
 }
 
-struct ByteIter<'a> {
-    index: usize,
-    length: usize,
-    bytes: &'a [u8],
-}
-
-impl<'a> ByteIter<'a> {
-    fn new(bytes: &'a [u8]) -> Self {
-        Self {
-            index: 0,
-            length: bytes.len(),
-            bytes,
-        }
-    }
-
-    fn peak(&self) -> Option<u8> {
-        if self.index < self.length {
-            let b = unsafe { self.bytes.get_unchecked(self.index) };
-            Some(*b)
-        } else {
-            None
-        }
-    }
-
-    fn advance(&mut self) {
-        self.index += 1;
-    }
-
-    fn back(&mut self) {
-        if self.index > 0 {
-            self.index -= 1;
-        }
-    }
-}
-
-impl<'a> Iterator for ByteIter<'a> {
-    type Item = u8;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let index = self.index;
-        self.index += 1;
-        if index < self.length {
-            let b = unsafe { self.bytes.get_unchecked(index) };
-            Some(*b)
-        } else {
-            None
-        }
-    }
-}
-
 /// A parsed Date
 ///
 /// May be part of a `DateTime`.
@@ -392,4 +342,54 @@ pub enum ParseError {
     OutOfRangeSecond,
     SecondFractionTooLong,
     SecondFractionMissing,
+}
+
+struct ByteIter<'a> {
+    index: usize,
+    length: usize,
+    bytes: &'a [u8],
+}
+
+impl<'a> ByteIter<'a> {
+    fn new(bytes: &'a [u8]) -> Self {
+        Self {
+            index: 0,
+            length: bytes.len(),
+            bytes,
+        }
+    }
+
+    fn peak(&self) -> Option<u8> {
+        if self.index < self.length {
+            let b = unsafe { self.bytes.get_unchecked(self.index) };
+            Some(*b)
+        } else {
+            None
+        }
+    }
+
+    fn advance(&mut self) {
+        self.index += 1;
+    }
+
+    fn back(&mut self) {
+        if self.index > 0 {
+            self.index -= 1;
+        }
+    }
+}
+
+impl<'a> Iterator for ByteIter<'a> {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = self.index;
+        self.index += 1;
+        if index < self.length {
+            let b = unsafe { self.bytes.get_unchecked(index) };
+            Some(*b)
+        } else {
+            None
+        }
+    }
 }
