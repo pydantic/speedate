@@ -13,12 +13,10 @@ macro_rules! next_digit {
     };
 }
 
-macro_rules! next_two_digits {
+macro_rules! next_digit_unchecked {
     ($bytes:ident, $error:ident) => {
-        match $bytes.next_two() {
-            Some((c1, c2)) if (b'0'..=b'9').contains(&c1) && (b'0'..=b'9').contains(&c2) => {
-                (c1 - b'0') * 10 + c2 - b'0'
-            }
+        match $bytes.next_unchecked() {
+            c if (b'0'..=b'9').contains(&c) => c - b'0',
             _ => return Err(ParseError::$error),
         }
     };
@@ -63,34 +61,37 @@ impl Date {
     }
 
     fn parse_iter(bytes: &mut ByteIter) -> Result<Self, ParseError> {
-        // let y1 = next_digit!(bytes, InvalidCharYear) as u16;
-        // let y2 = next_digit!(bytes, InvalidCharYear) as u16;
-        // let y3 = next_digit!(bytes, InvalidCharYear) as u16;
-        // let y4 = next_digit!(bytes, InvalidCharYear) as u16;
-        let y1 = next_two_digits!(bytes, InvalidCharYear) as u16;
-        let y2 = next_two_digits!(bytes, InvalidCharYear) as u16;
-        let year = y1 * 100 + y2;
-
-        match bytes.next() {
-            Some(b'-') => (),
-            _ => return Err(ParseError::InvalidCharDateSep),
+        if bytes.len() < 10 {
+            return Err(ParseError::TooShort);
         }
+        let year: u16;
+        let month: u8;
+        let day: u8;
+        unsafe {
+            let y1 = next_digit_unchecked!(bytes, InvalidCharYear) as u16;
+            let y2 = next_digit_unchecked!(bytes, InvalidCharYear) as u16;
+            let y3 = next_digit_unchecked!(bytes, InvalidCharYear) as u16;
+            let y4 = next_digit_unchecked!(bytes, InvalidCharYear) as u16;
+            year = y1 * 1000 + y2 * 100 + y3 * 10 + y4;
 
-        let month = next_two_digits!(bytes, InvalidCharMonth);
-        // let m1 = next_digit!(bytes, InvalidCharMonth);
-        // let m2 = next_digit!(bytes, InvalidCharMonth);
+            match bytes.next_unchecked() {
+                b'-' => (),
+                _ => return Err(ParseError::InvalidCharDateSep),
+            }
 
-        match bytes.next() {
-            Some(b'-') => (),
-            _ => return Err(ParseError::InvalidCharDateSep),
+            let m1 = next_digit_unchecked!(bytes, InvalidCharMonth);
+            let m2 = next_digit_unchecked!(bytes, InvalidCharMonth);
+            month = m1 * 10 + m2;
+
+            match bytes.next_unchecked() {
+                b'-' => (),
+                _ => return Err(ParseError::InvalidCharDateSep),
+            }
+
+            let d1 = next_digit_unchecked!(bytes, InvalidCharDay);
+            let d2 = next_digit_unchecked!(bytes, InvalidCharDay);
+            day = d1 * 10 + d2;
         }
-
-        let day = next_two_digits!(bytes, InvalidCharDay);
-        // let d1 = next_digit!(bytes, InvalidCharDay);
-        // let d2 = next_digit!(bytes, InvalidCharDay);
-
-        // let year = y1 * 1000 + y2 * 100 + y3 * 10 + y4;
-        // let month = m1 * 10 + m2;
 
         // calculate the maximum number of days in the month, accounting for leap years in the
         // gregorian calendar
@@ -106,8 +107,6 @@ impl Date {
             }
             _ => return Err(ParseError::OutOfRangeMonth),
         };
-
-        // let day = d1 * 10 + d2;
 
         if day < 1 || day > max_days {
             return Err(ParseError::OutOfRangeDay);
@@ -166,23 +165,28 @@ impl Time {
     }
 
     fn parse_iter(bytes: &mut ByteIter) -> Result<Self, ParseError> {
-        // let h1 = next_digit!(bytes, InvalidCharHour);
-        // let h2 = next_digit!(bytes, InvalidCharHour);
-        // let hour = h1 * 10 + h2;
-        let hour = next_two_digits!(bytes, InvalidCharHour);
+        if bytes.len() < 5 {
+            return Err(ParseError::TooShort);
+        }
+        let hour: u8;
+        let minute: u8;
+        unsafe {
+            let h1 = next_digit_unchecked!(bytes, InvalidCharHour);
+            let h2 = next_digit_unchecked!(bytes, InvalidCharHour);
+            hour = h1 * 10 + h2;
+
+            match bytes.next_unchecked() {
+                b':' => (),
+                _ => return Err(ParseError::InvalidCharTimeSep),
+            }
+            let m1 = next_digit_unchecked!(bytes, InvalidCharMinute);
+            let m2 = next_digit_unchecked!(bytes, InvalidCharMinute);
+            minute = m1 * 10 + m2;
+        }
 
         if hour > 23 {
             return Err(ParseError::OutOfRangeHour);
         }
-
-        match bytes.next() {
-            Some(b':') => (),
-            _ => return Err(ParseError::InvalidCharTimeSep),
-        }
-        // let m1 = next_digit!(bytes, InvalidCharMinute);
-        // let m2 = next_digit!(bytes, InvalidCharMinute);
-        // let minute = m1 * 10 + m2;
-        let minute = next_two_digits!(bytes, InvalidCharMinute);
 
         if minute > 59 {
             return Err(ParseError::OutOfRangeMinute);
@@ -191,10 +195,9 @@ impl Time {
         let (second, microsecond) = match bytes.peak() {
             Some(b':') => {
                 bytes.advance();
-                // let s1 = next_digit!(bytes, InvalidCharSecond);
-                // let s2 = next_digit!(bytes, InvalidCharSecond);
-                // let second = s1 * 10 + s2;
-                let second = next_two_digits!(bytes, InvalidCharSecond);
+                let s1 = next_digit!(bytes, InvalidCharSecond);
+                let s2 = next_digit!(bytes, InvalidCharSecond);
+                let second = s1 * 10 + s2;
                 if second > 59 {
                     return Err(ParseError::OutOfRangeSecond);
                 }
@@ -319,7 +322,6 @@ impl DateTime {
 
                 let h1 = next_digit!(bytes, InvalidCharTzHour) as i16;
                 let h2 = next_digit!(bytes, InvalidCharTzHour) as i16;
-                // let hour = next_two_digits!(bytes, InvalidCharTzHour) as i16;
 
                 let m1 = match bytes.next() {
                     Some(b':') => next_digit!(bytes, InvalidCharTzMinute) as i16,
@@ -343,6 +345,7 @@ impl DateTime {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ParseError {
+    TooShort,
     ExtraCharacters,
     InvalidCharDateTimeSep,
     InvalidCharDateSep,
@@ -376,21 +379,12 @@ impl<'a> ByteIter<'a> {
         Self { index: 0, bytes }
     }
 
-    fn peak(&self) -> Option<u8> {
-        match self.bytes.get(self.index) {
-            Some(b) => Some(*b),
-            None => None,
-        }
+    fn len(&self) -> usize {
+        self.bytes.len()
     }
 
-    fn next_two(&mut self) -> Option<(u8, u8)> {
-        let index = self.index;
-        self.index += 2;
-        if index + 1 < self.bytes.len() {
-            unsafe { Some((*self.bytes.get_unchecked(index), *self.bytes.get_unchecked(index + 1))) }
-        } else {
-            None
-        }
+    fn peak(&self) -> Option<u8> {
+        self.bytes.get(self.index).copied()
     }
 
     fn advance(&mut self) {
@@ -398,9 +392,14 @@ impl<'a> ByteIter<'a> {
     }
 
     fn back(&mut self) {
-        if self.index > 0 {
-            self.index -= 1;
-        }
+        self.index -= 1;
+    }
+
+    unsafe fn next_unchecked(&mut self) -> u8 {
+        // only to be used when the length has already been checked!!!
+        let b = *self.bytes.get_unchecked(self.index);
+        self.index += 1;
+        b
     }
 }
 
@@ -408,11 +407,8 @@ impl<'a> Iterator for ByteIter<'a> {
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let index = self.index;
+        let b = self.bytes.get(self.index).copied();
         self.index += 1;
-        match self.bytes.get(index) {
-            Some(b) => Some(*b),
-            None => None,
-        }
+        b
     }
 }
