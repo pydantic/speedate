@@ -1,14 +1,23 @@
 use std::fmt;
-use std::iter::Copied;
-use std::slice::Iter;
 
 /// Parsing datetime values
 /// Taken from toml-rs and modified extensively.
 
-macro_rules! next_digit {
-    ($bytes:ident, $error:ident) => {
-        match $bytes.next() {
+// get a character from the bytes as as a decimal
+macro_rules! get_digit {
+    ($bytes:ident, $index:expr, $error:ident) => {
+        match $bytes.get($index) {
             Some(c) if (b'0'..=b'9').contains(&c) => c - b'0',
+            _ => return Err(ParseError::$error),
+        }
+    };
+}
+
+// as above without bounds check, requires length to checked first!
+macro_rules! get_digit_unchecked {
+    ($bytes:ident, $index:expr, $error:ident) => {
+        match $bytes.get_unchecked($index) {
+            c if (b'0'..=b'9').contains(&c) => c - b'0',
             _ => return Err(ParseError::$error),
         }
     };
@@ -41,41 +50,48 @@ impl Date {
     }
 
     #[inline]
-    pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
-        let mut bytes = date.iter().copied();
-        let d = Self::parse_iter(&mut bytes)?;
+    pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+        let d = Self::parse_bytes_internal(bytes)?;
 
-        if bytes.next().is_some() {
+        if bytes.len() > 10 {
             return Err(ParseError::ExtraCharacters);
         }
 
         Ok(d)
     }
 
-    fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
-        let y1 = next_digit!(bytes, InvalidCharYear) as u16;
-        let y2 = next_digit!(bytes, InvalidCharYear) as u16;
-        let y3 = next_digit!(bytes, InvalidCharYear) as u16;
-        let y4 = next_digit!(bytes, InvalidCharYear) as u16;
-
-        match bytes.next() {
-            Some(b'-') => (),
-            _ => return Err(ParseError::InvalidCharDateSep),
+    fn parse_bytes_internal(bytes: &[u8]) -> Result<Self, ParseError> {
+        if bytes.len() < 10 {
+            return Err(ParseError::TooShort);
         }
+        let year: u16;
+        let month: u8;
+        let day: u8;
+        unsafe {
+            let y1 = get_digit_unchecked!(bytes, 0, InvalidCharYear) as u16;
+            let y2 = get_digit_unchecked!(bytes, 1, InvalidCharYear) as u16;
+            let y3 = get_digit_unchecked!(bytes, 2, InvalidCharYear) as u16;
+            let y4 = get_digit_unchecked!(bytes, 3, InvalidCharYear) as u16;
+            year = y1 * 1000 + y2 * 100 + y3 * 10 + y4;
 
-        let m1 = next_digit!(bytes, InvalidCharMonth);
-        let m2 = next_digit!(bytes, InvalidCharMonth);
+            match bytes.get_unchecked(4) {
+                b'-' => (),
+                _ => return Err(ParseError::InvalidCharDateSep),
+            }
 
-        match bytes.next() {
-            Some(b'-') => (),
-            _ => return Err(ParseError::InvalidCharDateSep),
+            let m1 = get_digit_unchecked!(bytes, 5, InvalidCharMonth);
+            let m2 = get_digit_unchecked!(bytes, 6, InvalidCharMonth);
+            month = m1 * 10 + m2;
+
+            match bytes.get_unchecked(7) {
+                b'-' => (),
+                _ => return Err(ParseError::InvalidCharDateSep),
+            }
+
+            let d1 = get_digit_unchecked!(bytes, 8, InvalidCharDay);
+            let d2 = get_digit_unchecked!(bytes, 9, InvalidCharDay);
+            day = d1 * 10 + d2;
         }
-
-        let d1 = next_digit!(bytes, InvalidCharDay);
-        let d2 = next_digit!(bytes, InvalidCharDay);
-
-        let year = y1 * 1000 + y2 * 100 + y3 * 10 + y4;
-        let month = m1 * 10 + m2;
 
         // calculate the maximum number of days in the month, accounting for leap years in the
         // gregorian calendar
@@ -91,8 +107,6 @@ impl Date {
             }
             _ => return Err(ParseError::OutOfRangeMonth),
         };
-
-        let day = d1 * 10 + d2;
 
         if day < 1 || day > max_days {
             return Err(ParseError::OutOfRangeDay);
@@ -139,58 +153,65 @@ impl Time {
     }
 
     #[inline]
-    pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
-        let mut bytes = date.iter().copied();
-        let t = Self::parse_iter(&mut bytes)?;
+    pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+        let (t, length) = Self::parse_bytes_internal(bytes, 0)?;
 
-        if bytes.next().is_some() {
+        if bytes.len() > length {
             return Err(ParseError::ExtraCharacters);
         }
 
         Ok(t)
     }
 
-    fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
-        let h1 = next_digit!(bytes, InvalidCharHour);
-        let h2 = next_digit!(bytes, InvalidCharHour);
-        let hour = h1 * 10 + h2;
+    fn parse_bytes_internal(bytes: &[u8], offset: usize) -> Result<(Self, usize), ParseError> {
+        if bytes.len() - offset < 5 {
+            return Err(ParseError::TooShort);
+        }
+        let hour: u8;
+        let minute: u8;
+        unsafe {
+            let h1 = get_digit_unchecked!(bytes, offset, InvalidCharHour);
+            let h2 = get_digit_unchecked!(bytes, offset + 1, InvalidCharHour);
+            hour = h1 * 10 + h2;
+
+            match bytes.get_unchecked(offset + 2) {
+                b':' => (),
+                _ => return Err(ParseError::InvalidCharTimeSep),
+            }
+            let m1 = get_digit_unchecked!(bytes, offset + 3, InvalidCharMinute);
+            let m2 = get_digit_unchecked!(bytes, offset + 4, InvalidCharMinute);
+            minute = m1 * 10 + m2;
+        }
 
         if hour > 23 {
             return Err(ParseError::OutOfRangeHour);
         }
 
-        match bytes.next() {
-            Some(b':') => (),
-            _ => return Err(ParseError::InvalidCharTimeSep),
-        }
-        let m1 = next_digit!(bytes, InvalidCharMinute);
-        let m2 = next_digit!(bytes, InvalidCharMinute);
-        let minute = m1 * 10 + m2;
-
         if minute > 59 {
             return Err(ParseError::OutOfRangeMinute);
         }
+        let mut length: usize = 5;
 
-        let (second, microsecond) = match bytes.clone().next() {
+        let (second, microsecond) = match bytes.get(offset + 5) {
             Some(b':') => {
-                bytes.next();
-                let s1 = next_digit!(bytes, InvalidCharSecond);
-                let s2 = next_digit!(bytes, InvalidCharSecond);
+                let s1 = get_digit!(bytes, offset + 6, InvalidCharSecond);
+                let s2 = get_digit!(bytes, offset + 7, InvalidCharSecond);
                 let second = s1 * 10 + s2;
                 if second > 59 {
                     return Err(ParseError::OutOfRangeSecond);
                 }
+                length = 8;
 
                 let mut microsecond = 0;
-                let mut micro_bytes = bytes.clone();
-                let frac_sep = micro_bytes.next();
+                let frac_sep = bytes.get(offset + 8).copied();
                 if frac_sep == Some(b'.') || frac_sep == Some(b',') {
-                    let mut i: u32 = 0;
-                    for digit in micro_bytes {
-                        match digit {
-                            b'0'..=b'9' => {
+                    length = 9;
+                    let mut i: usize = 0;
+                    loop {
+                        match bytes.get(offset + length + i) {
+                            Some(c) if (b'0'..=b'9').contains(c) => {
                                 microsecond *= 10;
-                                microsecond += (digit - b'0') as u32;
+                                microsecond += (c - b'0') as u32;
                             }
                             _ => {
                                 break;
@@ -205,21 +226,21 @@ impl Time {
                         return Err(ParseError::SecondFractionMissing);
                     }
                     if i < 6 {
-                        microsecond *= 10_u32.pow(6 - i);
+                        microsecond *= 10_u32.pow(6 - i as u32);
                     }
-                    bytes.nth(i as usize);
+                    length += i;
                 }
                 (second, microsecond)
             }
             _ => (0, 0),
         };
-
-        Ok(Time {
+        let t = Time {
             hour,
             minute,
             second,
             microsecond,
-        })
+        };
+        Ok((t, length))
     }
 }
 
@@ -258,61 +279,68 @@ impl DateTime {
         Self::parse_bytes(str.as_bytes())
     }
 
-    pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
-        let mut bytes = date.iter().copied();
-
+    pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
         // First up, parse the full date if we can
-        let date = Date::parse_iter(&mut bytes)?;
+        let date = Date::parse_bytes_internal(bytes)?;
 
         // Next parse the separator between date and time
-        let sep = bytes.next();
+        let sep = bytes.get(10).copied();
         if sep != Some(b'T') && sep != Some(b't') && sep != Some(b' ') && sep != Some(b'_') {
             return Err(ParseError::InvalidCharDateTimeSep);
         }
 
         // Next try to parse the time
-        let time = Time::parse_iter(&mut bytes)?;
+        let (time, time_length) = Time::parse_bytes_internal(bytes, 11)?;
+        let mut position = 11 + time_length;
 
         // And finally, parse the offset
         let mut offset: Option<i16> = None;
 
-        if let Some(next) = bytes.next() {
-            if next == b'Z' || next == b'z' {
+        if let Some(next_char) = bytes.get(position).copied() {
+            position += 1;
+            if next_char == b'Z' || next_char == b'z' {
                 offset = Some(0);
             } else {
-                let sign = match next {
+                let sign = match next_char {
                     b'+' => 1,
                     b'-' => -1,
                     226 => {
                         // U+2212 MINUS "−" is allowed under ISO 8601 for negative timezones
                         // > python -c 'print([c for c in "−".encode()])'
                         // its raw byte values are [226, 136, 146]
-                        if bytes.next() != Some(136) {
+                        if bytes.get(position).copied() != Some(136) {
                             return Err(ParseError::InvalidCharTzSign);
                         }
-                        if bytes.next() != Some(146) {
+                        if bytes.get(position + 1).copied() != Some(146) {
                             return Err(ParseError::InvalidCharTzSign);
                         }
+                        position += 2;
                         -1
                     }
                     _ => return Err(ParseError::InvalidCharTzSign),
                 };
 
-                let h1 = next_digit!(bytes, InvalidCharTzHour) as i16;
-                let h2 = next_digit!(bytes, InvalidCharTzHour) as i16;
+                let h1 = get_digit!(bytes, position, InvalidCharTzHour) as i16;
+                let h2 = get_digit!(bytes, position + 1, InvalidCharTzHour) as i16;
 
-                let m1 = match bytes.next() {
-                    Some(b':') => next_digit!(bytes, InvalidCharTzMinute) as i16,
-                    Some(c) if (b'0'..=b'9').contains(&c) => (c - b'0') as i16,
+                let m1 = match bytes.get(position + 2) {
+                    Some(b':') => {
+                        position += 3;
+                        get_digit!(bytes, position, InvalidCharTzMinute) as i16
+                    }
+                    Some(c) if (b'0'..=b'9').contains(c) => {
+                        position += 2;
+                        (c - b'0') as i16
+                    }
                     _ => return Err(ParseError::InvalidCharTzMinute),
                 };
-                let m2 = next_digit!(bytes, InvalidCharTzMinute) as i16;
+                let m2 = get_digit!(bytes, position + 1, InvalidCharTzMinute) as i16;
 
                 offset = Some(sign * (h1 * 600 + h2 * 60 + m1 * 10 + m2));
+                position += 2;
             }
         }
-
-        if bytes.next().is_some() {
+        if bytes.len() > position {
             return Err(ParseError::ExtraCharacters);
         }
 
@@ -322,6 +350,7 @@ impl DateTime {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ParseError {
+    TooShort,
     ExtraCharacters,
     InvalidCharDateTimeSep,
     InvalidCharDateSep,

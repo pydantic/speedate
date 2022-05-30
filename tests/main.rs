@@ -1,5 +1,3 @@
-#![feature(concat_idents)]
-
 use not8601::{Date, DateTime, ParseError, Time};
 
 /// macro for expected ParseError errors
@@ -44,9 +42,11 @@ fn date() {
 
 expect_error_tests! {
     Date,
-    date: "xxx", InvalidCharYear;
-    date_year_sep: "2020x", InvalidCharDateSep;
-    date_mo_sep: "2020-12x", InvalidCharDateSep;
+    date_short_3: "123", TooShort;
+    date_short_9: "2000:12:1", TooShort;
+    date: "xxxx:12:31", InvalidCharYear;
+    date_year_sep: "2020x12:13", InvalidCharDateSep;
+    date_mo_sep: "2020-12x13", InvalidCharDateSep;
     date: "2020-13-01", OutOfRangeMonth;
     date: "2020-04-31", OutOfRangeDay;
     date_extra_space: "2020-04-01 ", ExtraCharacters;
@@ -139,9 +139,10 @@ fn time_no_secs() {
 
 expect_error_tests! {
     Time,
-    time: "xxx", InvalidCharHour;
-    time_sep_hour: "12x", InvalidCharTimeSep;
-    time: "12:x", InvalidCharMinute;
+    time: "xxx", TooShort;
+    time: "xx:12", InvalidCharHour;
+    time_sep_hour: "12x12", InvalidCharTimeSep;
+    time: "12:x0", InvalidCharMinute;
     time_sep_min: "12:13x", ExtraCharacters;
     time: "12:13:x", InvalidCharSecond;
     time: "12:13:12.", SecondFractionMissing;
@@ -207,6 +208,12 @@ fn datetime_tz_z() {
 fn datetime_bytes() {
     let dt = DateTime::parse_bytes(b"2020-01-01 12:13:14z").unwrap();
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14Z");
+}
+
+#[test]
+fn datetime_longest() {
+    let dt = DateTime::parse_str("2020-01-01T12:13:14.123456−02:15").unwrap();
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123456-02:15");
 }
 
 #[test]
@@ -281,9 +288,11 @@ fn datetime_underscore() {
 
 expect_error_tests! {
     DateTime,
-    dt: "xxx", InvalidCharYear;
+    dt_short_date: "xxx", TooShort;
+    dt_short_time: "2020-01-01T12:0", TooShort;
+    dt: "202x-01-01", InvalidCharYear;
     dt: "2020-01-01x", InvalidCharDateTimeSep;
-    dt: "2020-01-01Tx", InvalidCharHour;
+    dt: "2020-01-01Txx:00", InvalidCharHour;
     dt_1: "2020-01-01T12:00:00x", InvalidCharTzSign;
     // same first byte as U+2212, different second b'\xe2\x89\x92'.decode()
     dt_2: "2020-01-01T12:00:00≒", InvalidCharTzSign;
@@ -291,6 +300,8 @@ expect_error_tests! {
     dt_3: "2020-01-01T12:00:00∓", InvalidCharTzSign;
     dt: "2020-01-01T12:00:00+x", InvalidCharTzHour;
     dt: "2020-01-01T12:00:00+00x", InvalidCharTzMinute;
-    dt_extra_space: "2020-01-01T12:00:00Z ", ExtraCharacters;
+    dt_extra_space_z: "2020-01-01T12:00:00Z ", ExtraCharacters;
+    dt_extra_space_tz1: "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
+    dt_extra_space_tz2: "2020-01-01T12:00:00+0000 ", ExtraCharacters;
     dt_extra_xxx: "2020-01-01T12:00:00Zxxx", ExtraCharacters;
 }
