@@ -324,23 +324,18 @@ impl DateTime {
                 let h1 = get_digit!(bytes, position, InvalidCharTzHour) as i16;
                 let h2 = get_digit!(bytes, position + 1, InvalidCharTzHour) as i16;
 
-                let (m1, m2) = match bytes.get(position + 2) {
+                let m1 = match bytes.get(position + 2) {
                     Some(b':') => {
                         position += 3;
-                        (
-                            get_digit!(bytes, position, InvalidCharTzMinute) as i16,
-                            get_digit!(bytes, position + 1, InvalidCharTzMinute) as i16,
-                        )
+                        get_digit!(bytes, position, InvalidCharTzMinute) as i16
                     }
                     Some(c) if (b'0'..=b'9').contains(c) => {
                         position += 2;
-                        (
-                            (c - b'0') as i16,
-                            get_digit!(bytes, position + 1, InvalidCharTzMinute) as i16,
-                        )
+                        (c - b'0') as i16
                     }
                     _ => return Err(ParseError::InvalidCharTzMinute),
                 };
+                let m2 = get_digit!(bytes, position + 1, InvalidCharTzMinute) as i16;
 
                 offset = Some(sign * (h1 * 600 + h2 * 60 + m1 * 10 + m2));
                 position += 2;
