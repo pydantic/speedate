@@ -53,7 +53,7 @@ impl Date {
         let mut bytes = ByteIter::new(date);
         let d = Self::parse_iter(&mut bytes)?;
 
-        if bytes.peak().is_some() {
+        if bytes.peek().is_some() {
             return Err(ParseError::ExtraCharacters);
         }
 
@@ -157,7 +157,7 @@ impl Time {
         let mut bytes = ByteIter::new(date);
         let t = Self::parse_iter(&mut bytes)?;
 
-        if bytes.peak().is_some() {
+        if bytes.peek().is_some() {
             return Err(ParseError::ExtraCharacters);
         }
 
@@ -192,7 +192,7 @@ impl Time {
             return Err(ParseError::OutOfRangeMinute);
         }
 
-        let (second, microsecond) = match bytes.peak() {
+        let (second, microsecond) = match bytes.peek() {
             Some(b':') => {
                 bytes.advance();
                 let s1 = next_digit!(bytes, InvalidCharSecond);
@@ -203,7 +203,7 @@ impl Time {
                 }
 
                 let mut microsecond = 0;
-                let frac_sep = bytes.peak();
+                let frac_sep = bytes.peek();
                 if frac_sep == Some(b'.') || frac_sep == Some(b',') {
                     bytes.advance();
                     let mut i: u32 = 0;
@@ -297,7 +297,7 @@ impl DateTime {
         // And finally, parse the offset
         let mut offset: Option<i16> = None;
 
-        if let Some(next) = bytes.peak() {
+        if let Some(next) = bytes.peek() {
             bytes.advance();
             if next == b'Z' || next == b'z' {
                 offset = Some(0);
@@ -335,7 +335,7 @@ impl DateTime {
             }
         }
 
-        if bytes.peak().is_some() {
+        if bytes.peek().is_some() {
             return Err(ParseError::ExtraCharacters);
         }
 
@@ -383,7 +383,7 @@ impl<'a> ByteIter<'a> {
         self.bytes.len()
     }
 
-    fn peak(&self) -> Option<u8> {
+    fn peek(&self) -> Option<u8> {
         self.bytes.get(self.index).copied()
     }
 
