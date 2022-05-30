@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-use not8601::{Date, DateTime, ParseError, Time};
+use not8601::{Date, DateTime, Duration, ParseError, Time};
 
 /// macro for expected ParseError errors
 macro_rules! expect_error {
@@ -336,4 +336,51 @@ fn test_rfc_3339_values_txt() {
         success += 1;
     }
     println!("{} formats successfully parsed", success);
+}
+
+#[test]
+fn duration_simple() {
+    let d = Duration::parse_str("P1Y").unwrap();
+    assert_eq!(
+        d,
+        Duration {
+            day: 365,
+            second: 0,
+            microsecond: 0
+        }
+    );
+    assert_eq!(d.to_string(), "P1Y");
+    assert_eq!(format!("{:?}", d), "Duration { day: 365, second: 0, microsecond: 0 }");
+}
+
+#[test]
+fn duration_fractions() {
+    let d = Duration::parse_str("P1Y1DT2H0.5S").unwrap();
+    assert_eq!(
+        d,
+        Duration {
+            day: 366,
+            second: 7200,
+            microsecond: 500_000
+        }
+    );
+    assert_eq!(d.to_string(), "P1Y1DT7200.5S");
+    assert_eq!(
+        format!("{:?}", d),
+        "Duration { day: 366, second: 7200, microsecond: 500000 }"
+    );
+}
+
+#[test]
+fn duration_1() {
+    let d = Duration::parse_str("P1DT1S").unwrap();
+    assert_eq!(
+        d,
+        Duration {
+            day: 1,
+            second: 1,
+            microsecond: 0
+        }
+    );
+    assert_eq!(d.to_string(), "P1DT1S");
 }
