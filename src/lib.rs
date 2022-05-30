@@ -158,7 +158,8 @@ impl Time {
 
         let mut microsecond = 0;
         let mut micro_bytes = bytes.clone();
-        if micro_bytes.next() == Some(b'.') {
+        let frac_sep = micro_bytes.next();
+        if frac_sep == Some(b'.') || frac_sep == Some(b',') {
             let mut i: u32 = 0;
             for digit in micro_bytes {
                 match digit {
@@ -265,6 +266,17 @@ impl DateTime {
                 let sign = match next {
                     b'+' => 1,
                     b'-' => -1,
+                    226 => {
+                        // U+2212 MINUS "−" is allowed under ISO 8601 for negative timezones
+                        // its raw bytes values are 226, 136, 146
+                        if bytes.next() != Some(136) {
+                            return Err(ParseError::InvalidCharTzSign);
+                        }
+                        if bytes.next() != Some(146) {
+                            return Err(ParseError::InvalidCharTzSign);
+                        }
+                        -1
+                    }
                     _ => return Err(ParseError::InvalidCharTzSign),
                 };
 

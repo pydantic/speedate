@@ -203,6 +203,14 @@ fn datetime_tz_negative() {
 }
 
 #[test]
+fn datetime_tz_negative_2212() {
+    // using U+2212 for negative timezones
+    let dt = DateTime::parse_str("2020-01-01T12:13:14−02:15").unwrap();
+    assert_eq!(dt.offset, Some(-135));
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14-02:15");
+}
+
+#[test]
 fn datetime_tz_negative_10() {
     let dt = DateTime::parse_str("2020-01-01T12:13:14-11:30").unwrap();
     assert_eq!(dt.offset, Some(-690));
@@ -217,8 +225,14 @@ fn datetime_tz_no_colon() {
 }
 
 #[test]
-fn datetime_seconds_break() {
+fn datetime_seconds_fraction_break() {
     let dt = DateTime::parse_str("2020-01-01 12:13:14.123z").unwrap();
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123Z");
+}
+
+#[test]
+fn datetime_seconds_fraction_comma() {
+    let dt = DateTime::parse_str("2020-01-01 12:13:14,123z").unwrap();
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123Z");
 }
 
@@ -228,6 +242,10 @@ fn datetime_error() {
     expect_error!(DateTime::parse_str("2020-01-01x"), InvalidCharDateTimeSep);
     expect_error!(DateTime::parse_str("2020-01-01Tx"), InvalidCharHour);
     expect_error!(DateTime::parse_str("2020-01-01T12:00:00x"), InvalidCharTzSign);
+    // same first byte as U+2212, different second b'\xe2\x89\x92'.decode()
+    expect_error!(DateTime::parse_str("2020-01-01T12:00:00≒"), InvalidCharTzSign);
+    // same first and second bytes as U+2212, different third b'\xe2\x88\x93'.decode()
+    expect_error!(DateTime::parse_str("2020-01-01T12:00:00∓"), InvalidCharTzSign);
     expect_error!(DateTime::parse_str("2020-01-01T12:00:00+x"), InvalidCharTzHour);
     expect_error!(DateTime::parse_str("2020-01-01T12:00:00+00x"), InvalidCharTzMinute);
     expect_error!(DateTime::parse_str("2020-01-01T12:00:00Z "), ExtraCharacters);
