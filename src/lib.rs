@@ -135,12 +135,23 @@ impl Time {
     #[inline]
     pub fn parse_bytes(date: &[u8]) -> Result<Self, ParseError> {
         let mut bytes = date.iter().copied();
-        Self::parse_iter(&mut bytes)
+        let t = Self::parse_iter(&mut bytes)?;
+
+        if bytes.next().is_some() {
+            return Err(ParseError::ExtraCharacters);
+        }
+
+        Ok(t)
     }
 
     fn parse_iter(bytes: &mut Copied<Iter<u8>>) -> Result<Self, ParseError> {
         let h1 = next_digit!(bytes, InvalidCharHour);
         let h2 = next_digit!(bytes, InvalidCharHour);
+        let hour = h1 * 10 + h2;
+
+        if hour > 23 {
+            return Err(ParseError::OutOfRangeHour);
+        }
 
         match bytes.next() {
             Some(b':') => (),
@@ -148,61 +159,61 @@ impl Time {
         }
         let m1 = next_digit!(bytes, InvalidCharMinute);
         let m2 = next_digit!(bytes, InvalidCharMinute);
+        let minute = m1 * 10 + m2;
 
-        match bytes.next() {
-            Some(b':') => (),
-            _ => return Err(ParseError::InvalidCharTimeSep),
-        }
-        let s1 = next_digit!(bytes, InvalidCharSecond);
-        let s2 = next_digit!(bytes, InvalidCharSecond);
-
-        let mut microsecond = 0;
-        let mut micro_bytes = bytes.clone();
-        let frac_sep = micro_bytes.next();
-        if frac_sep == Some(b'.') || frac_sep == Some(b',') {
-            let mut i: u32 = 0;
-            for digit in micro_bytes {
-                match digit {
-                    b'0'..=b'9' => {
-                        microsecond *= 10;
-                        microsecond += (digit - b'0') as u32;
-                    }
-                    _ => {
-                        break;
-                    }
-                }
-                i += 1;
-                if i > 6 {
-                    return Err(ParseError::SecondFractionTooLong);
-                }
-            }
-            if i == 0 {
-                return Err(ParseError::SecondFractionMissing);
-            }
-            if i < 6 {
-                microsecond *= 10_u32.pow(6 - i);
-            }
-            bytes.nth(i as usize);
-        }
-
-        let time = Time {
-            hour: h1 * 10 + h2,
-            minute: m1 * 10 + m2,
-            second: s1 * 10 + s2,
-            microsecond,
-        };
-
-        if time.hour > 23 {
-            return Err(ParseError::OutOfRangeHour);
-        }
-        if time.minute > 59 {
+        if minute > 59 {
             return Err(ParseError::OutOfRangeMinute);
         }
-        if time.second > 59 {
-            return Err(ParseError::OutOfRangeSecond);
-        }
 
-        Ok(time)
+        let (second, microsecond) = match bytes.clone().next() {
+            Some(b':') => {
+                bytes.next();
+                let s1 = next_digit!(bytes, InvalidCharSecond);
+                let s2 = next_digit!(bytes, InvalidCharSecond);
+                let second = s1 * 10 + s2;
+                if second > 59 {
+                    return Err(ParseError::OutOfRangeSecond);
+                }
+
+                let mut microsecond = 0;
+                let mut micro_bytes = bytes.clone();
+                let frac_sep = micro_bytes.next();
+                if frac_sep == Some(b'.') || frac_sep == Some(b',') {
+                    let mut i: u32 = 0;
+                    for digit in micro_bytes {
+                        match digit {
+                            b'0'..=b'9' => {
+                                microsecond *= 10;
+                                microsecond += (digit - b'0') as u32;
+                            }
+                            _ => {
+                                break;
+                            }
+                        }
+                        i += 1;
+                        if i > 6 {
+                            return Err(ParseError::SecondFractionTooLong);
+                        }
+                    }
+                    if i == 0 {
+                        return Err(ParseError::SecondFractionMissing);
+                    }
+                    if i < 6 {
+                        microsecond *= 10_u32.pow(6 - i);
+                    }
+                    bytes.nth(i as usize);
+                }
+                (second, microsecond)
+            }
+            _ => (0, 0),
+        };
+
+        Ok(Time {
+            hour,
+            minute,
+            second,
+            microsecond,
+        })
     }
 }
 
@@ -249,7 +260,7 @@ impl DateTime {
 
         // Next parse the separator between date and time
         let sep = bytes.next();
-        if sep != Some(b'T') && sep != Some(b't') && sep != Some(b' ') {
+        if sep != Some(b'T') && sep != Some(b't') && sep != Some(b' ') && sep != Some(b'_') {
             return Err(ParseError::InvalidCharDateTimeSep);
         }
 
@@ -268,7 +279,8 @@ impl DateTime {
                     b'-' => -1,
                     226 => {
                         // U+2212 MINUS "−" is allowed under ISO 8601 for negative timezones
-                        // its raw bytes values are 226, 136, 146
+                        // > python -c 'print([c for c in "−".encode()])'
+                        // its raw byte values are [226, 136, 146]
                         if bytes.next() != Some(136) {
                             return Err(ParseError::InvalidCharTzSign);
                         }
