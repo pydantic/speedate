@@ -300,6 +300,8 @@ expect_error_tests! {
     dt_3: "2020-01-01T12:00:00∓", InvalidCharTzSign;
     dt: "2020-01-01T12:00:00+x", InvalidCharTzHour;
     dt: "2020-01-01T12:00:00+00x", InvalidCharTzMinute;
-    dt_extra_space: "2020-01-01T12:00:00Z ", ExtraCharacters;
+    dt_extra_space_z: "2020-01-01T12:00:00Z ", ExtraCharacters;
+    dt_extra_space_tz1: "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
+    dt_extra_space_tz2: "2020-01-01T12:00:00+0000 ", ExtraCharacters;
     dt_extra_xxx: "2020-01-01T12:00:00Zxxx", ExtraCharacters;
 }
