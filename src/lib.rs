@@ -112,7 +112,7 @@ impl Date {
             return Err(ParseError::OutOfRangeDay);
         }
 
-        Ok(Date { year, month, day })
+        Ok(Self { year, month, day })
     }
 }
 
@@ -121,7 +121,7 @@ impl Date {
 /// May be part of a `DateTime`.
 /// Allowed values: `07:32`, `07:32:00`, `00:32:00.999999`
 ///
-/// Fractions of a second are to millisecond precision, if the value contains greater
+/// Fractions of a second are to microsecond precision, if the value contains greater
 /// precision, an error is raised (TODO).
 #[derive(Debug, PartialEq, Clone)]
 pub struct Time {
@@ -234,7 +234,7 @@ impl Time {
             }
             _ => (0, 0),
         };
-        let t = Time {
+        let t = Self {
             hour,
             minute,
             second,
@@ -344,7 +344,315 @@ impl DateTime {
             return Err(ParseError::ExtraCharacters);
         }
 
-        Ok(DateTime { date, time, offset })
+        Ok(Self { date, time, offset })
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Duration {
+    pub positive: bool,
+    pub day: u64,
+    pub second: u32,
+    pub microsecond: u32,
+}
+
+impl fmt::Display for Duration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if !self.positive {
+            write!(f, "-")?;
+        }
+        write!(f, "P")?;
+        if self.day != 0 {
+            let year = self.day / 365;
+            if year != 0 {
+                write!(f, "{}Y", year)?;
+            }
+            let day = self.day % 365;
+            if day != 0 {
+                write!(f, "{}D", day)?;
+            }
+        }
+        if self.second != 0 || self.microsecond != 0 {
+            write!(f, "T{}", self.second)?;
+            if self.microsecond != 0 {
+                let s = format!("{:06}", self.microsecond);
+                write!(f, ".{}", s.trim_end_matches('0'))?;
+            }
+            write!(f, "S")?;
+        }
+        Ok(())
+    }
+}
+
+impl Duration {
+    #[inline]
+    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
+        Self::parse_bytes(str.as_bytes())
+    }
+
+    pub fn new(positive: bool, day: u64, second: u32, microsecond: u32) -> Self {
+        let mut d = Self {
+            positive,
+            day,
+            second,
+            microsecond,
+        };
+        d.normalize();
+        d
+    }
+
+    #[inline]
+    pub fn signed_total_seconds(&self) -> i64 {
+        let sign = if self.positive { 1 } else { -1 };
+        sign * (self.day as i64 * 86400 + self.second as i64)
+    }
+
+    #[inline]
+    pub fn signed_microseconds(&self) -> i32 {
+        let sign = if self.positive { 1 } else { -1 };
+        sign * self.microsecond as i32
+    }
+
+    #[inline]
+    pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+        let (positive, offset) = match bytes.get(0).copied() {
+            Some(b'+') => (true, 1),
+            Some(b'-') => (false, 1),
+            None => return Err(ParseError::TooShort),
+            _ => (true, 0),
+        };
+        let mut d = match bytes.get(offset).copied() {
+            Some(b'P') => Self::parse_iso_duration(bytes, offset + 1),
+            _ => match bytes.get(offset + 2).copied() {
+                Some(b':') => Self::parse_time(bytes, offset),
+                _ => Self::parse_days_time(bytes, offset),
+            },
+        }?;
+        d.positive = positive;
+
+        d.normalize();
+        Ok(d)
+    }
+
+    fn normalize(&mut self) {
+        if self.microsecond >= 1_000_000 {
+            self.second += self.microsecond / 1_000_000;
+            self.microsecond %= 1_000_000;
+        }
+        if self.second >= 86_400 {
+            self.day += self.second as u64 / 86_400;
+            self.second %= 86_400;
+        }
+    }
+
+    fn parse_iso_duration(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+        let mut got_t = false;
+        let mut last_had_fraction = false;
+        let mut position: usize = offset;
+        let mut day: u64 = 0;
+        let mut second: u32 = 0;
+        let mut microsecond: u32 = 0;
+        loop {
+            match bytes.get(position).copied() {
+                Some(b'T') => {
+                    if got_t {
+                        return Err(ParseError::DurationTRepeated);
+                    }
+                    got_t = true;
+                }
+                Some(c) => {
+                    let (value, op_fraction, new_pos) = Self::parse_number_frac(bytes, c, position)?;
+                    if last_had_fraction {
+                        return Err(ParseError::DurationInvalidFraction);
+                    }
+                    if op_fraction.is_some() {
+                        last_had_fraction = true;
+                    }
+                    position = new_pos;
+                    if got_t {
+                        let mult: u32 = match bytes.get(position).copied() {
+                            Some(b'H') => 3600,
+                            Some(b'M') => 60,
+                            Some(b'S') => 1,
+                            _ => return Err(ParseError::DurationInvalidTimeUnit),
+                        };
+                        second += value as u32 * mult;
+                        if let Some(fraction) = op_fraction {
+                            let extra_seconds = fraction * mult as f64;
+                            let extra_full_seconds = extra_seconds.trunc();
+                            second += extra_full_seconds as u32;
+                            microsecond += ((extra_seconds - extra_full_seconds) * 1_000_000.0).round() as u32;
+                        }
+                    } else {
+                        let mult: u64 = match bytes.get(position).copied() {
+                            Some(b'Y') => 365,
+                            Some(b'M') => 30,
+                            Some(b'W') => 7,
+                            Some(b'D') => 1,
+                            _ => return Err(ParseError::DurationInvalidDateUnit),
+                        };
+                        day += value * mult;
+                        if let Some(fraction) = op_fraction {
+                            let extra_days = fraction * mult as f64;
+                            let extra_full_days = extra_days.trunc();
+                            day += extra_full_days as u64;
+                            let extra_seconds = (extra_days - extra_full_days) * 86_400.0;
+                            let extra_full_seconds = extra_seconds.trunc();
+                            second += extra_full_seconds as u32;
+                            microsecond += ((extra_seconds - extra_full_seconds) * 1_000_000.0).round() as u32;
+                        }
+                    }
+                }
+                None => break,
+            }
+            position += 1;
+        }
+        if position < 3 {
+            return Err(ParseError::TooShort);
+        }
+
+        Ok(Self {
+            positive: false, // is set above
+            day,
+            second,
+            microsecond,
+        })
+    }
+
+    fn parse_days_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+        let (day, offset) = match bytes.get(offset).copied() {
+            Some(c) => Self::parse_number(bytes, c, offset),
+            _ => Err(ParseError::TooShort),
+        }?;
+        let mut position = offset;
+
+        // consume a space, but allow for "d/D"
+        position += match bytes.get(position).copied() {
+            Some(b' ') => 1,
+            Some(b'd') | Some(b'D') => 0,
+            _ => return Err(ParseError::DurationInvalidDays),
+        };
+
+        // consume "d/D", nothing else is allowed
+        position += match bytes.get(position).copied() {
+            Some(b'd') | Some(b'D') => 1,
+            _ => return Err(ParseError::DurationInvalidDays),
+        };
+
+        macro_rules! days_only {
+            ($day:ident) => {
+                Ok(Self {
+                    positive: false, // is set above
+                    day: $day,
+                    second: 0,
+                    microsecond: 0,
+                })
+            };
+        }
+
+        // optionally consume the rest of the word "day/days"
+        position += match bytes.get(position).copied() {
+            Some(b'a') | Some(b'A') => {
+                match bytes.get(position + 1).copied() {
+                    Some(b'y') | Some(b'Y') => (),
+                    _ => return Err(ParseError::DurationInvalidDays),
+                };
+                match bytes.get(position + 2).copied() {
+                    Some(b's') | Some(b'S') => 3,
+                    None => return days_only!(day),
+                    _ => 2,
+                }
+            }
+            None => return days_only!(day),
+            _ => 0,
+        };
+
+        // optionally consume a comma ","
+        position += match bytes.get(position).copied() {
+            Some(b',') => 1,
+            None => return days_only!(day),
+            _ => 0,
+        };
+
+        // optionally consume a space " "
+        position += match bytes.get(position).copied() {
+            Some(b' ') => 1,
+            None => return days_only!(day),
+            _ => 0,
+        };
+
+        match bytes.get(position).copied() {
+            Some(_) => {
+                let (t, length) = Time::parse_bytes_internal(bytes, position)?;
+
+                if bytes.len() > length + position {
+                    return Err(ParseError::ExtraCharacters);
+                }
+                Ok(Self {
+                    positive: false, // is set above
+                    day,
+                    second: t.hour as u32 * 3_600 + t.minute as u32 * 60 + t.second as u32,
+                    microsecond: t.microsecond,
+                })
+            }
+            None => return days_only!(day),
+        }
+    }
+
+    fn parse_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+        let (t, length) = Time::parse_bytes_internal(bytes, offset)?;
+
+        if bytes.len() > length + offset {
+            return Err(ParseError::ExtraCharacters);
+        }
+
+        Ok(Self {
+            positive: false, // is set above
+            day: 0,
+            second: t.hour as u32 * 3_600 + t.minute as u32 * 60 + t.second as u32,
+            microsecond: t.microsecond,
+        })
+    }
+
+    fn parse_number(bytes: &[u8], d1: u8, offset: usize) -> Result<(u64, usize), ParseError> {
+        let mut value = match d1 {
+            c if (b'0'..=b'9').contains(&d1) => (c - b'0') as u64,
+            _ => return Err(ParseError::DurationInvalidNumber),
+        };
+        let mut position = offset + 1;
+        loop {
+            match bytes.get(position) {
+                Some(c) if (b'0'..=b'9').contains(c) => {
+                    value *= 10;
+                    value += (c - b'0') as u64;
+                    position += 1;
+                }
+                _ => return Ok((value, position)),
+            }
+        }
+    }
+
+    fn parse_number_frac(bytes: &[u8], d1: u8, offset: usize) -> Result<(u64, Option<f64>, usize), ParseError> {
+        let (value, offset) = Self::parse_number(bytes, d1, offset)?;
+        let mut position = offset;
+        let next_char = bytes.get(position).copied();
+        if next_char == Some(b'.') || next_char == Some(b',') {
+            let mut decimal = 0_f64;
+            let mut denominator = 1_f64;
+            loop {
+                position += 1;
+                match bytes.get(position) {
+                    Some(c) if (b'0'..=b'9').contains(c) => {
+                        decimal *= 10.0;
+                        decimal += (c - b'0') as f64;
+                        denominator *= 10.0;
+                    }
+                    _ => return Ok((value, Some(decimal / denominator), position)),
+                }
+            }
+        } else {
+            return Ok((value, None, position));
+        }
     }
 }
 
@@ -372,4 +680,10 @@ pub enum ParseError {
     OutOfRangeSecond,
     SecondFractionTooLong,
     SecondFractionMissing,
+    DurationInvalidNumber,
+    DurationTRepeated,
+    DurationInvalidFraction,
+    DurationInvalidTimeUnit,
+    DurationInvalidDateUnit,
+    DurationInvalidDays,
 }
