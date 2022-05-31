@@ -22,13 +22,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: install rust
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: ${{ matrix.rust-version }}
-        override: true
-
+    - run: rustup update ${{ matrix.rust-version }}
+    - run: rustup default ${{ matrix.rust-version }}
     - id: cache-rust
       uses: Swatinem/rust-cache@v1
 
@@ -51,6 +46,7 @@ jobs:
 
     - run: rustup update nightly
     - run: rustup default nightly
+    - uses: Swatinem/rust-cache@v1
 
     - run: cargo bench
 
@@ -61,6 +57,8 @@ jobs:
 
     - run: rustup update stable
     - run: rustup default stable
+    - uses: Swatinem/rust-cache@v1
+
     - run: rustup component add rustfmt clippy
 
     - run: cargo fmt -- --check
