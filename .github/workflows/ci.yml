@@ -22,7 +22,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-
     - name: install rust
       uses: actions-rs/toolchain@v1
       with:

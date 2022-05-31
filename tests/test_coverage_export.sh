@@ -2,7 +2,9 @@
 
 set -e
 
-find target/debug/deps -regex '.*/main[^.]*' -delete
+if [ -d "target/debug/deps" ]; then
+  find target/debug/deps -regex '.*/main[^.]*' -delete
+fi
 
 RUSTFLAGS='-C instrument-coverage' cargo test
 
