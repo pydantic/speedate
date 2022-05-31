@@ -2,48 +2,46 @@
 
 extern crate test;
 
-use speedate::{Date, DateTime, Time};
+use speedate::{Date, DateTime, Duration, Time};
 use test::{black_box, Bencher};
 
 #[bench]
-fn compare_dt_ok_speedate(bench: &mut Bencher) {
-    let s1 = black_box("2000-01-01T00:02:03Z");
-    let s2 = black_box("2000-01-02T00:02:03Z");
-    let s3 = black_box("2000-01-02T00:02:03Z");
-    let s4 = black_box("2000-01-03T00:02:03Z");
+fn compare_datetime_ok_speedate(bench: &mut Bencher) {
+    let s = black_box("2000-01-01T00:02:03Z");
     bench.iter(|| {
-        black_box(DateTime::parse_str(&s1).unwrap());
-        black_box(DateTime::parse_str(&s2).unwrap());
-        black_box(DateTime::parse_str(&s3).unwrap());
-        black_box(DateTime::parse_str(&s4).unwrap());
+        black_box(DateTime::parse_str(&s).unwrap());
     })
 }
 
 #[bench]
-fn compare_dt_ok_iso8601(bench: &mut Bencher) {
-    let s1 = black_box("2000-01-01T00:02:03Z");
-    let s2 = black_box("2000-01-02T00:02:03Z");
-    let s3 = black_box("2000-01-02T00:02:03Z");
-    let s4 = black_box("2000-01-03T00:02:03Z");
+fn compare_datetime_ok_iso8601(bench: &mut Bencher) {
+    let s = black_box("2000-01-01T00:02:03Z");
     bench.iter(|| {
-        black_box(iso8601::datetime(&s1).unwrap());
-        black_box(iso8601::datetime(&s2).unwrap());
-        black_box(iso8601::datetime(&s3).unwrap());
-        black_box(iso8601::datetime(&s4).unwrap());
+        black_box(iso8601::datetime(&s).unwrap());
     })
 }
 
 #[bench]
-fn compare_dt_ok_chrono(bench: &mut Bencher) {
-    let s1 = black_box("2000-01-01T00:02:03Z");
-    let s2 = black_box("2000-01-02T00:02:03Z");
-    let s3 = black_box("2000-01-02T00:02:03Z");
-    let s4 = black_box("2000-01-03T00:02:03Z");
+fn compare_datetime_ok_chrono(bench: &mut Bencher) {
+    let s = black_box("2000-01-01T00:02:03Z");
     bench.iter(|| {
-        black_box(chrono::DateTime::parse_from_rfc3339(&s1).unwrap());
-        black_box(chrono::DateTime::parse_from_rfc3339(&s2).unwrap());
-        black_box(chrono::DateTime::parse_from_rfc3339(&s3).unwrap());
-        black_box(chrono::DateTime::parse_from_rfc3339(&s4).unwrap());
+        black_box(chrono::DateTime::parse_from_rfc3339(&s).unwrap());
+    })
+}
+
+#[bench]
+fn compare_duration_ok_speedate(bench: &mut Bencher) {
+    let s = black_box("P1Y2M3DT4H5M6S");
+    bench.iter(|| {
+        black_box(Duration::parse_str(&s).unwrap());
+    })
+}
+
+#[bench]
+fn compare_duration_ok_iso8601(bench: &mut Bencher) {
+    let s = black_box("P1Y2M3DT4H5M6S");
+    bench.iter(|| {
+        black_box(iso8601::duration(&s).unwrap());
     })
 }
 
@@ -57,45 +55,27 @@ macro_rules! expect_error {
 }
 
 #[bench]
-fn compare_dt_error_speedate(bench: &mut Bencher) {
-    let s1 = black_box("2000-01-01T25:02:03Z");
+fn compare_datetime_error_speedate(bench: &mut Bencher) {
+    let s = black_box("2000-01-01T25:02:03Z");
     bench.iter(|| {
-        let e = expect_error!(DateTime::parse_str(&s1));
-        black_box(e);
-        let e = expect_error!(DateTime::parse_str(&s1));
-        black_box(e);
-        let e = expect_error!(DateTime::parse_str(&s1));
-        black_box(e);
-        let e = expect_error!(DateTime::parse_str(&s1));
+        let e = expect_error!(DateTime::parse_str(&s));
         black_box(e);
     })
 }
 
 #[bench]
-fn compare_dt_error_iso8601(bench: &mut Bencher) {
+fn compare_datetime_error_iso8601(bench: &mut Bencher) {
     let s = black_box("2000-01-01T25:02:03Z");
     bench.iter(|| {
-        let e = expect_error!(iso8601::datetime(&s));
-        black_box(e);
-        let e = expect_error!(iso8601::datetime(&s));
-        black_box(e);
-        let e = expect_error!(iso8601::datetime(&s));
-        black_box(e);
         let e = expect_error!(iso8601::datetime(&s));
         black_box(e);
     })
 }
 
 #[bench]
-fn compare_dt_error_chrono(bench: &mut Bencher) {
+fn compare_datetime_error_chrono(bench: &mut Bencher) {
     let s = black_box("2000-01-01T25:02:03Z");
     bench.iter(|| {
-        let e = expect_error!(chrono::DateTime::parse_from_rfc3339(&s));
-        black_box(e);
-        let e = expect_error!(chrono::DateTime::parse_from_rfc3339(&s));
-        black_box(e);
-        let e = expect_error!(chrono::DateTime::parse_from_rfc3339(&s));
-        black_box(e);
         let e = expect_error!(chrono::DateTime::parse_from_rfc3339(&s));
         black_box(e);
     })

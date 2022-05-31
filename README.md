@@ -69,12 +69,14 @@ and [iso8601](https://crates.io/crates/iso8601).
 Micro-benchmarking from [`benches/main.rs`](https://github.com/samuelcolvin/speedate/blob/main/benches/main.rs):
 
 ```text
-test compare_dt_error_chrono   ... bench:         192 ns/iter (+/- 0)
-test compare_dt_error_iso8601  ... bench:         462 ns/iter (+/- 4)
-test compare_dt_error_speedate ... bench:          26 ns/iter (+/- 0)
-test compare_dt_ok_chrono      ... bench:         250 ns/iter (+/- 1)
-test compare_dt_ok_iso8601     ... bench:         323 ns/iter (+/- 1)
-test compare_dt_ok_speedate    ... bench:          36 ns/iter (+/- 0)
+test datetime_error_speedate ... bench:           6 ns/iter (+/- 0)
+test datetime_error_chrono   ... bench:          48 ns/iter (+/- 0)
+test datetime_error_iso8601  ... bench:         118 ns/iter (+/- 2)
+test datetime_ok_speedate    ... bench:           9 ns/iter (+/- 0)
+test datetime_ok_chrono      ... bench:          62 ns/iter (+/- 0)
+test datetime_ok_iso8601     ... bench:          77 ns/iter (+/- 1)
+test duration_ok_speedate    ... bench:          23 ns/iter (+/- 0)
+test duration_ok_iso8601     ... bench:          48 ns/iter (+/- 0)
 ```
 
 ## Why not full iso8601?
