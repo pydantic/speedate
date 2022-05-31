@@ -456,14 +456,14 @@ impl Duration {
             match bytes.get(position).copied() {
                 Some(b'T') => {
                     if got_t {
-                        return Err(ParseError::ToDo);
+                        return Err(ParseError::DurationTRepeated);
                     }
                     got_t = true;
                 }
                 Some(c) => {
                     let (value, op_fraction, new_pos) = Self::parse_number_frac(bytes, c, position)?;
                     if last_had_fraction {
-                        return Err(ParseError::ToDo);
+                        return Err(ParseError::DurationInvalidFraction);
                     }
                     if op_fraction.is_some() {
                         last_had_fraction = true;
@@ -474,7 +474,7 @@ impl Duration {
                             Some(b'H') => 3600,
                             Some(b'M') => 60,
                             Some(b'S') => 1,
-                            _ => return Err(ParseError::ToDo),
+                            _ => return Err(ParseError::DurationInvalidTimeUnit),
                         };
                         second += value as u32 * mult;
                         if let Some(fraction) = op_fraction {
@@ -489,7 +489,7 @@ impl Duration {
                             Some(b'M') => 30,
                             Some(b'W') => 7,
                             Some(b'D') => 1,
-                            _ => return Err(ParseError::ToDo),
+                            _ => return Err(ParseError::DurationInvalidDateUnit),
                         };
                         day += value * mult;
                         if let Some(fraction) = op_fraction {
@@ -508,7 +508,7 @@ impl Duration {
             position += 1;
         }
         if position < 3 {
-            return Err(ParseError::ToDo);
+            return Err(ParseError::TooShort);
         }
 
         Ok(Self {
@@ -530,13 +530,13 @@ impl Duration {
         position += match bytes.get(position).copied() {
             Some(b' ') => 1,
             Some(b'd') | Some(b'D') => 0,
-            _ => return Err(ParseError::ToDo),
+            _ => return Err(ParseError::DurationInvalidDays),
         };
 
         // consume "d/D", nothing else is allowed
         position += match bytes.get(position).copied() {
             Some(b'd') | Some(b'D') => 1,
-            _ => return Err(ParseError::ToDo),
+            _ => return Err(ParseError::DurationInvalidDays),
         };
 
         macro_rules! days_only {
@@ -555,7 +555,7 @@ impl Duration {
             Some(b'a') | Some(b'A') => {
                 match bytes.get(position + 1).copied() {
                     Some(b'y') | Some(b'Y') => (),
-                    _ => return Err(ParseError::ToDo),
+                    _ => return Err(ParseError::DurationInvalidDays),
                 };
                 match bytes.get(position + 2).copied() {
                     Some(b's') | Some(b'S') => 3,
@@ -564,7 +564,7 @@ impl Duration {
                 }
             }
             None => return days_only!(day),
-            _ => 1,
+            _ => 0,
         };
 
         // optionally consume a comma ","
@@ -617,7 +617,7 @@ impl Duration {
     fn parse_number(bytes: &[u8], d1: u8, offset: usize) -> Result<(u64, usize), ParseError> {
         let mut value = match d1 {
             c if (b'0'..=b'9').contains(&d1) => (c - b'0') as u64,
-            _ => return Err(ParseError::ToDo),
+            _ => return Err(ParseError::DurationInvalidNumber),
         };
         let mut position = offset + 1;
         loop {
@@ -658,7 +658,6 @@ impl Duration {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ParseError {
-    ToDo,
     TooShort,
     ExtraCharacters,
     InvalidCharDateTimeSep,
@@ -681,4 +680,10 @@ pub enum ParseError {
     OutOfRangeSecond,
     SecondFractionTooLong,
     SecondFractionMissing,
+    DurationInvalidNumber,
+    DurationTRepeated,
+    DurationInvalidFraction,
+    DurationInvalidTimeUnit,
+    DurationInvalidDateUnit,
+    DurationInvalidDays,
 }

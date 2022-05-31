@@ -335,6 +335,9 @@ fn duration_new_normalise() {
 
 param_tests! {
     Duration,
+    duration_too_short1: err => "", TooShort;
+    duration_too_short2: err => "+", TooShort;
+    duration_too_short3: err => "P", TooShort;
     duration_1y: ok => "P1Y", "P1Y";
     duration_123y: ok => "P123Y", "P123Y";
     duration_123_8y: ok => "P123.8Y", "P123Y292D";
@@ -348,10 +351,17 @@ param_tests! {
     duration_fraction1: ok => "PT0.555555S", "PT0.555555S";
     duration_fraction2: ok => "P1Y1DT2H0.5S", "P1Y1DT7200.5S";
     duration_1: ok => "P1DT1S", "P1DT1S";
+    duration: err => "PD", DurationInvalidNumber;
+    duration: err => "P1DT1MT1S", DurationTRepeated;
+    duration: err => "P1DT1.1M1S", DurationInvalidFraction;
+    duration: err => "P1DT1X", DurationInvalidTimeUnit;
+    duration_invalid_day_unit1: err => "P1X", DurationInvalidDateUnit;
+    duration_invalid_day_unit2: err => "P1", DurationInvalidDateUnit;
     duration_time_42s: ok => "00:00:42", "PT42S";
     duration_time_1m: ok => "00:01", "PT60S";
     duration_time_1h_2m_3s: ok => "01:02:03", "PT3723S";
     duration_time_fraction: ok => "00:01:03.123", "PT63.123S";
+    duration_time_extra: err => "00:01:03.123x", ExtraCharacters;
     duration_days_1day1: ok => "1 day", "P1D";
     duration_days_1day2: ok => "1day", "P1D";
     duration_days_1day3: ok => "1 day,", "P1D";
@@ -360,10 +370,19 @@ param_tests! {
     duration_days_1day6: ok => "1DAYS", "P1D";
     duration_days_1day7: ok => "1d", "P1D";
     duration_days_1day8: ok => "1d ", "P1D";
+    duration_days_invalid1: err => "1x", DurationInvalidDays;
+    duration_days_invalid2: err => "1dx", TooShort;
+    duration_days_invalid3: err => "1da", DurationInvalidDays;
+    duration_days_invalid4: err => "1", DurationInvalidDays;
+    duration_days_invalid5: err => "1 ", DurationInvalidDays;
+    duration_days_invalid6: err => "1 x", DurationInvalidDays;
     duration_days_neg: ok => "-1 day", "-P1D";
     duration_days_pos: ok => "+1 day", "P1D";
     duration_days_123days: ok => "123days", "P123D";
     duration_days_time: ok => "1 day 00:00:42", "P1DT42S";
     duration_days_time_neg: ok => "-1 day 00:00:42", "-P1DT42S";
     duration_exceeds_day: ok => "PT86500S", "P1DT100S";
+    duration_days_time_too_shoert: err => "1 day 00:", TooShort;
+    duration_days_time_wrong: err => "1 day 00:xx", InvalidCharMinute;
+    duration_days_time_extra: err => "1 day 00:00:00.123 ", ExtraCharacters;
 }
