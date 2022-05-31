@@ -358,6 +358,9 @@ pub struct Duration {
 
 impl fmt::Display for Duration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if !self.positive {
+            write!(f, "-")?;
+        }
         write!(f, "P")?;
         if self.day != 0 {
             let year = self.day / 365;
@@ -389,13 +392,20 @@ impl Duration {
 
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        let c123 = (bytes.get(0).copied(), bytes.get(1).copied(), bytes.get(2).copied());
-        let mut d = match c123 {
-            (Some(b'P'), _, _) => Self::parse_iso_duration(bytes, true, 1),
-            (Some(b'+'), Some(b'P'), _) => Self::parse_iso_duration(bytes, true, 2),
-            (Some(b'-'), Some(b'P'), _) => Self::parse_iso_duration(bytes, false, 2),
-            _ => Err(ParseError::ToDo),
+        let (positive, offset) = match bytes.get(0).copied() {
+            Some(b'+') => (true, 1),
+            Some(b'-') => (false, 1),
+            None => return Err(ParseError::TooShort),
+            _ => (true, 0),
+        };
+        let mut d = match bytes.get(offset).copied() {
+            Some(b'P') => Self::parse_iso_duration(bytes, offset + 1),
+            _ => match bytes.get(offset + 2).copied() {
+                Some(b':') => Self::parse_time(bytes, offset),
+                _ => return Err(ParseError::ToDo),
+            },
         }?;
+        d.positive = positive;
 
         if d.microsecond >= 1_000_000 {
             d.second += d.microsecond / 1_000_000;
@@ -408,7 +418,7 @@ impl Duration {
         Ok(d)
     }
 
-    fn parse_iso_duration(bytes: &[u8], positive: bool, offset: usize) -> Result<Self, ParseError> {
+    fn parse_iso_duration(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
         let mut got_t = false;
         let mut last_had_fraction = false;
         let mut position: usize = offset;
@@ -472,10 +482,29 @@ impl Duration {
         }
 
         Ok(Self {
-            positive,
+            positive: false, // is set above
             day,
             second,
             microsecond,
+        })
+    }
+
+    // fn parse_days_time(bytes: &[u8]) -> Result<(u64, Option<f64>, usize), ParseError> {
+    //
+    // }
+
+    fn parse_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+        let (t, length) = Time::parse_bytes_internal(bytes, offset)?;
+
+        if bytes.len() > length {
+            return Err(ParseError::ExtraCharacters);
+        }
+
+        Ok(Self {
+            positive: false, // is set above
+            day: 0,
+            second: t.hour as u32 * 3_600 + t.minute as u32 * 60 + t.second as u32,
+            microsecond: t.microsecond,
         })
     }
 

@@ -14,7 +14,7 @@ macro_rules! expect_ok_or_error {
             }
         }
     };
-    ($type:ty, $name:ident, error, $input:literal, $error:expr) => {
+    ($type:ty, $name:ident, err, $input:literal, $error:expr) => {
         paste::item! {
             #[allow(non_snake_case)]
             #[test]
@@ -30,9 +30,9 @@ macro_rules! expect_ok_or_error {
 
 /// macro to define many tests for expected values
 macro_rules! param_tests {
-    ($type:ty, $($name:ident: $ok_or_error:ident => $input:literal, $expected:expr;)*) => {
+    ($type:ty, $($name:ident: $ok_or_err:ident => $input:literal, $expected:expr;)*) => {
         $(
-            expect_ok_or_error!($type, $name, $ok_or_error, $input, $expected);
+            expect_ok_or_error!($type, $name, $ok_or_err, $input, $expected);
         )*
     }
 }
@@ -54,21 +54,21 @@ fn date() {
 
 param_tests! {
     Date,
-    date_short_3: error => "123", TooShort;
-    date_short_9: error => "2000:12:1", TooShort;
-    date: error => "xxxx:12:31", InvalidCharYear;
-    date_year_sep: error => "2020x12:13", InvalidCharDateSep;
-    date_mo_sep: error => "2020-12x13", InvalidCharDateSep;
-    date: error => "2020-13-01", OutOfRangeMonth;
-    date: error => "2020-04-31", OutOfRangeDay;
-    date_extra_space: error => "2020-04-01 ", ExtraCharacters;
-    date_extra_xxx: error => "2020-04-01xxx", ExtraCharacters;
+    date_short_3: err => "123", TooShort;
+    date_short_9: err => "2000:12:1", TooShort;
+    date: err => "xxxx:12:31", InvalidCharYear;
+    date_year_sep: err => "2020x12:13", InvalidCharDateSep;
+    date_mo_sep: err => "2020-12x13", InvalidCharDateSep;
+    date: err => "2020-13-01", OutOfRangeMonth;
+    date: err => "2020-04-31", OutOfRangeDay;
+    date_extra_space: err => "2020-04-01 ", ExtraCharacters;
+    date_extra_xxx: err => "2020-04-01xxx", ExtraCharacters;
     // leap year dates
     date_simple: ok => "2020-04-01", "2020-04-01";
     date_normal_not_leap: ok => "2003-02-28", "2003-02-28";
-    date_normal_not_leap: error => "2003-02-29", OutOfRangeDay;
+    date_normal_not_leap: err => "2003-02-29", OutOfRangeDay;
     date_normal_leap_year: ok => "2004-02-29", "2004-02-29";
-    date_special_100_not_leap: error => "1900-02-29", OutOfRangeDay;
+    date_special_100_not_leap: err => "1900-02-29", OutOfRangeDay;
     date_special_400_leap: ok => "2000-02-29", "2000-02-29";
 }
 
@@ -98,19 +98,19 @@ param_tests! {
     time_no_fraction: ok => "12:13:14", "12:13:14";
     time_fraction_small: ok => "12:13:14.123", "12:13:14.123";
     time_no_sec: ok => "12:13", "12:13:00";
-    time: error => "xxx", TooShort;
-    time: error => "xx:12", InvalidCharHour;
-    time_sep_hour: error => "12x12", InvalidCharTimeSep;
-    time: error => "12:x0", InvalidCharMinute;
-    time_sep_min: error => "12:13x", ExtraCharacters;
-    time: error => "12:13:x", InvalidCharSecond;
-    time: error => "12:13:12.", SecondFractionMissing;
-    time: error => "12:13:12.1234567", SecondFractionTooLong;
-    time: error => "24:00:00", OutOfRangeHour;
-    time: error => "23:60:00", OutOfRangeMinute;
-    time: error => "23:59:60", OutOfRangeSecond;
-    time_extra_x: error => "23:59:59xxx", ExtraCharacters;
-    time_extra_space: error => "23:59:59 ", ExtraCharacters;
+    time: err => "xxx", TooShort;
+    time: err => "xx:12", InvalidCharHour;
+    time_sep_hour: err => "12x12", InvalidCharTimeSep;
+    time: err => "12:x0", InvalidCharMinute;
+    time_sep_min: err => "12:13x", ExtraCharacters;
+    time: err => "12:13:x", InvalidCharSecond;
+    time: err => "12:13:12.", SecondFractionMissing;
+    time: err => "12:13:12.1234567", SecondFractionTooLong;
+    time: err => "24:00:00", OutOfRangeHour;
+    time: err => "23:60:00", OutOfRangeMinute;
+    time: err => "23:59:60", OutOfRangeSecond;
+    time_extra_x: err => "23:59:59xxx", ExtraCharacters;
+    time_extra_space: err => "23:59:59 ", ExtraCharacters;
 }
 
 #[test]
@@ -209,22 +209,22 @@ param_tests! {
     dt_seconds_fraction_break: ok => "2020-01-01 12:13:14.123z", "2020-01-01T12:13:14.123Z";
     dt_seconds_fraction_comma: ok => "2020-01-01 12:13:14,123z", "2020-01-01T12:13:14.123Z";
     dt_underscore: ok => "2020-01-01_12:13:14,123z", "2020-01-01T12:13:14.123Z";
-    dt_short_date: error => "xxx", TooShort;
-    dt_short_time: error => "2020-01-01T12:0", TooShort;
-    dt: error => "202x-01-01", InvalidCharYear;
-    dt: error => "2020-01-01x", InvalidCharDateTimeSep;
-    dt: error => "2020-01-01Txx:00", InvalidCharHour;
-    dt_1: error => "2020-01-01T12:00:00x", InvalidCharTzSign;
+    dt_short_date: err => "xxx", TooShort;
+    dt_short_time: err => "2020-01-01T12:0", TooShort;
+    dt: err => "202x-01-01", InvalidCharYear;
+    dt: err => "2020-01-01x", InvalidCharDateTimeSep;
+    dt: err => "2020-01-01Txx:00", InvalidCharHour;
+    dt_1: err => "2020-01-01T12:00:00x", InvalidCharTzSign;
     // same first byte as U+2212, different second b'\xe2\x89\x92'.decode()
-    dt_2: error => "2020-01-01T12:00:00≒", InvalidCharTzSign;
+    dt_2: err => "2020-01-01T12:00:00≒", InvalidCharTzSign;
     // same first and second bytes as U+2212, different third b'\xe2\x88\x93'.decode()
-    dt_3: error => "2020-01-01T12:00:00∓", InvalidCharTzSign;
-    dt: error => "2020-01-01T12:00:00+x", InvalidCharTzHour;
-    dt: error => "2020-01-01T12:00:00+00x", InvalidCharTzMinute;
-    dt_extra_space_z: error => "2020-01-01T12:00:00Z ", ExtraCharacters;
-    dt_extra_space_tz1: error => "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
-    dt_extra_space_tz2: error => "2020-01-01T12:00:00+0000 ", ExtraCharacters;
-    dt_extra_xxx: error => "2020-01-01T12:00:00Zxxx", ExtraCharacters;
+    dt_3: err => "2020-01-01T12:00:00∓", InvalidCharTzSign;
+    dt: err => "2020-01-01T12:00:00+x", InvalidCharTzHour;
+    dt: err => "2020-01-01T12:00:00+00x", InvalidCharTzMinute;
+    dt_extra_space_z: err => "2020-01-01T12:00:00Z ", ExtraCharacters;
+    dt_extra_space_tz1: err => "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
+    dt_extra_space_tz2: err => "2020-01-01T12:00:00+0000 ", ExtraCharacters;
+    dt_extra_xxx: err => "2020-01-01T12:00:00Zxxx", ExtraCharacters;
 }
 
 #[test]
@@ -271,36 +271,13 @@ fn duration_simple() {
     assert_eq!(d.to_string(), "P1Y");
 }
 
-#[test]
-fn duration_fractions() {
-    let d = Duration::parse_str("P1Y1DT2H0.5S").unwrap();
-    assert_eq!(
-        d,
-        Duration {
-            positive: true,
-            day: 366,
-            second: 7200,
-            microsecond: 500_000
-        }
-    );
-    assert_eq!(d.to_string(), "P1Y1DT7200.5S");
-    assert_eq!(
-        format!("{:?}", d),
-        "Duration { positive: true, day: 366, second: 7200, microsecond: 500000 }"
-    );
-}
-
-#[test]
-fn duration_1() {
-    let d = Duration::parse_str("P1DT1S").unwrap();
-    assert_eq!(
-        d,
-        Duration {
-            positive: true,
-            day: 1,
-            second: 1,
-            microsecond: 0
-        }
-    );
-    assert_eq!(d.to_string(), "P1DT1S");
+param_tests! {
+    Duration,
+    duration_simple: ok => "P1Y", "P1Y";
+    duration_simple_negative: ok => "-P1Y", "-P1Y";
+    duration_fraction: ok => "P1Y1DT2H0.5S", "P1Y1DT7200.5S";
+    duration_1: ok => "P1DT1S", "P1DT1S";
+    duration_time_42s: ok => "00:00:42", "PT42S";
+    duration_time_1h_2m_3s: ok => "01:02:03", "PT3723S";
+    duration_time_fraction: ok => "00:01:03.123", "PT63.123S";
 }
