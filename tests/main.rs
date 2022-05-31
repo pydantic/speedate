@@ -3,28 +3,37 @@ use std::io::Read;
 
 use not8601::{Date, DateTime, Duration, ParseError, Time};
 
-/// macro for expected ParseError errors
-macro_rules! expect_error {
-    ($type:ty, $input:expr, $error:ident) => {
-        match <$type>::parse_str($input) {
-            Ok(t) => panic!("unexpectedly valid: {:?} -> {:?}", $input, t),
-            Err(e) => assert_eq!(e, ParseError::$error),
+/// macro for expected values
+macro_rules! expect_ok_or_error {
+    ($type:ty, $name:ident, ok, $input:literal, $expected:expr) => {
+        paste::item! {
+            #[test]
+            fn [< expect_ $name _ok >]() {
+                let v = <$type>::parse_str($input).unwrap();
+                assert_eq!(v.to_string(), $expected);
+            }
+        }
+    };
+    ($type:ty, $name:ident, error, $input:literal, $error:expr) => {
+        paste::item! {
+            #[allow(non_snake_case)]
+            #[test]
+            fn [< expect_ $name _ $error _error >]() {
+                match <$type>::parse_str($input) {
+                    Ok(t) => panic!("unexpectedly valid: {:?} -> {:?}", $input, t),
+                    Err(e) => assert_eq!(e, ParseError::$error),
+                }
+            }
         }
     };
 }
 
-/// macro to define many tests for unexpected errors
-macro_rules! expect_error_tests {
-    ($type:ty, $($name:ident: $input:expr, $error:ident;)*) => {
-    $(
-        paste::item! {
-            #[allow(non_snake_case)]
-            #[test]
-            fn [< expect_error_ $name _ $error >]() {
-                expect_error!($type, $input, $error);
-            }
-        }
-    )*
+/// macro to define many tests for expected values
+macro_rules! param_tests {
+    ($type:ty, $($name:ident: $ok_or_error:ident => $input:literal, $expected:expr;)*) => {
+        $(
+            expect_ok_or_error!($type, $name, $ok_or_error, $input, $expected);
+        )*
     }
 }
 
@@ -43,37 +52,28 @@ fn date() {
     assert_eq!(format!("{:?}", d), "Date { year: 2020, month: 1, day: 1 }");
 }
 
-expect_error_tests! {
+param_tests! {
     Date,
-    date_short_3: "123", TooShort;
-    date_short_9: "2000:12:1", TooShort;
-    date: "xxxx:12:31", InvalidCharYear;
-    date_year_sep: "2020x12:13", InvalidCharDateSep;
-    date_mo_sep: "2020-12x13", InvalidCharDateSep;
-    date: "2020-13-01", OutOfRangeMonth;
-    date: "2020-04-31", OutOfRangeDay;
-    date_extra_space: "2020-04-01 ", ExtraCharacters;
-    date_extra_xxx: "2020-04-01xxx", ExtraCharacters;
+    date_short_3: error => "123", TooShort;
+    date_short_9: error => "2000:12:1", TooShort;
+    date: error => "xxxx:12:31", InvalidCharYear;
+    date_year_sep: error => "2020x12:13", InvalidCharDateSep;
+    date_mo_sep: error => "2020-12x13", InvalidCharDateSep;
+    date: error => "2020-13-01", OutOfRangeMonth;
+    date: error => "2020-04-31", OutOfRangeDay;
+    date_extra_space: error => "2020-04-01 ", ExtraCharacters;
+    date_extra_xxx: error => "2020-04-01xxx", ExtraCharacters;
+    // leap year dates
+    date_simple: ok => "2020-04-01", "2020-04-01";
+    date_normal_not_leap: ok => "2003-02-28", "2003-02-28";
+    date_normal_not_leap: error => "2003-02-29", OutOfRangeDay;
+    date_normal_leap_year: ok => "2004-02-29", "2004-02-29";
+    date_special_100_not_leap: error => "1900-02-29", OutOfRangeDay;
+    date_special_400_leap: ok => "2000-02-29", "2000-02-29";
 }
 
 #[test]
-fn date_leap() {
-    // normal not leap year
-    assert_eq!(Date::parse_str("2003-02-28").unwrap().to_string(), "2003-02-28");
-    expect_error!(Date, "2003-02-29", OutOfRangeDay);
-
-    // normal leap year
-    assert_eq!(Date::parse_str("2004-02-29").unwrap().to_string(), "2004-02-29");
-
-    // special 100 not a leap year
-    expect_error!(Date, "1900-02-29", OutOfRangeDay);
-
-    // special 400 leap year
-    assert_eq!(Date::parse_str("2000-02-29").unwrap().to_string(), "2000-02-29");
-}
-
-#[test]
-fn time_fraction() {
+fn time() {
     let t = Time::parse_str("12:13:14.123456").unwrap();
     assert_eq!(
         t,
@@ -91,70 +91,26 @@ fn time_fraction() {
     );
 }
 
-#[test]
-fn time_no_fraction() {
-    let t = Time::parse_str("12:13:14").unwrap();
-    assert_eq!(
-        t,
-        Time {
-            hour: 12,
-            minute: 13,
-            second: 14,
-            microsecond: 0,
-        }
-    );
-    assert_eq!(t.to_string(), "12:13:14");
-    assert_eq!(
-        format!("{:?}", t),
-        "Time { hour: 12, minute: 13, second: 14, microsecond: 0 }"
-    );
-}
-
-#[test]
-fn time_fraction_small() {
-    let t = Time::parse_str("12:13:14.123").unwrap();
-    assert_eq!(
-        t,
-        Time {
-            hour: 12,
-            minute: 13,
-            second: 14,
-            microsecond: 123000,
-        }
-    );
-    assert_eq!(t.to_string(), "12:13:14.123");
-}
-
-#[test]
-fn time_no_secs() {
-    let t = Time::parse_str("12:13").unwrap();
-    assert_eq!(
-        t,
-        Time {
-            hour: 12,
-            minute: 13,
-            second: 0,
-            microsecond: 0,
-        }
-    );
-    assert_eq!(t.to_string(), "12:13:00");
-}
-
-expect_error_tests! {
+param_tests! {
     Time,
-    time: "xxx", TooShort;
-    time: "xx:12", InvalidCharHour;
-    time_sep_hour: "12x12", InvalidCharTimeSep;
-    time: "12:x0", InvalidCharMinute;
-    time_sep_min: "12:13x", ExtraCharacters;
-    time: "12:13:x", InvalidCharSecond;
-    time: "12:13:12.", SecondFractionMissing;
-    time: "12:13:12.1234567", SecondFractionTooLong;
-    time: "24:00:00", OutOfRangeHour;
-    time: "23:60:00", OutOfRangeMinute;
-    time: "23:59:60", OutOfRangeSecond;
-    time_extra_x: "23:59:59xxx", ExtraCharacters;
-    time_extra_space: "23:59:59 ", ExtraCharacters;
+    time_min: ok => "00:00:00.000000", "00:00:00";
+    time_max: ok => "23:59:59.999999", "23:59:59.999999";
+    time_no_fraction: ok => "12:13:14", "12:13:14";
+    time_fraction_small: ok => "12:13:14.123", "12:13:14.123";
+    time_no_sec: ok => "12:13", "12:13:00";
+    time: error => "xxx", TooShort;
+    time: error => "xx:12", InvalidCharHour;
+    time_sep_hour: error => "12x12", InvalidCharTimeSep;
+    time: error => "12:x0", InvalidCharMinute;
+    time_sep_min: error => "12:13x", ExtraCharacters;
+    time: error => "12:13:x", InvalidCharSecond;
+    time: error => "12:13:12.", SecondFractionMissing;
+    time: error => "12:13:12.1234567", SecondFractionTooLong;
+    time: error => "24:00:00", OutOfRangeHour;
+    time: error => "23:60:00", OutOfRangeMinute;
+    time: error => "23:59:60", OutOfRangeSecond;
+    time_extra_x: error => "23:59:59xxx", ExtraCharacters;
+    time_extra_space: error => "23:59:59 ", ExtraCharacters;
 }
 
 #[test]
@@ -214,12 +170,6 @@ fn datetime_bytes() {
 }
 
 #[test]
-fn datetime_longest() {
-    let dt = DateTime::parse_str("2020-01-01T12:13:14.123456−02:15").unwrap();
-    assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123456-02:15");
-}
-
-#[test]
 fn datetime_tz_2hours() {
     let dt = DateTime::parse_str("2020-01-01T12:13:14+02:00").unwrap();
     assert_eq!(
@@ -243,13 +193,6 @@ fn datetime_tz_2hours() {
 }
 
 #[test]
-fn datetime_tz_negative() {
-    let dt = DateTime::parse_str("2020-01-01T12:13:14-02:15").unwrap();
-    assert_eq!(dt.offset, Some(-135));
-    assert_eq!(dt.to_string(), "2020-01-01T12:13:14-02:15");
-}
-
-#[test]
 fn datetime_tz_negative_2212() {
     // using U+2212 for negative timezones
     let dt = DateTime::parse_str("2020-01-01T12:13:14−02:15").unwrap();
@@ -257,56 +200,31 @@ fn datetime_tz_negative_2212() {
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14-02:15");
 }
 
-#[test]
-fn datetime_tz_negative_10() {
-    let dt = DateTime::parse_str("2020-01-01T12:13:14-11:30").unwrap();
-    assert_eq!(dt.offset, Some(-690));
-    assert_eq!(dt.to_string(), "2020-01-01T12:13:14-11:30");
-}
-
-#[test]
-fn datetime_tz_no_colon() {
-    let dt = DateTime::parse_str("2020-01-01T12:13:14+1234").unwrap();
-    assert_eq!(dt.offset, Some(12 * 60 + 34));
-    assert_eq!(dt.to_string(), "2020-01-01T12:13:14+12:34");
-}
-
-#[test]
-fn datetime_seconds_fraction_break() {
-    let dt = DateTime::parse_str("2020-01-01 12:13:14.123z").unwrap();
-    assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123Z");
-}
-
-#[test]
-fn datetime_seconds_fraction_comma() {
-    let dt = DateTime::parse_str("2020-01-01 12:13:14,123z").unwrap();
-    assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123Z");
-}
-
-#[test]
-fn datetime_underscore() {
-    let dt = DateTime::parse_str("2020-01-01_12:13:14,123z").unwrap();
-    assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123Z");
-}
-
-expect_error_tests! {
+param_tests! {
     DateTime,
-    dt_short_date: "xxx", TooShort;
-    dt_short_time: "2020-01-01T12:0", TooShort;
-    dt: "202x-01-01", InvalidCharYear;
-    dt: "2020-01-01x", InvalidCharDateTimeSep;
-    dt: "2020-01-01Txx:00", InvalidCharHour;
-    dt_1: "2020-01-01T12:00:00x", InvalidCharTzSign;
+    dt_longest: ok => "2020-01-01T12:13:14.123456−02:15", "2020-01-01T12:13:14.123456-02:15";
+    dt_tz_negative: ok => "2020-01-01T12:13:14-02:15", "2020-01-01T12:13:14-02:15";
+    dt_tz_negative_10: ok => "2020-01-01T12:13:14-11:30", "2020-01-01T12:13:14-11:30";
+    dt_tz_no_colon: ok => "2020-01-01T12:13:14+1234", "2020-01-01T12:13:14+12:34";
+    dt_seconds_fraction_break: ok => "2020-01-01 12:13:14.123z", "2020-01-01T12:13:14.123Z";
+    dt_seconds_fraction_comma: ok => "2020-01-01 12:13:14,123z", "2020-01-01T12:13:14.123Z";
+    dt_underscore: ok => "2020-01-01_12:13:14,123z", "2020-01-01T12:13:14.123Z";
+    dt_short_date: error => "xxx", TooShort;
+    dt_short_time: error => "2020-01-01T12:0", TooShort;
+    dt: error => "202x-01-01", InvalidCharYear;
+    dt: error => "2020-01-01x", InvalidCharDateTimeSep;
+    dt: error => "2020-01-01Txx:00", InvalidCharHour;
+    dt_1: error => "2020-01-01T12:00:00x", InvalidCharTzSign;
     // same first byte as U+2212, different second b'\xe2\x89\x92'.decode()
-    dt_2: "2020-01-01T12:00:00≒", InvalidCharTzSign;
+    dt_2: error => "2020-01-01T12:00:00≒", InvalidCharTzSign;
     // same first and second bytes as U+2212, different third b'\xe2\x88\x93'.decode()
-    dt_3: "2020-01-01T12:00:00∓", InvalidCharTzSign;
-    dt: "2020-01-01T12:00:00+x", InvalidCharTzHour;
-    dt: "2020-01-01T12:00:00+00x", InvalidCharTzMinute;
-    dt_extra_space_z: "2020-01-01T12:00:00Z ", ExtraCharacters;
-    dt_extra_space_tz1: "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
-    dt_extra_space_tz2: "2020-01-01T12:00:00+0000 ", ExtraCharacters;
-    dt_extra_xxx: "2020-01-01T12:00:00Zxxx", ExtraCharacters;
+    dt_3: error => "2020-01-01T12:00:00∓", InvalidCharTzSign;
+    dt: error => "2020-01-01T12:00:00+x", InvalidCharTzHour;
+    dt: error => "2020-01-01T12:00:00+00x", InvalidCharTzMinute;
+    dt_extra_space_z: error => "2020-01-01T12:00:00Z ", ExtraCharacters;
+    dt_extra_space_tz1: error => "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
+    dt_extra_space_tz2: error => "2020-01-01T12:00:00+0000 ", ExtraCharacters;
+    dt_extra_xxx: error => "2020-01-01T12:00:00Zxxx", ExtraCharacters;
 }
 
 #[test]

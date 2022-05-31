@@ -22,7 +22,7 @@ lint:
 
 .PHONY: test
 test:
-	cargo test
+	RUSTFLAGS='-Z macro-backtrace' cargo test
 
 .PHONY: bench
 bench:
