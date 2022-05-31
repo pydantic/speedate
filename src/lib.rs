@@ -350,9 +350,10 @@ impl DateTime {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Duration {
-    pub day: i64,
-    pub second: i32,
-    pub microsecond: i32,
+    pub positive: bool,
+    pub day: u64,
+    pub second: u32,
+    pub microsecond: u32,
 }
 
 impl fmt::Display for Duration {
@@ -388,19 +389,32 @@ impl Duration {
 
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        if bytes.get(0).copied() == Some(b'P') {
-            Self::parse_iso_duration(bytes)
-        } else {
-            Err(ParseError::ToDo)
+        let c123 = (bytes.get(0).copied(), bytes.get(1).copied(), bytes.get(2).copied());
+        let mut d = match c123 {
+            (Some(b'P'), _, _) => Self::parse_iso_duration(bytes, true, 1),
+            (Some(b'+'), Some(b'P'), _) => Self::parse_iso_duration(bytes, true, 2),
+            (Some(b'-'), Some(b'P'), _) => Self::parse_iso_duration(bytes, false, 2),
+            _ => Err(ParseError::ToDo),
+        }?;
+
+        if d.microsecond >= 1_000_000 {
+            d.second += d.microsecond / 1_000_000;
+            d.microsecond %= 1_000_000;
         }
+        if d.second >= 86_400 {
+            d.day += d.second as u64 / 86_400;
+            d.second %= 86_400;
+        }
+        Ok(d)
     }
 
-    fn parse_iso_duration(bytes: &[u8]) -> Result<Self, ParseError> {
+    fn parse_iso_duration(bytes: &[u8], positive: bool, offset: usize) -> Result<Self, ParseError> {
         let mut got_t = false;
-        let mut position: usize = 1; // because 0 is 'P'
-        let mut day = 0_i64;
-        let mut second = 0;
-        let mut microsecond = 0;
+        let mut last_had_fraction = false;
+        let mut position: usize = offset;
+        let mut day: u64 = 0;
+        let mut second: u32 = 0;
+        let mut microsecond: u32 = 0;
         loop {
             match bytes.get(position).copied() {
                 Some(b'T') => {
@@ -410,29 +424,43 @@ impl Duration {
                     got_t = true;
                 }
                 Some(c) => {
-                    let (value, new_pos) = Self::parse_number(bytes, c, position)?;
+                    let (value, op_fraction, new_pos) = Self::parse_number(bytes, c, position)?;
+                    if last_had_fraction {
+                        return Err(ParseError::ToDo);
+                    }
+                    if op_fraction.is_some() {
+                        last_had_fraction = true;
+                    }
                     position = new_pos;
                     if got_t {
-                        let mult = match bytes.get(position).copied() {
-                            Some(b'H') => 3600.0,
-                            Some(b'M') => 60.0,
-                            Some(b'S') => 1.0,
+                        let mult: u32 = match bytes.get(position).copied() {
+                            Some(b'H') => 3600,
+                            Some(b'M') => 60,
+                            Some(b'S') => 1,
                             _ => return Err(ParseError::ToDo),
                         };
-                        let total_seconds = value * mult;
-                        second += total_seconds.floor() as i32;
-                        microsecond += (total_seconds % 1.0 * 1_000_000.0).round() as i32;
+                        second += value as u32 * mult;
+                        if let Some(fraction) = op_fraction {
+                            let extra_seconds = fraction * mult as f64;
+                            let extra_full_seconds = extra_seconds.trunc();
+                            second += extra_full_seconds as u32;
+                            microsecond += ((extra_seconds - extra_full_seconds) * 1_000_000.0).round() as u32;
+                        }
                     } else {
-                        let mult = match bytes.get(position).copied() {
-                            Some(b'Y') => 365.0,
-                            Some(b'M') => 30.0,
-                            Some(b'W') => 7.0,
-                            Some(b'D') => 1.0,
+                        let mult: u64 = match bytes.get(position).copied() {
+                            Some(b'Y') => 365,
+                            Some(b'M') => 30,
+                            Some(b'W') => 7,
+                            Some(b'D') => 1,
                             _ => return Err(ParseError::ToDo),
                         };
-                        let total_days = value * mult;
-                        day += total_days.floor() as i64;
-                        second += (total_days % 1.0 * 86_400.0).round() as i32;
+                        day += value * mult;
+                        if let Some(fraction) = op_fraction {
+                            let extra_days = fraction * mult as f64;
+                            let extra_full_days = extra_days.trunc();
+                            day += extra_full_days as u64;
+                            second += ((extra_days - extra_full_days) * 86_400.0).round() as u32;
+                        }
                     }
                 }
                 None => break,
@@ -443,48 +471,43 @@ impl Duration {
             return Err(ParseError::ToDo);
         }
 
-        if bytes.len() > position {
-            return Err(ParseError::ExtraCharacters);
-        }
-        if second > 86_400 {
-            day += second as i64 / 86_400;
-            second %= 86_400;
-        }
         Ok(Self {
+            positive,
             day,
             second,
             microsecond,
         })
     }
 
-    fn parse_number(bytes: &[u8], d1: u8, offset: usize) -> Result<(f64, usize), ParseError> {
-        let mut v = match d1 {
-            c if (b'0'..=b'9').contains(&d1) => (c - b'0') as f64,
+    fn parse_number(bytes: &[u8], d1: u8, offset: usize) -> Result<(u64, Option<f64>, usize), ParseError> {
+        let mut value = match d1 {
+            c if (b'0'..=b'9').contains(&d1) => (c - b'0') as u64,
             _ => return Err(ParseError::ToDo),
         };
         let mut position = offset + 1;
         loop {
             match bytes.get(position) {
-                Some(c) if (b'0'..=b'9').contains(&c) => {
-                    v *= 10.0;
-                    v += (c - b'0') as f64;
+                Some(c) if (b'0'..=b'9').contains(c) => {
+                    value *= 10;
+                    value += (c - b'0') as u64;
                     position += 1;
                 }
                 Some(b'.') | Some(b',') => {
-                    let dot_pos = position;
-                    position += 1;
+                    let mut decimal = 0_f64;
+                    let mut denominator = 1_f64;
                     loop {
+                        position += 1;
                         match bytes.get(position) {
-                            Some(c) if (b'0'..=b'9').contains(&c) => {
-                                let f = (c - b'0') as f64;
-                                v += f / 10_i32.pow((position - dot_pos) as u32) as f64;
-                                position += 1;
+                            Some(c) if (b'0'..=b'9').contains(c) => {
+                                decimal *= 10.0;
+                                decimal += (c - b'0') as f64;
+                                denominator *= 10.0;
                             }
-                            _ => return Ok((v, position)),
+                            _ => return Ok((value, Some(decimal / denominator), position)),
                         }
                     }
                 }
-                _ => return Ok((v, position)),
+                _ => return Ok((value, None, position)),
             }
         }
     }

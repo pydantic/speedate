@@ -344,13 +344,13 @@ fn duration_simple() {
     assert_eq!(
         d,
         Duration {
+            positive: true,
             day: 365,
             second: 0,
             microsecond: 0
         }
     );
     assert_eq!(d.to_string(), "P1Y");
-    assert_eq!(format!("{:?}", d), "Duration { day: 365, second: 0, microsecond: 0 }");
 }
 
 #[test]
@@ -359,6 +359,7 @@ fn duration_fractions() {
     assert_eq!(
         d,
         Duration {
+            positive: true,
             day: 366,
             second: 7200,
             microsecond: 500_000
@@ -367,7 +368,7 @@ fn duration_fractions() {
     assert_eq!(d.to_string(), "P1Y1DT7200.5S");
     assert_eq!(
         format!("{:?}", d),
-        "Duration { day: 366, second: 7200, microsecond: 500000 }"
+        "Duration { positive: true, day: 366, second: 7200, microsecond: 500000 }"
     );
 }
 
@@ -377,6 +378,7 @@ fn duration_1() {
     assert_eq!(
         d,
         Duration {
+            positive: true,
             day: 1,
             second: 1,
             microsecond: 0
