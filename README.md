@@ -21,7 +21,7 @@ The following formats are supported:
 * Date time: `YYYY-MM-DDTHH:MM:SSZ` - `Z` or `z` is allowed as timezone
 * Date time: `YYYY-MM-DDTHH:MM:SS+08:00`- positive and negative timezone are allowed, as per ISO 8601, U+2212 minus `−`
   is allowed as well as ascii minus `-` (U+002D)
-* Date time: `YYYY-MM-DDTHH:MM:SS+0800` - the colon in the timezone is optional
+* Date time: `YYYY-MM-DDTHH:MM:SS+0800` - the colon (`:`) in the timezone is optional
 * Duration: `PnYnMnDTnHnMnS` - ISO 8601 duration format,
   see [wikipedia](https://en.wikipedia.org/wiki/ISO_8601#Durations) for more details, `W` for weeks is also allowed
 * Duration: `HH:MM:SS` - any of the above time formats are allowed to represent a duration
@@ -56,7 +56,7 @@ fn main() {
             offset: Some(0),
         }
     );
-    assert_eq!(dt.to_string(), "2020-01-01T12:13:14Z");
+    assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
 }
 ```
 

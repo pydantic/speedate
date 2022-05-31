@@ -1,7 +1,6 @@
 use std::fmt;
 
-/// Parsing datetime values
-/// Taken from toml-rs and modified extensively.
+/// Parsing datetime, date, time & duration values
 
 // get a character from the bytes as as a decimal
 macro_rules! get_digit {
@@ -25,8 +24,8 @@ macro_rules! get_digit_unchecked {
 
 /// A parsed Date
 ///
-/// May be part of a `DateTime`.
-/// Allowed values: `1979-05-27`.
+/// Allowed formats:
+/// * `YYYY-MM-DD`
 #[derive(Debug, PartialEq, Clone)]
 pub struct Date {
     /// Year: four digits
@@ -44,11 +43,53 @@ impl fmt::Display for Date {
 }
 
 impl Date {
+    /// Parse a date from a string
+    ///
+    /// # Arguments
+    ///
+    /// * `str` - The string to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Date;
+    /// let d = Date::parse_str("2020-01-01").unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Date {
+    ///         year: 2020,
+    ///         month: 1,
+    ///         day: 1
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "2020-01-01");
+    /// ```
     #[inline]
     pub fn parse_str(str: &str) -> Result<Self, ParseError> {
         Self::parse_bytes(str.as_bytes())
     }
 
+    /// Parse a date from bytes
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Date;
+    /// let d = Date::parse_bytes(b"2020-01-01").unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Date {
+    ///         year: 2020,
+    ///         month: 1,
+    ///         day: 1
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "2020-01-01");
+    /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
         let d = Self::parse_bytes_internal(bytes)?;
@@ -118,11 +159,13 @@ impl Date {
 
 /// A parsed Time
 ///
-/// May be part of a `DateTime`.
-/// Allowed values: `07:32`, `07:32:00`, `00:32:00.999999`
+/// Allowed formats:
+/// * `HH:MM:SS`
+/// * `HH:MM:SS.FFFFFF` 1 to 6 digits are allowed
+/// * `HH:MM`
 ///
 /// Fractions of a second are to microsecond precision, if the value contains greater
-/// precision, an error is raised (TODO).
+/// precision, an error is raised.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Time {
     /// Hour: 0 to 23
@@ -147,11 +190,55 @@ impl fmt::Display for Time {
 }
 
 impl Time {
+    /// Parse a time from a string
+    ///
+    /// # Arguments
+    ///
+    /// * `str` - The string to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    /// let d = Time::parse_str("12:13:14.123456").unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Time {
+    ///         hour: 12,
+    ///         minute: 13,
+    ///         second: 14,
+    ///         microsecond: 123456,
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "12:13:14.123456");
+    /// ```
     #[inline]
     pub fn parse_str(str: &str) -> Result<Self, ParseError> {
         Self::parse_bytes(str.as_bytes())
     }
 
+    /// Parse a time from bytes
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    /// let d = Time::parse_bytes(b"12:13:14.123456").unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Time {
+    ///         hour: 12,
+    ///         minute: 13,
+    ///         second: 14,
+    ///         microsecond: 123456,
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "12:13:14.123456");
+    /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
         let (t, length) = Self::parse_bytes_internal(bytes, 0)?;
@@ -247,10 +334,13 @@ impl Time {
 /// A parsed DateTime
 ///
 /// Combines a `Date`, `Time` and optionally a timezone offset in minutes.
-/// Allowed values: `1979-05-27T07:32:00Z`, `1979-05-27T00:32:00-07:00`, `1979-05-27 07:32:00Z`
-///
-/// For the sake of readability, you may replace the T delimiter between date
-/// and time with a space character (as permitted by RFC 3339 section 5.6).
+/// Allowed values:
+/// * `YYYY-MM-DDTHH:MM:SS` - all the above time formats are allowed for the time part
+/// * `YYYY-MM-DD HH:MM:SS` - `T`, `t`, ` ` and `_` are allowed as separators
+/// * `YYYY-MM-DDTHH:MM:SSZ` - `Z` or `z` is allowed as timezone
+/// * `YYYY-MM-DDTHH:MM:SS+08:00`- positive and negative timezone are allowed,
+///   as per ISO 8601, U+2212 minus `−` is allowed as well as ascii minus `-` (U+002D)
+/// * `YYYY-MM-DDTHH:MM:SS+0800` - the colon (`:`) in the timezone is optional
 #[derive(Debug, PartialEq, Clone)]
 pub struct DateTime {
     pub date: Date,
@@ -274,11 +364,71 @@ impl fmt::Display for DateTime {
 }
 
 impl DateTime {
+    /// Parse a datetime from a string
+    ///
+    /// # Arguments
+    ///
+    /// * `str` - The string to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{DateTime, Date, Time};
+    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+    /// assert_eq!(
+    ///     dt,
+    ///     DateTime {
+    ///         date: Date {
+    ///             year: 2022,
+    ///             month: 1,
+    ///             day: 1,
+    ///         },
+    ///         time: Time {
+    ///             hour: 12,
+    ///             minute: 13,
+    ///             second: 14,
+    ///             microsecond: 0,
+    ///         },
+    ///         offset: Some(0),
+    ///     }
+    /// );
+    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
+    /// ```
     #[inline]
     pub fn parse_str(str: &str) -> Result<Self, ParseError> {
         Self::parse_bytes(str.as_bytes())
     }
 
+    /// Parse a datetime from bytes
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{DateTime, Date, Time};
+    /// let dt = DateTime::parse_bytes(b"2022-01-01T12:13:14Z").unwrap();
+    /// assert_eq!(
+    ///     dt,
+    ///     DateTime {
+    ///         date: Date {
+    ///             year: 2022,
+    ///             month: 1,
+    ///             day: 1,
+    ///         },
+    ///         time: Time {
+    ///             hour: 12,
+    ///             minute: 13,
+    ///             second: 14,
+    ///             microsecond: 0,
+    ///         },
+    ///         offset: Some(0),
+    ///     }
+    /// );
+    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
+    /// ```
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
         // First up, parse the full date if we can
         let date = Date::parse_bytes_internal(bytes)?;
