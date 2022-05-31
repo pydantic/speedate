@@ -351,6 +351,7 @@ param_tests! {
     duration_fraction1: ok => "PT0.555555S", "PT0.555555S";
     duration_fraction2: ok => "P1Y1DT2H0.5S", "P1Y1DT7200.5S";
     duration_1: ok => "P1DT1S", "P1DT1S";
+    duration_all: ok => "P1Y2M3DT4H5M6S", "P1Y63DT14706S";
     duration: err => "PD", DurationInvalidNumber;
     duration: err => "P1DT1MT1S", DurationTRepeated;
     duration: err => "P1DT1.1M1S", DurationInvalidFraction;
