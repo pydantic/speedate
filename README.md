@@ -60,9 +60,27 @@ fn main() {
 }
 ```
 
+## Performance
+
+**speedate** is significantly faster than
+[chrono's `parse_from_rfc3339`](https://docs.rs/chrono/latest/chrono/struct.DateTime.html#method.parse_from_rfc3339)
+and [iso8601](https://crates.io/crates/iso8601).
+
+Micro-benchmarking from [`benches/main.rs`](https://github.com/samuelcolvin/speedate/blob/main/benches/main.rs):
+
+```
+test compare_dt_error_chrono   ... bench:         192 ns/iter (+/- 0)
+test compare_dt_error_iso8601  ... bench:         462 ns/iter (+/- 4)
+test compare_dt_error_speedate ... bench:          26 ns/iter (+/- 0)
+test compare_dt_ok_chrono      ... bench:         250 ns/iter (+/- 1)
+test compare_dt_ok_iso8601     ... bench:         323 ns/iter (+/- 1)
+test compare_dt_ok_speedate    ... bench:          36 ns/iter (+/- 0)
+```
+
 ## Why not full iso8601?
 
 ISO8601 has lots of allowed formats, see
-[https://ijmacd.github.io/rfc3339-iso8601/](https://ijmacd.github.io/rfc3339-iso8601/).
+[ijmacd.github.io/rfc3339-iso8601](https://ijmacd.github.io/rfc3339-iso8601/).
 
-Most of these are unknown to most users, and not desired.
+Most of these are unknown to most users, and not desired. This library aims to support the most common formats
+without introducing ambiguity.

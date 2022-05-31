@@ -3,6 +3,13 @@ name = "speedate"
 authors = ["Samuel Colvin <s@muelcolvin.com>"]
 version = "0.1.0"
 edition = "2021"
+description = "Fast and simple datetime, date, time and duration parsing"
+readme = "README.md"
+license = "MIT"
+keywords = ["ISO8601", "RFC3339", "datetime", "date", "time"]
+categories = ["date-and-time", "parsing"]
+homepage = "https://github.com/samuelcolvin/speedate/"
+repository = "https://github.com/samuelcolvin/speedate/"
 
 [dev-dependencies]
 chrono = "0.4.19"
