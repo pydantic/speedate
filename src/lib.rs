@@ -522,7 +522,7 @@ impl Duration {
     fn parse_days_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
         let (day, offset) = match bytes.get(offset).copied() {
             Some(c) => Self::parse_number(bytes, c, offset),
-            _ => return Err(ParseError::TooShort),
+            _ => Err(ParseError::TooShort),
         }?;
         let mut position = offset;
 

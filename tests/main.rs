@@ -371,6 +371,7 @@ param_tests! {
     duration_days_1day6: ok => "1DAYS", "P1D";
     duration_days_1day7: ok => "1d", "P1D";
     duration_days_1day8: ok => "1d ", "P1D";
+    duration_days_too_short: err => "x", DurationInvalidNumber;
     duration_days_invalid1: err => "1x", DurationInvalidDays;
     duration_days_invalid2: err => "1dx", TooShort;
     duration_days_invalid3: err => "1da", DurationInvalidDays;
