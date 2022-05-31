@@ -3,14 +3,15 @@
 set -e
 
 if [ -d "target/debug/deps" ]; then
-  find target/debug/deps -regex '.*/[^.]*' -type f -delete
+  find target/debug/deps -regex '.*/main[^.]*' -delete
 fi
 
-RUSTFLAGS='-C instrument-coverage' cargo test
+# hack to avoid running doc tests as they break coverage without modifying Cargo.toml
+RUSTFLAGS='-C instrument-coverage' cargo test --test main
 
 rust-profdata merge -sparse default.profraw -o default.profdata
 
-rust-cov report -Xdemangler=rustfilt $(find target/debug/deps -regex '.*/[^.]*' -type f) \
+rust-cov report -Xdemangler=rustfilt $(find target/debug/deps -regex '.*/main[^.]*') \
     -instr-profile=default.profdata \
     --ignore-filename-regex='/.cargo/registry' \
     --ignore-filename-regex='library/std' \
@@ -18,7 +19,7 @@ rust-cov report -Xdemangler=rustfilt $(find target/debug/deps -regex '.*/[^.]*' 
 
 rm -rf htmlcov
 
-rust-cov show -Xdemangler=rustfilt $(find target/debug/deps -regex '.*/[^.]*' -type f) \
+rust-cov show -Xdemangler=rustfilt $(find target/debug/deps -regex '.*/main[^.]*') \
     -instr-profile=default.profdata \
     --ignore-filename-regex='/.cargo/registry' \
     --ignore-filename-regex='library/std' \

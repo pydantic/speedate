@@ -34,6 +34,9 @@ jobs:
 
     - run: ./tests/test_coverage_export.sh
 
+
+    - run: cargo test --doc
+
     - uses: codecov/codecov-action@v2
       with:
         env_vars: RUST
