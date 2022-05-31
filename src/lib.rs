@@ -54,6 +54,7 @@ impl Date {
     ///
     /// ```
     /// use speedate::Date;
+    ///
     /// let d = Date::parse_str("2020-01-01").unwrap();
     /// assert_eq!(
     ///     d,
@@ -80,6 +81,7 @@ impl Date {
     ///
     /// ```
     /// use speedate::Date;
+    ///
     /// let d = Date::parse_bytes(b"2020-01-01").unwrap();
     /// assert_eq!(
     ///     d,
@@ -175,7 +177,7 @@ pub struct Time {
     pub minute: u8,
     /// Second: 0 to 59
     pub second: u8,
-    /// microseconds: 0 to 999_999
+    /// microseconds: 0 to 999999
     pub microsecond: u32,
 }
 
@@ -201,6 +203,7 @@ impl Time {
     ///
     /// ```
     /// use speedate::Time;
+    ///
     /// let d = Time::parse_str("12:13:14.123456").unwrap();
     /// assert_eq!(
     ///     d,
@@ -228,6 +231,7 @@ impl Time {
     ///
     /// ```
     /// use speedate::Time;
+    ///
     /// let d = Time::parse_bytes(b"12:13:14.123456").unwrap();
     /// assert_eq!(
     ///     d,
@@ -344,9 +348,11 @@ impl Time {
 /// * `YYYY-MM-DDTHH:MM:SS+0800` - the colon (`:`) in the timezone is optional
 #[derive(Debug, PartialEq, Clone)]
 pub struct DateTime {
+    /// date part of the datetime
     pub date: Date,
+    /// time part of the datetime
     pub time: Time,
-    // offset in minutes if provided
+    /// timezone offset in minutes if provided
     pub offset: Option<i16>,
 }
 
@@ -375,6 +381,7 @@ impl DateTime {
     ///
     /// ```
     /// use speedate::{DateTime, Date, Time};
+    ///
     /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
     /// assert_eq!(
     ///     dt,
@@ -410,6 +417,7 @@ impl DateTime {
     ///
     /// ```
     /// use speedate::{DateTime, Date, Time};
+    ///
     /// let dt = DateTime::parse_bytes(b"2022-01-01T12:13:14Z").unwrap();
     /// assert_eq!(
     ///     dt,
@@ -499,11 +507,53 @@ impl DateTime {
     }
 }
 
+/// A parsed Duration
+///
+/// Allowed values:
+/// * `PnYnMnDTnHnMnS` - ISO 8601 duration format,
+///   see [wikipedia](https://en.wikipedia.org/wiki/ISO_8601#Durations) for more details,
+///   `W` for weeks is also allowed before the `T` separator - **Note**: `W` is allowed combined
+///   with other quantities which is a slight deviation from the ISO 8601 standard.
+/// * `HH:MM:SS` - any of the above time formats are allowed to represent a duration
+/// * `D days, HH:MM:SS` - time prefixed by `X days`, case-insensitive,
+///   spaces `s` and `,` are all optional
+/// * `D d, HH:MM:SS` - time prefixed by `X d`, case-insensitive, spaces and `,` are optional
+///
+/// All duration formats can be prefixed with `+` or `-` to indicate
+/// positive and negative durations respectively.
+///
+/// `Duration` stores durations in days, seconds and microseconds (all ints), therefore
+/// durations like years need be scaled when creating a `Duration`. The following scaling
+/// factors are used:
+/// * `Y` - 365 days
+/// * `M` - 30 days
+/// * `W` - 7 days
+/// * `D` - 1 day
+/// * `H` - 3600 seconds
+/// * `M` - 60 seconds
+/// * `S` - 1 second
+///
+/// Fractions of quantities are permitted by ISO 8601 in the final quantity included, e.g.
+/// `P1.5Y` or `P1Y1.5M`. Wen fractions of quantities are found `day`, `second` and `microsecond`
+/// are calculated to most accurately represent the fraction. For example `P1.123W` is represented
+/// as
+/// ```text
+/// Duration {
+///    positive: true,
+///    day: 7,
+///    second: 74390,
+///    microsecond: 400_000
+/// }
+/// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct Duration {
+    /// The positive or negative sign of the duration
     pub positive: bool,
+    /// The number of days
     pub day: u64,
+    /// The number of seconds, range 0 to 86399
     pub second: u32,
+    /// The number of microseconds, range 0 to 999999
     pub microsecond: u32,
 }
 
@@ -536,11 +586,33 @@ impl fmt::Display for Duration {
 }
 
 impl Duration {
-    #[inline]
-    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
-        Self::parse_bytes(str.as_bytes())
-    }
-
+    /// Create a duration from raw values.
+    ///
+    /// # Arguments
+    /// * `positive` - the positive or negative sign of the duration
+    /// * `day` - the number of days in the `Duration`
+    /// * `second` - the number of seconds in the `Duration`
+    /// * `microsecond` - the number of microseconds in the `Duration`
+    ///
+    /// `second` and `microsecond` are normalised to be in the ranges 0 to 59 and 0 to 999999
+    /// respectively.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Duration;
+    ///
+    /// let d = Duration::new(false, 1, 86500, 1_000_123);
+    /// assert_eq!(
+    ///     d,
+    ///     Duration {
+    ///         positive: false,
+    ///         day: 2,
+    ///         second: 101,
+    ///         microsecond: 123,
+    ///     }
+    /// );
+    /// ```
     pub fn new(positive: bool, day: u64, second: u32, microsecond: u32) -> Self {
         let mut d = Self {
             positive,
@@ -552,18 +624,71 @@ impl Duration {
         d
     }
 
+    /// Parse a duration from a string
+    ///
+    /// # Arguments
+    ///
+    /// * `str` - The string to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Duration;
+    ///
+    /// let d = Duration::parse_str("P1YT2.1S").unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Duration {
+    ///         positive: true,
+    ///         day: 365,
+    ///         second: 2,
+    ///         microsecond: 100_000
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "P1YT2.1S");
+    /// ```
+    #[inline]
+    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
+        Self::parse_bytes(str.as_bytes())
+    }
+
+    /// Total number of seconds in the duration (days + seconds) with sign based on `self.positive`
     #[inline]
     pub fn signed_total_seconds(&self) -> i64 {
         let sign = if self.positive { 1 } else { -1 };
         sign * (self.day as i64 * 86400 + self.second as i64)
     }
 
+    /// Microseconds in the duration with sign based on `self.positive`
     #[inline]
     pub fn signed_microseconds(&self) -> i32 {
         let sign = if self.positive { 1 } else { -1 };
         sign * self.microsecond as i32
     }
 
+    /// Parse a duration from bytes
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Duration;
+    ///
+    /// let d = Duration::parse_bytes(b"P1Y").unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Duration {
+    ///         positive: true,
+    ///         day: 365,
+    ///         second: 0,
+    ///         microsecond: 0
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "P1Y");
+    /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
         let (positive, offset) = match bytes.get(0).copied() {
@@ -802,7 +927,7 @@ impl Duration {
                 }
             }
         } else {
-            return Ok((value, None, position));
+            Ok((value, None, position))
         }
     }
 }

@@ -19,6 +19,7 @@ lint:
 	cargo fmt --all -- --check
 	cargo clippy --version
 	cargo clippy -- -D warnings -A incomplete_features
+	cargo doc
 
 .PHONY: test
 test:

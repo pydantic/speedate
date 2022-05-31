@@ -333,6 +333,20 @@ fn duration_new_normalise() {
     );
 }
 
+#[test]
+fn duration_new_normalise2() {
+    let d = Duration::new(true, 0, 0, 1_000_000);
+    assert_eq!(
+        d,
+        Duration {
+            positive: true,
+            day: 0,
+            second: 1,
+            microsecond: 0,
+        }
+    );
+}
+
 param_tests! {
     Duration,
     duration_too_short1: err => "", TooShort;

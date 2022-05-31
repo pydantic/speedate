@@ -9,7 +9,7 @@ Fast and simple datetime, date, time and duration parsing for rust.
 formats.
 
 **†** - all relaxations of from [RFC 3339](https://tools.ietf.org/html/rfc3339)
-compliant with [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601).
+are compliant with [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601).
 
 The following formats are supported:
 * Date: `YYYY-MM-DD`
