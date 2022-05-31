@@ -14,15 +14,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [stable, beta, nightly]
+        rust-version: [stable, beta, nightly]
+
+    env:
+      RUST: ${{ matrix.rust-version }}
 
     steps:
     - uses: actions/checkout@v3
 
-    - run: rustup update ${{ matrix.rust }}
-    - run: rustup default ${{ matrix.rust }}
+    - run: rustup update ${{ matrix.rust-version }}
+    - run: rustup default ${{ matrix.rust-version }}
+    - id: cache-rust
+      uses: Swatinem/rust-cache@v1
 
-    - run: cargo test
+    - run: cargo install rustfilt cargo-binutils
+      if: steps.cache-rust.outputs.cache-hit != 'true'
+
+    - run: rustup component add llvm-tools-preview
+
+    - run: ./tests/test_coverage_export.sh
+
+    - uses: codecov/codecov-action@v2
+      with:
+        env_vars: RUST
+
 
   bench:
     runs-on: ubuntu-latest
@@ -31,6 +46,7 @@ jobs:
 
     - run: rustup update nightly
     - run: rustup default nightly
+    - uses: Swatinem/rust-cache@v1
 
     - run: cargo bench
 
@@ -41,6 +57,8 @@ jobs:
 
     - run: rustup update stable
     - run: rustup default stable
+    - uses: Swatinem/rust-cache@v1
+
     - run: rustup component add rustfmt clippy
 
     - run: cargo fmt -- --check
