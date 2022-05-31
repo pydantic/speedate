@@ -1,11 +1,68 @@
-# not8601
+# speedate
 
-[![CI](https://github.com/samuelcolvin/not8601/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/samuelcolvin/not8601/actions/workflows/ci.yml?query=branch%3Amain)
+[![CI](https://github.com/samuelcolvin/speedate/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/samuelcolvin/speedate/actions/workflows/ci.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/samuelcolvin/speedate/branch/main/graph/badge.svg?token=xCXg5aV9wM)](https://codecov.io/gh/samuelcolvin/speedate)
 
-RFC 3339 & Common ISO 8601 date-time parsing.
+Fast and simple datetime, date, time and duration parsing for rust.
 
-Not iso8601 because iso8601 has lots of crazy formats - who thinks `2022-144T22` is a sensible datetime format?
-See [https://ijmacd.github.io/rfc3339-iso8601/](https://ijmacd.github.io/rfc3339-iso8601/) for more info.
+**speedate** is a lax† **RFC 3339** date and time parser, in other words, it parses common **ISO 8601**
+formats.
+
+**†** - all relaxations of from [RFC 3339](https://tools.ietf.org/html/rfc3339)
+compliant with [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601).
+
+The following formats are supported:
+* Date: `YYYY-MM-DD`
+* Time: `HH:MM:SS`
+* Time: `HH:MM:SS.FFFFFF` 1 to 6 digits are allowed
+* Time: `HH:MM`
+* Date time: `YYYY-MM-DDTHH:MM:SS` - all the above time formats are allowed for the time part
+* Date time: `YYYY-MM-DD HH:MM:SS` - `T`, `t`, ` ` and `_` are allowed as separators
+* Date time: `YYYY-MM-DDTHH:MM:SSZ` - `Z` or `z` is allowed as timezone
+* Date time: `YYYY-MM-DDTHH:MM:SS+08:00`- positive and negative timezone are allowed, as per ISO 8601, U+2212 minus `−`
+  is allowed as well as ascii minus `-` (U+002D)
+* Date time: `YYYY-MM-DDTHH:MM:SS+0800` - the colon in the timezone is optional
+* Duration: `PnYnMnDTnHnMnS` - ISO 8601 duration format,
+  see [wikipedia](https://en.wikipedia.org/wiki/ISO_8601#Durations) for more details, `W` for weeks is also allowed
+* Duration: `HH:MM:SS` - any of the above time formats are allowed to represent a duration
+* Duration: `D days, HH:MM:SS` - time prefixed by `X days`, case-insensitive, spaces `s` and `,` are all optional
+* Duration: `D d, HH:MM:SS` - time prefixed by `X d`, case-insensitive, spaces and `,` are optional
+* Duration: `±...` - all duration formats shown here can be prefixed with `+` or `-` to indicate
+  positive and negative durations respectively
 
 This will be the datetime parsing logic for [pydantic-core](https://github.com/samuelcolvin/pydantic-core).
+
+## Usage
+
+```rust
+use speedate::DateTime;
+
+fn main() {
+    let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+    assert_eq!(
+        dt,
+        DateTime {
+            date: Date {
+                year: 2022,
+                month: 1,
+                day: 1,
+            },
+            time: Time {
+                hour: 12,
+                minute: 13,
+                second: 14,
+                microsecond: 0,
+            },
+            offset: Some(0),
+        }
+    );
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14Z");
+}
+```
+
+## Why not full iso8601?
+
+ISO8601 has lots of allowed formats, see
+[https://ijmacd.github.io/rfc3339-iso8601/](https://ijmacd.github.io/rfc3339-iso8601/).
+
+Most of these are unknown to most users, and not desired.

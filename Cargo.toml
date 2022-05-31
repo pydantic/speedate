@@ -1,5 +1,5 @@
 [package]
-name = "not8601"
+name = "speedate"
 authors = ["Samuel Colvin <s@muelcolvin.com>"]
 version = "0.1.0"
 edition = "2021"

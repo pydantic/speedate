@@ -2,11 +2,11 @@
 
 extern crate test;
 
-use not8601::{Date, DateTime, Time};
+use speedate::{Date, DateTime, Time};
 use test::{black_box, Bencher};
 
 #[bench]
-fn compare_dt_ok_not8601(bench: &mut Bencher) {
+fn compare_dt_ok_speedate(bench: &mut Bencher) {
     let s1 = black_box("2000-01-01T00:02:03Z");
     let s2 = black_box("2000-01-02T00:02:03Z");
     let s3 = black_box("2000-01-02T00:02:03Z");
@@ -57,7 +57,7 @@ macro_rules! expect_error {
 }
 
 #[bench]
-fn compare_dt_error_not8601(bench: &mut Bencher) {
+fn compare_dt_error_speedate(bench: &mut Bencher) {
     let s1 = black_box("2000-01-01T25:02:03Z");
     bench.iter(|| {
         let e = expect_error!(DateTime::parse_str(&s1));

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-use not8601::{Date, DateTime, Duration, ParseError, Time};
+use speedate::{Date, DateTime, Duration, ParseError, Time};
 
 /// macro for expected values
 macro_rules! expect_ok_or_error {
