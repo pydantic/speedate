@@ -1,6 +1,7 @@
 # not8601
 
 [![CI](https://github.com/samuelcolvin/not8601/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/samuelcolvin/not8601/actions/workflows/ci.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/samuelcolvin/speedate/branch/main/graph/badge.svg?token=xCXg5aV9wM)](https://codecov.io/gh/samuelcolvin/speedate)
 
 RFC 3339 & Common ISO 8601 date-time parsing.
 
