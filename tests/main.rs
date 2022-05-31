@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::Read;
 
+use strum::EnumMessage;
+
 use speedate::{Date, DateTime, Duration, ParseError, Time};
 
 /// macro for expected values
@@ -50,6 +52,17 @@ fn date() {
     );
     assert_eq!(d.to_string(), "2020-01-01");
     assert_eq!(format!("{:?}", d), "Date { year: 2020, month: 1, day: 1 }");
+}
+
+#[test]
+fn error_str() {
+    let error = match Date::parse_str("123") {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::TooShort);
+    assert_eq!(error.to_string(), "too_short");
+    assert_eq!(error.get_documentation(), Some("Input is too short"));
 }
 
 param_tests! {
