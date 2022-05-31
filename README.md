@@ -35,7 +35,7 @@ This will be the datetime parsing logic for [pydantic-core](https://github.com/s
 ## Usage
 
 ```rust
-use speedate::DateTime;
+use speedate::{DateTime, Date, Time};
 
 fn main() {
     let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
@@ -68,7 +68,7 @@ and [iso8601](https://crates.io/crates/iso8601).
 
 Micro-benchmarking from [`benches/main.rs`](https://github.com/samuelcolvin/speedate/blob/main/benches/main.rs):
 
-```
+```text
 test compare_dt_error_chrono   ... bench:         192 ns/iter (+/- 0)
 test compare_dt_error_iso8601  ... bench:         462 ns/iter (+/- 4)
 test compare_dt_error_speedate ... bench:          26 ns/iter (+/- 0)

@@ -63,3 +63,5 @@ jobs:
 
     - run: cargo fmt -- --check
     - run: cargo clippy
+
+    - run: cargo doc
