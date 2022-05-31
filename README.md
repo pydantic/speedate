@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/samuelcolvin/speedate/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/samuelcolvin/speedate/actions/workflows/ci.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/samuelcolvin/speedate/branch/main/graph/badge.svg?token=xCXg5aV9wM)](https://codecov.io/gh/samuelcolvin/speedate)
+[![Crates.io](https://img.shields.io/crates/v/speedate?color=green)](https://crates.io/crates/speedate)
 
 Fast and simple datetime, date, time and duration parsing for rust.
 
