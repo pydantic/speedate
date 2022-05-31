@@ -30,8 +30,7 @@ bench:
 
 .PHONY: testcov
 testcov:
-	RUSTFLAGS='-C instrument-coverage -A incomplete_features -C link-arg=-undefined -C link-arg=dynamic_lookup' cargo test
-	./tests/rust_coverage_html.sh
+	./tests/test_coverage_html.sh
 
 .PHONY: all
 all: format lint test

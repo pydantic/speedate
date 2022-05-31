@@ -14,15 +14,37 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [stable, beta, nightly]
+        rust-version: [stable, beta, nightly]
+
+    env:
+      RUST: ${{ matrix.rust-version }}
 
     steps:
     - uses: actions/checkout@v3
 
-    - run: rustup update ${{ matrix.rust }}
-    - run: rustup default ${{ matrix.rust }}
 
-    - run: cargo test
+    - name: install rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: ${{ matrix.rust-version }}
+        override: true
+
+    - id: cache-rust
+      uses: Swatinem/rust-cache@v1
+
+    - run: cargo install rustfilt cargo-binutils
+      if: steps.cache-rust.outputs.cache-hit != 'true'
+
+    - run: rustup component add llvm-tools-preview
+      if: steps.cache-rust.outputs.cache-hit != 'true'
+
+    - run: ./tests/test_coverage_export.sh
+
+    - uses: codecov/codecov-action@v2
+      with:
+        env_vars: RUST
+
 
   bench:
     runs-on: ubuntu-latest
