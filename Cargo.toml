@@ -18,4 +18,5 @@ strum_macros = "0.24"
 [dev-dependencies]
 chrono = "0.4.19"
 iso8601 = "0.4.1"
+pyo3 = {version = "0.16.5", default-features = false, features = ["macros", "auto-initialize"]}
 paste = "1.0.7"

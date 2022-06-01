@@ -50,6 +50,44 @@ fn compare_datetime_ok_chrono(bench: &mut Bencher) {
 }
 
 #[bench]
+fn compare_datetime_ok_python_direct(bench: &mut Bencher) {
+    let gil = pyo3::prelude::Python::acquire_gil();
+    let py = gil.python();
+    let datetime_module = py.import("datetime").unwrap();
+    let datetime: &pyo3::PyAny = datetime_module.getattr("datetime").unwrap();
+    let fromisoformat = datetime.getattr("fromisoformat").unwrap();
+    let s = black_box("2000-01-01T00:02:03");
+    let d = fromisoformat.call1((s,)).unwrap();
+    println!("{:?}", d);
+    bench.iter(|| {
+        fromisoformat.call1((s,)).unwrap();
+    });
+}
+
+#[bench]
+fn compare_datetime_ok_python_speedate(bench: &mut Bencher) {
+    let gil = pyo3::prelude::Python::acquire_gil();
+    let py = gil.python();
+    let s = black_box("2000-01-01T00:02:03");
+    let dt = DateTime::parse_str(&s).unwrap();
+    bench.iter(|| {
+        let dt = DateTime::parse_str(&s).unwrap();
+        pyo3::types::PyDateTime::new(
+            py,
+            dt.date.year as i32,
+            dt.date.month,
+            dt.date.day,
+            dt.time.hour,
+            dt.time.minute,
+            dt.time.second,
+            dt.time.microsecond,
+            None,
+        )
+        .unwrap();
+    });
+}
+
+#[bench]
 fn compare_duration_ok_speedate(bench: &mut Bencher) {
     let s = black_box("P1Y2M3DT4H5M6S");
     bench.iter(|| {

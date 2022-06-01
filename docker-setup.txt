@@ -1,0 +1,36 @@
+cd /repo
+ls
+python
+apt update
+apt install python3.10
+python3.10
+cargo test
+apt install rustup
+curl https://sh.rustup.rs -sSf | sh -s
+apt update && apt install curl -ty
+apt update && apt install curl -y
+curl https://sh.rustup.rs -sSf | sh -s
+source $HOME/.cargo/env
+cargo test
+apt install build-essential
+cargo test
+python3.
+python3
+apt install python3.10
+apt search python3.10
+apt search python3.10-full
+apt install python3.10-dev
+cargo test
+python3
+python3.10
+python3.10 -m venv env
+apt install python3.10-venv
+python3.10 -m venv env
+source env/bin/activate
+cargo test
+cargo bench
+rustup update nightly
+rustup default nightly
+cargo bench
+cargo bench -- --nocapture
+history 200
