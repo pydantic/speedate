@@ -25,6 +25,12 @@ impl fmt::Display for Date {
     }
 }
 
+// 2e10 if greater than this, the number is in ms, if less than or equal, it's in seconds
+// (in seconds this is 11th October 2603, in ms it's 20th August 1970)
+const MS_WATERSHED: i64 = 20_000_000_000;
+// 1600-01-01 as a unix timestamp (omitting the negative) used for from_timestamp below
+const UNIX_1600: i64 = 11_676_096_000;
+
 impl Date {
     /// Parse a date from a string
     ///
@@ -85,6 +91,47 @@ impl Date {
 
         Ok(d)
     }
+    pub fn from_timestamp(timestamp: i64) -> Result<Self, ParseError> {
+        let mut timestamp_seconds = timestamp;
+        while timestamp_seconds.abs() > MS_WATERSHED {
+            timestamp_seconds /= 1000;
+        }
+        Self::from_timestamp_calc(timestamp_seconds)
+    }
+
+    pub(crate) fn from_timestamp_calc(timestamp_seconds: i64) -> Result<Self, ParseError> {
+        if timestamp_seconds < -UNIX_1600 {
+            return Err(ParseError::DateTooEarly);
+        }
+        let seconds_diff = UNIX_1600 + timestamp_seconds;
+        let delta_days = seconds_diff / 86_400;
+        let delta_years = delta_days / 365;
+        let leap_years = if delta_years == 0 {
+            0
+        } else {
+            // plus one because 1600 itself was a leap year
+            (delta_years - 1) / 4 - (delta_years - 1) / 100 + (delta_years - 1) / 400 + 1
+        };
+
+        // year day is the day of the year, starting from 1
+        let mut year_day: i16 = (delta_days % 365 - leap_years + 1) as i16;
+        let mut year: u16 = (1_600 + delta_years) as u16;
+        let mut leap_year: bool = if year % 100 == 0 {
+            year % 400 == 0
+        } else {
+            year % 4 == 0
+        };
+        if year_day < 1 {
+            year -= 1;
+            leap_year = year % 4 == 0;
+            year_day += if leap_year { 366 } else { 365 };
+        }
+        let (month, day) = match leap_year {
+            true => leap_year_month_day(year_day),
+            false => non_leap_year_month_day(year_day),
+        };
+        Ok(Self { year, month, day })
+    }
 
     /// Parse a date from bytes, no check is performed for extract characters at the end of the string
     pub(crate) fn parse_bytes_partial(bytes: &[u8]) -> Result<Self, ParseError> {
@@ -140,5 +187,39 @@ impl Date {
         }
 
         Ok(Self { year, month, day })
+    }
+}
+
+fn leap_year_month_day(day: i16) -> (u8, u8) {
+    match day {
+        0..=31 => (1, day as u8),
+        32..=60 => (2, day as u8 - 31),
+        61..=91 => (3, day as u8 - 60),
+        92..=121 => (4, day as u8 - 91),
+        122..=152 => (5, day as u8 - 121),
+        153..=182 => (6, day as u8 - 152),
+        183..=213 => (7, day as u8 - 182),
+        214..=244 => (8, day as u8 - 213),
+        245..=274 => (9, (day - 244) as u8),
+        275..=305 => (10, (day - 274) as u8),
+        306..=335 => (11, (day - 305) as u8),
+        _ => (12, (day - 335) as u8),
+    }
+}
+
+fn non_leap_year_month_day(day: i16) -> (u8, u8) {
+    match day {
+        0..=31 => (1, day as u8),
+        32..=59 => (2, day as u8 - 31),
+        60..=90 => (3, day as u8 - 59),
+        91..=120 => (4, day as u8 - 90),
+        121..=151 => (5, day as u8 - 120),
+        152..=181 => (6, day as u8 - 151),
+        182..=212 => (7, day as u8 - 181),
+        213..=243 => (8, day as u8 - 212),
+        244..=273 => (9, (day - 243) as u8),
+        274..=304 => (10, (day - 273) as u8),
+        305..=334 => (11, (day - 304) as u8),
+        _ => (12, (day - 334) as u8),
     }
 }

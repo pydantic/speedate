@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
+use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use strum::EnumMessage;
 
 use speedate::{Date, DateTime, Duration, ParseError, Time};
@@ -83,6 +84,100 @@ param_tests! {
     date_normal_leap_year: ok => "2004-02-29", "2004-02-29";
     date_special_100_not_leap: err => "1900-02-29", OutOfRangeDay;
     date_special_400_leap: ok => "2000-02-29", "2000-02-29";
+}
+
+#[test]
+fn date_from_timestamp_too_early() {
+    match Date::from_timestamp(-11_676_096_001) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::DateTooEarly),
+    }
+}
+
+#[test]
+fn date_from_timestamp_milliseconds() {
+    let d1 = Date::from_timestamp(1_654_472_524).unwrap();
+    assert_eq!(
+        d1,
+        Date {
+            year: 2022,
+            month: 6,
+            day: 5
+        }
+    );
+    let d2 = Date::from_timestamp(1_654_472_524_000).unwrap();
+    assert_eq!(d2, d1);
+    let d3 = Date::from_timestamp(1_654_472_524_000_000).unwrap();
+    assert_eq!(d3, d1);
+}
+
+fn try_timestamp(ts: i64) {
+    let chrono_date = NaiveDateTime::from_timestamp(ts, 0).date();
+    let d = Date::from_timestamp(ts).unwrap();
+    // println!("{} => {:?}", ts, d);
+    assert_eq!(
+        d,
+        Date {
+            year: chrono_date.year() as u16,
+            month: chrono_date.month() as u8,
+            day: chrono_date.day() as u8,
+        },
+        "timestamp: {} => {}",
+        ts,
+        chrono_date
+    );
+}
+
+#[test]
+fn date_from_timestamp_range() {
+    for ts in (0..4_000_000_000).step_by(86_400) {
+        try_timestamp(ts);
+        try_timestamp(ts + 40_000);
+        try_timestamp(-ts - 40_000);
+    }
+}
+
+macro_rules! date_from_timestamp {
+    ($($year:literal, $month:literal, $day:literal;)*) => {
+        $(
+        paste::item! {
+            #[test]
+            fn [< date_from_timestamp_ $year _ $month _$day >]() {
+                let chrono_date = NaiveDate::from_ymd($year, $month, $day);
+                let ts = chrono_date.and_hms(0, 0, 0).timestamp();
+                let d = Date::from_timestamp(ts).unwrap();
+                assert_eq!(d, Date {
+                    year: $year,
+                    month: $month,
+                    day: $day,
+                },
+                "timestamp: {} => {}",
+                ts,
+                chrono_date);
+            }
+        }
+        )*
+    }
+}
+
+date_from_timestamp! {
+    1970, 1, 1;
+    1970, 1, 31;
+    1970, 2, 1;
+    1970, 2, 28;
+    1970, 3, 1;
+    1600, 1, 1;
+    1601, 1, 1;
+    1700, 1, 1;
+    1842, 8, 20;
+    1900, 1, 1;
+    1900, 6, 1;
+    1901, 1, 1;
+    1904, 1, 1;
+    1904, 2, 29;
+    1904, 6, 1;
+    1924, 6, 1;
+    2200, 1, 1;
 }
 
 #[test]
