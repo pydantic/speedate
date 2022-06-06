@@ -9,7 +9,7 @@ use crate::{get_digit_unchecked, ParseError};
 ///
 /// Leap years are correct calculated according to the Gregorian calendar.
 /// Thus `2000-02-29` is a valid date, but `2001-02-29` is not.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Date {
     /// Year: four digits
     pub year: u16,
@@ -91,19 +91,39 @@ impl Date {
 
         Ok(d)
     }
+
     pub fn from_timestamp(timestamp: i64) -> Result<Self, ParseError> {
-        let mut timestamp_seconds = timestamp;
-        while timestamp_seconds.abs() > MS_WATERSHED {
-            timestamp_seconds /= 1000;
-        }
-        Self::from_timestamp_calc(timestamp_seconds)
+        let (timestamp_second, _) = Self::timestamp_watershed(timestamp)?;
+        Self::from_timestamp_calc(timestamp_second)
     }
 
-    pub(crate) fn from_timestamp_calc(timestamp_seconds: i64) -> Result<Self, ParseError> {
-        if timestamp_seconds < -UNIX_1600 {
-            return Err(ParseError::DateTooEarly);
+    pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, i64), ParseError> {
+        let ts_abs = timestamp.abs();
+        let (mut seconds, mut microseconds) = if ts_abs > MS_WATERSHED * 1_000_000 {
+            // timestamp is in nanoseconds
+            (timestamp / 1_000_000_000, timestamp % 1_000_000_000 / 1_000)
+        } else if ts_abs > MS_WATERSHED * 1_000 {
+            (timestamp / 1_000_000, timestamp % 1_000_000)
+        } else if ts_abs > MS_WATERSHED {
+            (timestamp / 1_000, timestamp % 1_000 * 1000)
+        } else {
+            (timestamp, 0)
+        };
+        if microseconds < 0 {
+            seconds -= 1;
+            microseconds += 1_000_000;
         }
-        let seconds_diff = UNIX_1600 + timestamp_seconds;
+        if seconds.abs() > MS_WATERSHED {
+            return Err(ParseError::DateTooLarge);
+        }
+        Ok((seconds, microseconds))
+    }
+
+    pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<Self, ParseError> {
+        if timestamp_second < -UNIX_1600 {
+            return Err(ParseError::DateTooSmall);
+        }
+        let seconds_diff = UNIX_1600 + timestamp_second;
         let delta_days = seconds_diff / 86_400;
         let delta_years = delta_days / 365;
         let leap_years = if delta_years == 0 {

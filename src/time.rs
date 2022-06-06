@@ -11,7 +11,7 @@ use crate::{get_digit, get_digit_unchecked, ParseError};
 ///
 /// Fractions of a second are to microsecond precision, if the value contains greater
 /// precision, an error is raised.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Time {
     /// Hour: 0 to 23
     pub hour: u8,
@@ -95,6 +95,24 @@ impl Time {
         }
 
         Ok(t)
+    }
+
+    pub fn from_timestamp(timestamp_second: u64, timestamp_microsecond: u64) -> Result<Self, ParseError> {
+        let mut second = timestamp_second;
+        let mut microsecond = timestamp_microsecond;
+        if microsecond >= 1_000_000 {
+            second += microsecond / 1_000_000;
+            microsecond %= 1_000_000;
+        }
+        if second >= 86_400 {
+            return Err(ParseError::TimeTooLarge);
+        }
+        Ok(Self {
+            hour: (second / 3600) as u8,
+            minute: ((second % 3600) / 60) as u8,
+            second: (second % 60) as u8,
+            microsecond: microsecond as u32,
+        })
     }
 
     /// Parse a time from bytes with a starting index, no check is performed for extract characters at

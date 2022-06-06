@@ -12,7 +12,7 @@ use crate::{get_digit, Date, ParseError, Time};
 /// * `YYYY-MM-DDTHH:MM:SS+08:00`- positive and negative timezone are allowed,
 ///   as per ISO 8601, U+2212 minus `−` is allowed as well as ascii minus `-` (U+002D)
 /// * `YYYY-MM-DDTHH:MM:SS+0800` - the colon (`:`) in the timezone is optional
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DateTime {
     /// date part of the datetime
     pub date: Date,
@@ -170,5 +170,17 @@ impl DateTime {
         }
 
         Ok(Self { date, time, offset })
+    }
+
+    pub fn from_timestamp(timestamp: i64, millisecond: u32) -> Result<Self, ParseError> {
+        let (timestamp_second, extra_millisecond) = Date::timestamp_watershed(timestamp)?;
+        let date = Date::from_timestamp_calc(timestamp_second)?;
+        let millisecond = millisecond as u64 + extra_millisecond as u64;
+        let time_second = timestamp_second % 86_400;
+        Ok(Self {
+            date,
+            time: Time::from_timestamp(time_second as u64, millisecond)?,
+            offset: None,
+        })
     }
 }

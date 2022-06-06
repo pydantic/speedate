@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
 use strum::EnumMessage;
 
 use speedate::{Date, DateTime, Duration, ParseError, Time};
@@ -87,11 +87,20 @@ param_tests! {
 }
 
 #[test]
-fn date_from_timestamp_too_early() {
+fn date_from_timestamp_extremes() {
     match Date::from_timestamp(-11_676_096_001) {
         Ok(_) => panic!("unexpectedly valid"),
-        Err(e) => assert_eq!(e, ParseError::DateTooEarly),
+        Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
+    let d = Date::from_timestamp(i64::MAX).unwrap();
+    assert_eq!(
+        d,
+        Date {
+            year: 2262,
+            month: 4,
+            day: 11
+        }
+    );
 }
 
 #[test]
@@ -107,11 +116,15 @@ fn date_from_timestamp_milliseconds() {
     );
     let d2 = Date::from_timestamp(1_654_472_524_000).unwrap();
     assert_eq!(d2, d1);
+    // micro
     let d3 = Date::from_timestamp(1_654_472_524_000_000).unwrap();
     assert_eq!(d3, d1);
+    // ns
+    let d4 = Date::from_timestamp(1_654_472_524_000_000_000).unwrap();
+    assert_eq!(d4, d1);
 }
 
-fn try_timestamp(ts: i64) {
+fn try_date_timestamp(ts: i64) {
     let chrono_date = NaiveDateTime::from_timestamp(ts, 0).date();
     let d = Date::from_timestamp(ts).unwrap();
     // println!("{} => {:?}", ts, d);
@@ -131,9 +144,10 @@ fn try_timestamp(ts: i64) {
 #[test]
 fn date_from_timestamp_range() {
     for ts in (0..4_000_000_000).step_by(86_400) {
-        try_timestamp(ts);
-        try_timestamp(ts + 40_000);
-        try_timestamp(-ts - 40_000);
+        try_date_timestamp(ts);
+        try_date_timestamp(ts + 40_000);
+        try_date_timestamp(-ts);
+        try_date_timestamp(-ts - 40_000);
     }
 }
 
@@ -142,18 +156,21 @@ macro_rules! date_from_timestamp {
         $(
         paste::item! {
             #[test]
-            fn [< date_from_timestamp_ $year _ $month _$day >]() {
+            fn [< date_from_timestamp_ $year _ $month _ $day >]() {
                 let chrono_date = NaiveDate::from_ymd($year, $month, $day);
                 let ts = chrono_date.and_hms(0, 0, 0).timestamp();
                 let d = Date::from_timestamp(ts).unwrap();
-                assert_eq!(d, Date {
-                    year: $year,
-                    month: $month,
-                    day: $day,
-                },
-                "timestamp: {} => {}",
-                ts,
-                chrono_date);
+                assert_eq!(
+                    d,
+                    Date {
+                        year: $year,
+                        month: $month,
+                        day: $day,
+                    },
+                    "timestamp: {} => {}",
+                    ts,
+                    chrono_date
+                );
             }
         }
         )*
@@ -178,6 +195,99 @@ date_from_timestamp! {
     1904, 6, 1;
     1924, 6, 1;
     2200, 1, 1;
+}
+
+macro_rules! time_from_timestamp {
+    ($($ts_secs:literal, $ts_micro:literal => $hour:literal, $minute:literal, $second:literal, $microsecond:literal;)*) => {
+        $(
+        paste::item! {
+            #[test]
+            fn [< time_from_timestamp_ $hour _ $minute _ $second _ $microsecond >]() {
+                let d = Time::from_timestamp($ts_secs, $ts_micro).unwrap();
+                assert_eq!(d, Time {
+                    hour: $hour,
+                    minute: $minute,
+                    second: $second,
+                    microsecond: $microsecond,
+                },
+                "timestamp: {} => {}:{}:{}.{}",
+                $ts_secs,
+                $hour, $minute, $second, $microsecond);
+            }
+        }
+        )*
+    }
+}
+
+time_from_timestamp! {
+    0, 0 => 0, 0, 0, 0;
+    1, 0 => 0, 0, 1, 0;
+    3600, 0 => 1, 0, 0, 0;
+    3700, 0 => 1, 1, 40, 0;
+    86399, 0 => 23, 59, 59, 0;
+    0, 100 => 0, 0, 0, 100;
+    0, 5_000_000 => 0, 0, 5, 0;
+    36_005, 1_500_000 => 10, 0, 6, 500_000;
+}
+
+#[test]
+fn time_from_timestamp_error() {
+    match Time::from_timestamp(86400, 0) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
+    }
+    match Time::from_timestamp(86390, 10_000_000) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
+    }
+}
+
+fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
+    let ts = chrono_dt.timestamp();
+    let dt = DateTime::from_timestamp(ts, chrono_dt.nanosecond() / 1_000_000).unwrap();
+    // println!("{} => {:?}", ts, d);
+    assert_eq!(
+        dt,
+        DateTime {
+            date: Date {
+                year: chrono_dt.year() as u16,
+                month: chrono_dt.month() as u8,
+                day: chrono_dt.day() as u8,
+            },
+            time: Time {
+                hour: chrono_dt.hour() as u8,
+                minute: chrono_dt.minute() as u8,
+                second: chrono_dt.second() as u8,
+                microsecond: chrono_dt.nanosecond() as u32 / 1_000_000,
+            },
+            offset: None,
+        },
+        "timestamp: {} => {}",
+        ts,
+        chrono_dt
+    );
+}
+
+macro_rules! datetime_from_timestamp {
+    ($($year:literal, $month:literal, $day:literal, $hour:literal, $minute:literal, $second:literal, $microsecond:literal;)*) => {
+        $(
+        paste::item! {
+            #[test]
+            fn [< datetime_from_timestamp_ $year _ $month _ $day _t_ $hour _ $minute _ $second _ $microsecond >]() {
+                let chrono_dt = NaiveDate::from_ymd($year, $month, $day).and_hms_nano($hour, $minute, $second, $microsecond * 1_000);
+                try_datetime_timestamp(chrono_dt);
+            }
+        }
+        )*
+    }
+}
+
+datetime_from_timestamp! {
+    1970, 1, 1, 0, 0, 0, 0;
+    1970, 1, 1, 0, 0, 1, 0;
+    1970, 1, 1, 0, 1, 0, 0;
+    1970, 1, 2, 0, 0, 0, 0;
+    1970, 1, 2, 0, 0, 0, 500_000;
 }
 
 #[test]

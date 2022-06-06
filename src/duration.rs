@@ -40,7 +40,7 @@ use crate::{ParseError, Time};
 ///    microsecond: 400_000
 /// }
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Duration {
     /// The positive or negative sign of the duration
     pub positive: bool,
