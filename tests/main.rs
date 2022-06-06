@@ -245,7 +245,7 @@ fn time_from_timestamp_error() {
 fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
     let ts = chrono_dt.timestamp();
     let dt = DateTime::from_timestamp(ts, chrono_dt.nanosecond() / 1_000_000).unwrap();
-    // println!("{} => {:?}", ts, d);
+    println!("{} => {:?}", ts, dt);
     assert_eq!(
         dt,
         DateTime {
@@ -288,6 +288,14 @@ datetime_from_timestamp! {
     1970, 1, 1, 0, 1, 0, 0;
     1970, 1, 2, 0, 0, 0, 0;
     1970, 1, 2, 0, 0, 0, 500_000;
+}
+
+#[test]
+fn datetime_from_timestamp_range() {
+    for ts in (0..157_766_400).step_by(757) {
+        try_datetime_timestamp(NaiveDateTime::from_timestamp(ts, 0));
+        // try_datetime_timestamp(NaiveDateTime::from_timestamp(-ts, 0));
+    }
 }
 
 #[test]
