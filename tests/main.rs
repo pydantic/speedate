@@ -240,6 +240,10 @@ fn time_from_timestamp_error() {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
     }
+    match Time::from_timestamp(u32::MAX, u64::MAX) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
+    }
 }
 
 fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
