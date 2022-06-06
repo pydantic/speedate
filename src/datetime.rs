@@ -176,7 +176,8 @@ impl DateTime {
         let (timestamp_second, extra_millisecond) = Date::timestamp_watershed(timestamp)?;
         let date = Date::from_timestamp_calc(timestamp_second)?;
         let millisecond = millisecond as u64 + extra_millisecond as u64;
-        let time_second = timestamp_second % 86_400;
+        // rem_euclid since if `timestamp_second = -100`, we want `86300` (e.g. `86400 - 100`)
+        let time_second = timestamp_second.rem_euclid(86_400);
         Ok(Self {
             date,
             time: Time::from_timestamp(time_second as u64, millisecond)?,
