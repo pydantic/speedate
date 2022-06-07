@@ -186,7 +186,7 @@ impl Duration {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        let (positive, offset) = match bytes.get(0).copied() {
+        let (positive, offset) = match bytes.first().copied() {
             Some(b'+') => (true, 1),
             Some(b'-') => (false, 1),
             None => return Err(ParseError::TooShort),
@@ -366,7 +366,7 @@ impl Duration {
                     microsecond: t.microsecond,
                 })
             }
-            None => return days_only!(day),
+            None => days_only!(day),
         }
     }
 
