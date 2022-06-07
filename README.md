@@ -75,13 +75,15 @@ Micro-benchmarking from [`benches/main.rs`](https://github.com/samuelcolvin/spee
 
 ```text
 test datetime_error_speedate ... bench:           6 ns/iter (+/- 0)
-test datetime_error_chrono   ... bench:          48 ns/iter (+/- 0)
+test datetime_error_chrono   ... bench:          50 ns/iter (+/- 1)
 test datetime_error_iso8601  ... bench:         118 ns/iter (+/- 2)
 test datetime_ok_speedate    ... bench:           9 ns/iter (+/- 0)
-test datetime_ok_chrono      ... bench:          62 ns/iter (+/- 0)
+test datetime_ok_chrono      ... bench:         182 ns/iter (+/- 0)
 test datetime_ok_iso8601     ... bench:          77 ns/iter (+/- 1)
 test duration_ok_speedate    ... bench:          23 ns/iter (+/- 0)
 test duration_ok_iso8601     ... bench:          48 ns/iter (+/- 0)
+test timestamp_ok_speedate   ... bench:           9 ns/iter (+/- 0)
+test timestamp_ok_chrono     ... bench:          10 ns/iter (+/- 0)
 ```
 
 ## Why not full iso8601?
