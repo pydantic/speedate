@@ -172,8 +172,16 @@ impl DateTime {
         Ok(Self { date, time, offset })
     }
 
-    pub fn from_timestamp(timestamp: i64, microsecond: u32) -> Result<Self, ParseError> {
-        let (timestamp_second, extra_microsecond) = Date::timestamp_watershed(timestamp)?;
+    pub fn from_timestamp(timestamp_second: i64, timestamp_microsecond: u32) -> Result<Self, ParseError> {
+        let mut second = timestamp_second;
+        let mut microsecond = timestamp_microsecond;
+        if microsecond >= 1_000_000 {
+            second = second
+                .checked_add(microsecond as i64 / 1_000_000)
+                .ok_or(ParseError::TimeTooLarge)?;
+            microsecond %= 1_000_000;
+        }
+        let (timestamp_second, extra_microsecond) = Date::timestamp_watershed(second)?;
         let date = Date::from_timestamp_calc(timestamp_second)?;
         let microsecond = microsecond as u64 + extra_microsecond as u64;
         // rem_euclid since if `timestamp_second = -100`, we want `time_second = 86300` (e.g. `86400 - 100`)

@@ -5,9 +5,10 @@ use speedate::{Date, DateTime, Time};
 
 fn check_timestamp(timestamp: i64, microseconds: u32) {
     if let Some(abs_ts) = timestamp.checked_abs() {
-        if abs_ts < 20_000_000_000 && microseconds < 1_000_000 {
-            if let Some(chrono_dt) = NaiveDateTime::from_timestamp_opt(timestamp, microseconds * 1_000) {
-                if chrono_dt.year() > 1600 {
+        if abs_ts < 20_000_000_000 {
+            if let Some(mut chrono_dt) = NaiveDateTime::from_timestamp_opt(timestamp, microseconds * 1_000) {
+                let year = chrono_dt.year();
+                if year >= 1000 && year <= 2500 {
                     let dt = match DateTime::from_timestamp(timestamp, microseconds) {
                         Ok(dt) => dt,
                         Err(e) => panic!(
@@ -15,6 +16,11 @@ fn check_timestamp(timestamp: i64, microseconds: u32) {
                             e, timestamp, microseconds, chrono_dt
                         ),
                     };
+                    let mut microsecond = chrono_dt.nanosecond() as u32 / 1_000;
+                    if microsecond >= 1_000_000 {
+                        chrono_dt += chrono::Duration::seconds(1);
+                        microsecond -= 1_000_000;
+                    }
                     assert_eq!(
                         dt,
                         DateTime {
@@ -27,7 +33,7 @@ fn check_timestamp(timestamp: i64, microseconds: u32) {
                                 hour: chrono_dt.hour() as u8,
                                 minute: chrono_dt.minute() as u8,
                                 second: chrono_dt.second() as u8,
-                                microsecond: chrono_dt.nanosecond() as u32 / 1_000,
+                                microsecond,
                             },
                             offset: None,
                         },
