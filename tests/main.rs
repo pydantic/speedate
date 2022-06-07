@@ -19,9 +19,8 @@ macro_rules! expect_ok_or_error {
     };
     ($type:ty, $name:ident, err, $input:literal, $error:expr) => {
         paste::item! {
-            #[allow(non_snake_case)]
             #[test]
-            fn [< expect_ $name _ $error _error >]() {
+            fn [< expect_ $name _ $error:snake _error >]() {
                 match <$type>::parse_str($input) {
                     Ok(t) => panic!("unexpectedly valid: {:?} -> {:?}", $input, t),
                     Err(e) => assert_eq!(e, ParseError::$error),
@@ -100,10 +99,10 @@ fn date_from_timestamp_extremes() {
         Ok(dt) => panic!("unexpectedly valid, {}", dt),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
-    // let d = Date::from_timestamp(-30_610_224_000_000 + 1000).unwrap();
-    // assert_eq!(d.to_string(), "1000-01-01");
-    let d = Date::from_timestamp(-30_607_545_600_000).unwrap();
-    assert_eq!(d.to_string(), "1000-02-01");
+    let d = Date::from_timestamp(-11_676_096_000 + 1000).unwrap();
+    assert_eq!(d.to_string(), "1600-01-01");
+    let d = Date::from_timestamp(-11_673_417_600).unwrap();
+    assert_eq!(d.to_string(), "1600-02-01");
 }
 
 #[test]
@@ -237,7 +236,7 @@ fn time_from_timestamp_error() {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
     }
-    match Time::from_timestamp(u32::MAX, u64::MAX) {
+    match Time::from_timestamp(u32::MAX, u32::MAX) {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
     }
@@ -292,13 +291,6 @@ datetime_from_timestamp! {
     1969, 12, 30, 15, 51, 29, 10630;
 }
 
-// #[test]
-// fn chrono_print() {
-//     let chrono_dt = NaiveDate::from_ymd(1000, 1, 1).and_hms_nano(0, 0, 0, 0);
-//     println!("dt: {}", chrono_dt);
-//     println!("timestamp: {}", chrono_dt.timestamp());
-// }
-
 #[test]
 fn datetime_from_timestamp_range() {
     for ts in (0..157_766_400).step_by(757) {
@@ -315,10 +307,10 @@ fn datetime_from_timestamp_specific() {
     assert_eq!(dt.to_string(), "1970-01-01T00:00:00.667444");
     let dt = DateTime::from_timestamp(32_503_680_000_000, 0).unwrap();
     assert_eq!(dt.to_string(), "3000-01-01T00:00:00");
-    let dt = DateTime::from_timestamp(-30_610_224_000_000 + 1000, 0).unwrap();
-    assert_eq!(dt.to_string(), "1000-01-01T00:00:01");
-    let dt = DateTime::from_timestamp(-30_607_545_600_000, 0).unwrap();
-    assert_eq!(dt.to_string(), "1000-02-01T00:00:00");
+    let dt = DateTime::from_timestamp(-11676096000, 0).unwrap();
+    assert_eq!(dt.to_string(), "1600-01-01T00:00:00");
+    let dt = DateTime::from_timestamp(1_095_216_660_480, 3221223).unwrap();
+    assert_eq!(dt.to_string(), "2004-09-15T02:51:03.701223");
 }
 
 #[test]
@@ -327,8 +319,8 @@ fn datetime_watershed() {
     assert_eq!(dt.to_string(), "2603-10-11T11:33:20");
     let dt = DateTime::from_timestamp(20_000_000_001, 0).unwrap();
     assert_eq!(dt.to_string(), "1970-08-20T11:33:20.001");
-    let dt = DateTime::from_timestamp(-20_000_000_000, 0).unwrap();
-    assert_eq!(dt.to_string(), "1336-03-23T12:26:40");
+    // let dt = DateTime::from_timestamp(-20_000_000_000, 0).unwrap();
+    // assert_eq!(dt.to_string(), "1336-03-23T12:26:40");
     let dt = DateTime::from_timestamp(-20_000_000_001, 0).unwrap();
     assert_eq!(dt.to_string(), "1969-05-14T12:26:39.999");
 }

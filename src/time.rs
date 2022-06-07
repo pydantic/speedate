@@ -97,12 +97,12 @@ impl Time {
         Ok(t)
     }
 
-    pub fn from_timestamp(timestamp_second: u32, timestamp_microsecond: u64) -> Result<Self, ParseError> {
+    pub fn from_timestamp(timestamp_second: u32, timestamp_microsecond: u32) -> Result<Self, ParseError> {
         let mut second = timestamp_second;
         let mut microsecond = timestamp_microsecond;
         if microsecond >= 1_000_000 {
             second = second
-                .checked_add(microsecond as u32 / 1_000_000)
+                .checked_add(microsecond / 1_000_000)
                 .ok_or(ParseError::TimeTooLarge)?;
             microsecond %= 1_000_000;
         }
@@ -113,7 +113,7 @@ impl Time {
             hour: (second / 3600) as u8,
             minute: ((second % 3600) / 60) as u8,
             second: (second % 60) as u8,
-            microsecond: microsecond as u32,
+            microsecond,
         })
     }
 

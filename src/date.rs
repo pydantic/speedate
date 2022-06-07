@@ -28,8 +28,8 @@ impl fmt::Display for Date {
 // 2e10 if greater than this, the number is in ms, if less than or equal, it's in seconds
 // (in seconds this is 11th October 2603, in ms it's 20th August 1970)
 const MS_WATERSHED: i64 = 20_000_000_000;
-// 1000-01-01 as a unix timestamp used for from_timestamp below
-const UNIX_1000: i64 = -30_610_224_000;
+// 1600-01-01 as a unix timestamp used for from_timestamp below
+const UNIX_1600: i64 = -11_676_096_000;
 // 9999-12-31T23:59:59 as a unix timestamp, used as max allowed value below
 const UNIX_9999: i64 = 253_402_300_799;
 
@@ -114,24 +114,24 @@ impl Date {
     }
 
     pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<Self, ParseError> {
-        if timestamp_second <= UNIX_1000 {
+        if timestamp_second < UNIX_1600 {
             return Err(ParseError::DateTooSmall);
         }
-        if timestamp_second >= UNIX_9999 {
+        if timestamp_second > UNIX_9999 {
             return Err(ParseError::DateTooLarge);
         }
-        let seconds_diff = timestamp_second - UNIX_1000;
+        let seconds_diff = timestamp_second - UNIX_1600;
         let delta_days = seconds_diff / 86_400;
         let delta_years = delta_days / 365;
         let leap_years = if delta_years == 0 {
             0
         } else {
-            (delta_years - 1) / 4 - (delta_years - 1) / 100 + (delta_years - 200 - 1) / 400 + 1
+            (delta_years - 1) / 4 - (delta_years - 1) / 100 + (delta_years - 1) / 400 + 1
         };
 
         // year day is the day of the year, starting from 1
         let mut year_day: i16 = (delta_days % 365 - leap_years + 1) as i16;
-        let mut year: u16 = (1_000 + delta_years) as u16;
+        let mut year: u16 = (1600 + delta_years) as u16;
         let mut leap_year: bool = is_leap_year(year);
         while year_day < 1 {
             year -= 1;
