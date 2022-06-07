@@ -103,6 +103,26 @@ fn date_from_timestamp_extremes() {
     assert_eq!(d.to_string(), "1600-01-01");
     let d = Date::from_timestamp(-11_673_417_600).unwrap();
     assert_eq!(d.to_string(), "1600-02-01");
+    let d = Date::from_timestamp(253_402_300_799_000).unwrap();
+    assert_eq!(d.to_string(), "9999-12-31");
+    match Date::from_timestamp(253_402_300_800_000) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooLarge),
+    }
+}
+
+#[test]
+fn date_watershed() {
+    let dt = Date::from_timestamp(20_000_000_000).unwrap();
+    assert_eq!(dt.to_string(), "2603-10-11");
+    let dt = Date::from_timestamp(20_000_000_001).unwrap();
+    assert_eq!(dt.to_string(), "1970-08-20");
+    match Date::from_timestamp(-20_000_000_000) {
+        Ok(d) => panic!("unexpectedly valid, {}", d),
+        Err(e) => assert_eq!(e, ParseError::DateTooSmall),
+    }
+    let dt = Date::from_timestamp(-20_000_000_001).unwrap();
+    assert_eq!(dt.to_string(), "1969-05-14");
 }
 
 #[test]
@@ -311,6 +331,13 @@ fn datetime_from_timestamp_specific() {
     assert_eq!(dt.to_string(), "1600-01-01T00:00:00");
     let dt = DateTime::from_timestamp(1_095_216_660_480, 3221223).unwrap();
     assert_eq!(dt.to_string(), "2004-09-15T02:51:03.701223");
+
+    let d = DateTime::from_timestamp(253_402_300_799_000, 999999).unwrap();
+    assert_eq!(d.to_string(), "9999-12-31T23:59:59.999999");
+    match Date::from_timestamp(253_402_300_800_000) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooLarge),
+    }
 }
 
 #[test]
@@ -319,8 +346,10 @@ fn datetime_watershed() {
     assert_eq!(dt.to_string(), "2603-10-11T11:33:20");
     let dt = DateTime::from_timestamp(20_000_000_001, 0).unwrap();
     assert_eq!(dt.to_string(), "1970-08-20T11:33:20.001");
-    // let dt = DateTime::from_timestamp(-20_000_000_000, 0).unwrap();
-    // assert_eq!(dt.to_string(), "1336-03-23T12:26:40");
+    match DateTime::from_timestamp(-20_000_000_000, 0) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooSmall),
+    }
     let dt = DateTime::from_timestamp(-20_000_000_001, 0).unwrap();
     assert_eq!(dt.to_string(), "1969-05-14T12:26:39.999");
 }

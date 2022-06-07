@@ -94,6 +94,32 @@ impl Date {
         Ok(d)
     }
 
+    /// Create a date from a Unix Timestamp in seconds or milliseconds
+    ///
+    /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
+    ///
+    /// Dates much be between `1600-01-01` and `9999-12-31`.
+    ///
+    /// If the absolute value is > 2e10 (`20_000_000_000`) it is interpreted as being in milliseconds.
+    ///
+    /// That means:
+    /// * `20_000_000_000` is `2603-10-11`
+    /// * `20_000_000_001` is `1970-08-20`
+    /// * `-20_000_000_000` gives an error - `DateTooSmall`
+    /// * `-20_000_000_001` is `1969-05-14`
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - timestamp in either seconds or milliseconds
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Date;
+    ///
+    /// let d = Date::from_timestamp(1654619320).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07");
+    /// ```
     pub fn from_timestamp(timestamp: i64) -> Result<Self, ParseError> {
         let (timestamp_second, _) = Self::timestamp_watershed(timestamp)?;
         Self::from_timestamp_calc(timestamp_second)

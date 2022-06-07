@@ -5,6 +5,7 @@ use speedate::{Date, DateTime, Time};
 
 fn check_timestamp(timestamp: i64, microseconds: u32) {
     if let Some(ts_abs) = timestamp.checked_abs() {
+        // adjust seconds and nanoseconds for chrono to match logic of speedate
         let (chrono_seconds, chrono_nano) = if ts_abs > 20_000_000_000 {
             let mut s = timestamp / 1_000;
             let mut total_nano = microseconds as i64 * 1_000 + (timestamp % 1_000) * 1_000_000;

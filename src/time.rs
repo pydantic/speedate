@@ -97,6 +97,23 @@ impl Time {
         Ok(t)
     }
 
+    /// Create a time from seconds and microseconds.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp_second` - timestamp in seconds
+    /// * `timestamp_microsecond` - microseconds fraction of a second timestamp
+    ///
+    /// If `seconds + timestamp_microsecond` exceeds 86400, an error is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let d = Time::from_timestamp(3740, 123).unwrap();
+    /// assert_eq!(d.to_string(), "01:02:20.000123");
+    /// ```
     pub fn from_timestamp(timestamp_second: u32, timestamp_microsecond: u32) -> Result<Self, ParseError> {
         let mut second = timestamp_second;
         let mut microsecond = timestamp_microsecond;

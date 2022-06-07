@@ -172,6 +172,36 @@ impl DateTime {
         Ok(Self { date, time, offset })
     }
 
+    /// Create a datetime from a Unix Timestamp in seconds or milliseconds
+    ///
+    /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
+    ///
+    /// Datetimes much be between `1600-01-01T00:00:00` and `9999-12-31T23:59:59.999999` inclusive.
+    ///
+    /// If the absolute value is > 2e10 (`20_000_000_000`) it is interpreted as being in milliseconds.
+    ///
+    /// That means:
+    /// * `20_000_000_000` is `2603-10-11T11:33:20`
+    /// * `20_000_000_001` is `1970-08-20T11:33:20.001`
+    /// * `-20_000_000_000` gives an error - `DateTooSmall`
+    /// * `-20_000_000_001` is `1969-05-14T12:26:39.999`
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - timestamp in either seconds or milliseconds
+    /// * `timestamp_microsecond` - microseconds fraction of a second timestamp
+    ///
+    /// Where `timestamp` is interrupted  as milliseconds and is not a whole second, the remainder is added to
+    /// `timestamp_microsecond`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let d = DateTime::from_timestamp(1654619320, 123).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
+    /// ```
     pub fn from_timestamp(timestamp: i64, timestamp_microsecond: u32) -> Result<Self, ParseError> {
         let (mut second, extra_microsecond) = Date::timestamp_watershed(timestamp)?;
         let mut total_microsecond = timestamp_microsecond
