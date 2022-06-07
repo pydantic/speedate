@@ -117,8 +117,6 @@ pub enum ParseError {
     DurationInvalidDays,
     /// dates before 1600 are not supported as unix timestamps
     DateTooSmall,
-    /// dates after XXXX in nanoseconds are not supported
-    DateTooLarge,
     /// numeric times may not exceed 86,399 seconds
     TimeTooLarge,
 }

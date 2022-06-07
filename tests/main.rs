@@ -101,6 +101,10 @@ fn date_from_timestamp_extremes() {
             day: 11
         }
     );
+    match Date::from_timestamp(i64::MIN) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::DateTooSmall),
+    }
 }
 
 #[test]
@@ -248,8 +252,8 @@ fn time_from_timestamp_error() {
 
 fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
     let ts = chrono_dt.timestamp();
-    let dt = DateTime::from_timestamp(ts, chrono_dt.nanosecond() / 1_000_000).unwrap();
-    // println!("{} => {:?}", ts, dt);
+    let dt = DateTime::from_timestamp(ts, chrono_dt.nanosecond() / 1_000).unwrap();
+    // println!("{} ({}) => {}", ts, chrono_dt, dt);
     assert_eq!(
         dt,
         DateTime {
@@ -262,7 +266,7 @@ fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
                 hour: chrono_dt.hour() as u8,
                 minute: chrono_dt.minute() as u8,
                 second: chrono_dt.second() as u8,
-                microsecond: chrono_dt.nanosecond() as u32 / 1_000_000,
+                microsecond: chrono_dt.nanosecond() as u32 / 1_000,
             },
             offset: None,
         },
@@ -291,7 +295,8 @@ datetime_from_timestamp! {
     1970, 1, 1, 0, 0, 1, 0;
     1970, 1, 1, 0, 1, 0, 0;
     1970, 1, 2, 0, 0, 0, 0;
-    1970, 1, 2, 0, 0, 0, 500_000;
+    1970, 1, 2, 0, 0, 0, 500000;
+    1969, 12, 30, 15, 51, 29, 10630;
 }
 
 #[test]
@@ -300,6 +305,12 @@ fn datetime_from_timestamp_range() {
         try_datetime_timestamp(NaiveDateTime::from_timestamp(ts, 0));
         try_datetime_timestamp(NaiveDateTime::from_timestamp(-ts, 0));
     }
+}
+
+#[test]
+fn datetime_from_timestamp_specific() {
+    let dt = DateTime::from_timestamp(-11676095999, 4291493).unwrap();
+    assert_eq!(dt.to_string(), "1600-01-01T00:00:05.291493");
 }
 
 #[test]

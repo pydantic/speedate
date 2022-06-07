@@ -172,15 +172,15 @@ impl DateTime {
         Ok(Self { date, time, offset })
     }
 
-    pub fn from_timestamp(timestamp: i64, millisecond: u32) -> Result<Self, ParseError> {
-        let (timestamp_second, extra_millisecond) = Date::timestamp_watershed(timestamp)?;
+    pub fn from_timestamp(timestamp: i64, microsecond: u32) -> Result<Self, ParseError> {
+        let (timestamp_second, extra_microsecond) = Date::timestamp_watershed(timestamp)?;
         let date = Date::from_timestamp_calc(timestamp_second)?;
-        let millisecond = millisecond as u64 + extra_millisecond as u64;
+        let microsecond = microsecond as u64 + extra_microsecond as u64;
         // rem_euclid since if `timestamp_second = -100`, we want `time_second = 86300` (e.g. `86400 - 100`)
         let time_second = timestamp_second.rem_euclid(86_400) as u32;
         Ok(Self {
             date,
-            time: Time::from_timestamp(time_second, millisecond)?,
+            time: Time::from_timestamp(time_second, microsecond)?,
             offset: None,
         })
     }

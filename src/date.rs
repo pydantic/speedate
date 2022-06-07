@@ -98,7 +98,7 @@ impl Date {
     }
 
     pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
-        let ts_abs = timestamp.abs();
+        let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
         let (mut seconds, mut microseconds) = if ts_abs > MS_WATERSHED * 1_000_000 {
             // timestamp is in nanoseconds
             (timestamp / 1_000_000_000, timestamp % 1_000_000_000 / 1_000)
@@ -112,9 +112,6 @@ impl Date {
         if microseconds < 0 {
             seconds -= 1;
             microseconds += 1_000_000;
-        }
-        if seconds.abs() > MS_WATERSHED {
-            return Err(ParseError::DateTooLarge);
         }
         Ok((seconds, microseconds as u32))
     }

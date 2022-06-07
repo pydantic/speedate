@@ -1,0 +1,30 @@
+[package]
+name = "speedate-fuzz"
+version = "0.0.0"
+authors = ["Samuel Colvin <s@muelcolvin.com>"]
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+chrono = "0.4.19"
+speedate = {path = ".."}
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "datetime_from_timestamp"
+path = "fuzz_targets/datetime_from_timestamp.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "datetime_parse_bytes"
+path = "fuzz_targets/datetime_parse_bytes.rs"
+test = false
+doc = false
