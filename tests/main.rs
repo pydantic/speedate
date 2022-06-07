@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
+use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
 use strum::EnumMessage;
 
 use speedate::{Date, DateTime, Duration, ParseError, Time};
@@ -18,9 +19,8 @@ macro_rules! expect_ok_or_error {
     };
     ($type:ty, $name:ident, err, $input:literal, $error:expr) => {
         paste::item! {
-            #[allow(non_snake_case)]
             #[test]
-            fn [< expect_ $name _ $error _error >]() {
+            fn [< expect_ $name _ $error:snake _error >]() {
                 match <$type>::parse_str($input) {
                     Ok(t) => panic!("unexpectedly valid: {:?} -> {:?}", $input, t),
                     Err(e) => assert_eq!(e, ParseError::$error),
@@ -83,6 +83,275 @@ param_tests! {
     date_normal_leap_year: ok => "2004-02-29", "2004-02-29";
     date_special_100_not_leap: err => "1900-02-29", OutOfRangeDay;
     date_special_400_leap: ok => "2000-02-29", "2000-02-29";
+}
+
+#[test]
+fn date_from_timestamp_extremes() {
+    match Date::from_timestamp(i64::MIN) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooSmall),
+    }
+    match Date::from_timestamp(i64::MAX) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooLarge),
+    }
+    match Date::from_timestamp(-30_610_224_000_000) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooSmall),
+    }
+    let d = Date::from_timestamp(-11_676_096_000 + 1000).unwrap();
+    assert_eq!(d.to_string(), "1600-01-01");
+    let d = Date::from_timestamp(-11_673_417_600).unwrap();
+    assert_eq!(d.to_string(), "1600-02-01");
+    let d = Date::from_timestamp(253_402_300_799_000).unwrap();
+    assert_eq!(d.to_string(), "9999-12-31");
+    match Date::from_timestamp(253_402_300_800_000) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooLarge),
+    }
+}
+
+#[test]
+fn date_watershed() {
+    let dt = Date::from_timestamp(20_000_000_000).unwrap();
+    assert_eq!(dt.to_string(), "2603-10-11");
+    let dt = Date::from_timestamp(20_000_000_001).unwrap();
+    assert_eq!(dt.to_string(), "1970-08-20");
+    match Date::from_timestamp(-20_000_000_000) {
+        Ok(d) => panic!("unexpectedly valid, {}", d),
+        Err(e) => assert_eq!(e, ParseError::DateTooSmall),
+    }
+    let dt = Date::from_timestamp(-20_000_000_001).unwrap();
+    assert_eq!(dt.to_string(), "1969-05-14");
+}
+
+#[test]
+fn date_from_timestamp_milliseconds() {
+    let d1 = Date::from_timestamp(1_654_472_524).unwrap();
+    assert_eq!(
+        d1,
+        Date {
+            year: 2022,
+            month: 6,
+            day: 5
+        }
+    );
+    let d2 = Date::from_timestamp(1_654_472_524_000).unwrap();
+    assert_eq!(d2, d1);
+}
+
+fn try_date_timestamp(ts: i64) {
+    let chrono_date = NaiveDateTime::from_timestamp(ts, 0).date();
+    let d = Date::from_timestamp(ts).unwrap();
+    // println!("{} => {:?}", ts, d);
+    assert_eq!(
+        d,
+        Date {
+            year: chrono_date.year() as u16,
+            month: chrono_date.month() as u8,
+            day: chrono_date.day() as u8,
+        },
+        "timestamp: {} => {}",
+        ts,
+        chrono_date
+    );
+}
+
+#[test]
+fn date_from_timestamp_range() {
+    for ts in (0..4_000_000_000).step_by(86_400) {
+        try_date_timestamp(ts);
+        try_date_timestamp(ts + 40_000);
+        try_date_timestamp(-ts);
+        try_date_timestamp(-ts - 40_000);
+    }
+}
+
+macro_rules! date_from_timestamp {
+    ($($year:literal, $month:literal, $day:literal;)*) => {
+        $(
+        paste::item! {
+            #[test]
+            fn [< date_from_timestamp_ $year _ $month _ $day >]() {
+                let chrono_date = NaiveDate::from_ymd($year, $month, $day);
+                let ts = chrono_date.and_hms(0, 0, 0).timestamp();
+                let d = Date::from_timestamp(ts).unwrap();
+                assert_eq!(
+                    d,
+                    Date {
+                        year: $year,
+                        month: $month,
+                        day: $day,
+                    },
+                    "timestamp: {} => {}",
+                    ts,
+                    chrono_date
+                );
+            }
+        }
+        )*
+    }
+}
+
+date_from_timestamp! {
+    1970, 1, 1;
+    1970, 1, 31;
+    1970, 2, 1;
+    1970, 2, 28;
+    1970, 3, 1;
+    1600, 1, 1;
+    1601, 1, 1;
+    1700, 1, 1;
+    1842, 8, 20;
+    1900, 1, 1;
+    1900, 6, 1;
+    1901, 1, 1;
+    1904, 1, 1;
+    1904, 2, 29;
+    1904, 6, 1;
+    1924, 6, 1;
+    2200, 1, 1;
+}
+
+macro_rules! time_from_timestamp {
+    ($($ts_secs:literal, $ts_micro:literal => $hour:literal, $minute:literal, $second:literal, $microsecond:literal;)*) => {
+        $(
+        paste::item! {
+            #[test]
+            fn [< time_from_timestamp_ $hour _ $minute _ $second _ $microsecond >]() {
+                let d = Time::from_timestamp($ts_secs, $ts_micro).unwrap();
+                assert_eq!(d, Time {
+                    hour: $hour,
+                    minute: $minute,
+                    second: $second,
+                    microsecond: $microsecond,
+                },
+                "timestamp: {} => {}:{}:{}.{}",
+                $ts_secs,
+                $hour, $minute, $second, $microsecond);
+            }
+        }
+        )*
+    }
+}
+
+time_from_timestamp! {
+    0, 0 => 0, 0, 0, 0;
+    1, 0 => 0, 0, 1, 0;
+    3600, 0 => 1, 0, 0, 0;
+    3700, 0 => 1, 1, 40, 0;
+    86399, 0 => 23, 59, 59, 0;
+    0, 100 => 0, 0, 0, 100;
+    0, 5_000_000 => 0, 0, 5, 0;
+    36_005, 1_500_000 => 10, 0, 6, 500_000;
+}
+
+#[test]
+fn time_from_timestamp_error() {
+    match Time::from_timestamp(86400, 0) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
+    }
+    match Time::from_timestamp(86390, 10_000_000) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
+    }
+    match Time::from_timestamp(u32::MAX, u32::MAX) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
+    }
+}
+
+fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
+    let ts = chrono_dt.timestamp();
+    let dt = DateTime::from_timestamp(ts, chrono_dt.nanosecond() / 1_000).unwrap();
+    // println!("{} ({}) => {}", ts, chrono_dt, dt);
+    assert_eq!(
+        dt,
+        DateTime {
+            date: Date {
+                year: chrono_dt.year() as u16,
+                month: chrono_dt.month() as u8,
+                day: chrono_dt.day() as u8,
+            },
+            time: Time {
+                hour: chrono_dt.hour() as u8,
+                minute: chrono_dt.minute() as u8,
+                second: chrono_dt.second() as u8,
+                microsecond: chrono_dt.nanosecond() as u32 / 1_000,
+            },
+            offset: None,
+        },
+        "timestamp: {} => {}",
+        ts,
+        chrono_dt
+    );
+}
+
+macro_rules! datetime_from_timestamp {
+    ($($year:literal, $month:literal, $day:literal, $hour:literal, $minute:literal, $second:literal, $microsecond:literal;)*) => {
+        $(
+        paste::item! {
+            #[test]
+            fn [< datetime_from_timestamp_ $year _ $month _ $day _t_ $hour _ $minute _ $second _ $microsecond >]() {
+                let chrono_dt = NaiveDate::from_ymd($year, $month, $day).and_hms_nano($hour, $minute, $second, $microsecond * 1_000);
+                try_datetime_timestamp(chrono_dt);
+            }
+        }
+        )*
+    }
+}
+
+datetime_from_timestamp! {
+    1970, 1, 1, 0, 0, 0, 0;
+    1970, 1, 1, 0, 0, 1, 0;
+    1970, 1, 1, 0, 1, 0, 0;
+    1970, 1, 2, 0, 0, 0, 0;
+    1970, 1, 2, 0, 0, 0, 500000;
+    1969, 12, 30, 15, 51, 29, 10630;
+}
+
+#[test]
+fn datetime_from_timestamp_range() {
+    for ts in (0..157_766_400).step_by(757) {
+        try_datetime_timestamp(NaiveDateTime::from_timestamp(ts, 0));
+        try_datetime_timestamp(NaiveDateTime::from_timestamp(-ts, 0));
+    }
+}
+
+#[test]
+fn datetime_from_timestamp_specific() {
+    let dt = DateTime::from_timestamp(-11676095999, 4291493).unwrap();
+    assert_eq!(dt.to_string(), "1600-01-01T00:00:05.291493");
+    let dt = DateTime::from_timestamp(-1, 1667444).unwrap();
+    assert_eq!(dt.to_string(), "1970-01-01T00:00:00.667444");
+    let dt = DateTime::from_timestamp(32_503_680_000_000, 0).unwrap();
+    assert_eq!(dt.to_string(), "3000-01-01T00:00:00");
+    let dt = DateTime::from_timestamp(-11_676_096_000, 0).unwrap();
+    assert_eq!(dt.to_string(), "1600-01-01T00:00:00");
+    let dt = DateTime::from_timestamp(1_095_216_660_480, 3221223).unwrap();
+    assert_eq!(dt.to_string(), "2004-09-15T02:51:03.701223");
+
+    let d = DateTime::from_timestamp(253_402_300_799_000, 999999).unwrap();
+    assert_eq!(d.to_string(), "9999-12-31T23:59:59.999999");
+    match Date::from_timestamp(253_402_300_800_000) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooLarge),
+    }
+}
+
+#[test]
+fn datetime_watershed() {
+    let dt = DateTime::from_timestamp(20_000_000_000, 0).unwrap();
+    assert_eq!(dt.to_string(), "2603-10-11T11:33:20");
+    let dt = DateTime::from_timestamp(20_000_000_001, 0).unwrap();
+    assert_eq!(dt.to_string(), "1970-08-20T11:33:20.001");
+    match DateTime::from_timestamp(-20_000_000_000, 0) {
+        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Err(e) => assert_eq!(e, ParseError::DateTooSmall),
+    }
+    let dt = DateTime::from_timestamp(-20_000_000_001, 0).unwrap();
+    assert_eq!(dt.to_string(), "1969-05-14T12:26:39.999");
 }
 
 #[test]

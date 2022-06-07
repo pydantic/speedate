@@ -9,7 +9,16 @@ use test::{black_box, Bencher};
 fn compare_datetime_ok_speedate(bench: &mut Bencher) {
     let s = black_box("2000-01-01T00:02:03Z");
     bench.iter(|| {
-        black_box(DateTime::parse_str(&s).unwrap());
+        let dt = DateTime::parse_str(&s).unwrap();
+        black_box((
+            dt.date.year,
+            dt.date.month,
+            dt.date.day,
+            dt.time.hour,
+            dt.time.minute,
+            dt.time.second,
+            dt.time.microsecond,
+        ));
     })
 }
 
@@ -17,15 +26,26 @@ fn compare_datetime_ok_speedate(bench: &mut Bencher) {
 fn compare_datetime_ok_iso8601(bench: &mut Bencher) {
     let s = black_box("2000-01-01T00:02:03Z");
     bench.iter(|| {
+        // No way to actually get the numeric values from iso8601!
         black_box(iso8601::datetime(&s).unwrap());
     })
 }
 
 #[bench]
 fn compare_datetime_ok_chrono(bench: &mut Bencher) {
+    use chrono::{Datelike, Timelike};
     let s = black_box("2000-01-01T00:02:03Z");
     bench.iter(|| {
-        black_box(chrono::DateTime::parse_from_rfc3339(&s).unwrap());
+        let dt = chrono::DateTime::parse_from_rfc3339(&s).unwrap();
+        black_box((
+            dt.year(),
+            dt.month(),
+            dt.day(),
+            dt.hour(),
+            dt.minute(),
+            dt.second(),
+            dt.nanosecond(),
+        ));
     })
 }
 
@@ -78,6 +98,41 @@ fn compare_datetime_error_chrono(bench: &mut Bencher) {
     bench.iter(|| {
         let e = expect_error!(chrono::DateTime::parse_from_rfc3339(&s));
         black_box(e);
+    })
+}
+
+#[bench]
+fn compare_timestamp_ok_speedate(bench: &mut Bencher) {
+    let ts = black_box(1654617803);
+    bench.iter(|| {
+        let dt = DateTime::from_timestamp(ts, 0).unwrap();
+        black_box((
+            dt.date.year,
+            dt.date.month,
+            dt.date.day,
+            dt.time.hour,
+            dt.time.minute,
+            dt.time.second,
+            dt.time.microsecond,
+        ));
+    })
+}
+
+#[bench]
+fn compare_timestamp_ok_chrono(bench: &mut Bencher) {
+    use chrono::{Datelike, Timelike};
+    let ts = black_box(1654617803);
+    bench.iter(|| {
+        let dt = chrono::NaiveDateTime::from_timestamp_opt(ts, 0).unwrap();
+        black_box((
+            dt.year(),
+            dt.month(),
+            dt.day(),
+            dt.hour(),
+            dt.minute(),
+            dt.second(),
+            dt.nanosecond(),
+        ));
     })
 }
 

@@ -12,7 +12,7 @@ use crate::{get_digit, Date, ParseError, Time};
 /// * `YYYY-MM-DDTHH:MM:SS+08:00`- positive and negative timezone are allowed,
 ///   as per ISO 8601, U+2212 minus `−` is allowed as well as ascii minus `-` (U+002D)
 /// * `YYYY-MM-DDTHH:MM:SS+0800` - the colon (`:`) in the timezone is optional
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DateTime {
     /// date part of the datetime
     pub date: Date,
@@ -170,5 +170,60 @@ impl DateTime {
         }
 
         Ok(Self { date, time, offset })
+    }
+
+    /// Create a datetime from a Unix Timestamp in seconds or milliseconds
+    ///
+    /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
+    ///
+    /// Input must be between `-11,676,096,000` (`1600-01-01T00:00:00`) and
+    /// `253,402,300,799,000` (`9999-12-31T23:59:59.999999`) inclusive.
+    ///
+    /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
+    ///
+    /// That means:
+    /// * `20_000_000_000` is `2603-10-11T11:33:20`
+    /// * `20_000_000_001` is `1970-08-20T11:33:20.001`
+    /// * `-20_000_000_000` gives an error - `DateTooSmall` as it would be before 1600
+    /// * `-20_000_000_001` is `1969-05-14T12:26:39.999`
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - timestamp in either seconds or milliseconds
+    /// * `timestamp_microsecond` - microseconds fraction of a second timestamp
+    ///
+    /// Where `timestamp` is interrupted  as milliseconds and is not a whole second, the remainder is added to
+    /// `timestamp_microsecond`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let d = DateTime::from_timestamp(1_654_619_320, 123).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
+    ///
+    /// let d = DateTime::from_timestamp(1_654_619_320_123, 123_000).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246");
+    /// ```
+    pub fn from_timestamp(timestamp: i64, timestamp_microsecond: u32) -> Result<Self, ParseError> {
+        let (mut second, extra_microsecond) = Date::timestamp_watershed(timestamp)?;
+        let mut total_microsecond = timestamp_microsecond
+            .checked_add(extra_microsecond)
+            .ok_or(ParseError::TimeTooLarge)?;
+        if total_microsecond >= 1_000_000 {
+            second = second
+                .checked_add(total_microsecond as i64 / 1_000_000)
+                .ok_or(ParseError::TimeTooLarge)?;
+            total_microsecond %= 1_000_000;
+        }
+        let date = Date::from_timestamp_calc(second)?;
+        // rem_euclid since if `timestamp_second = -100`, we want `time_second = 86300` (e.g. `86400 - 100`)
+        let time_second = second.rem_euclid(86_400) as u32;
+        Ok(Self {
+            date,
+            time: Time::from_timestamp(time_second, total_microsecond)?,
+            offset: None,
+        })
     }
 }

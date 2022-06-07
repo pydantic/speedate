@@ -56,7 +56,7 @@ pub(crate) use get_digit_unchecked;
 ///      },
 /// };
 /// ```
-#[derive(Debug, Display, EnumMessage, PartialEq, Clone)]
+#[derive(Debug, Display, EnumMessage, PartialEq, Eq, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum ParseError {
     /// Input is too short
@@ -115,4 +115,10 @@ pub enum ParseError {
     DurationInvalidDateUnit,
     /// "day" identifier in duration not correctly formatted
     DurationInvalidDays,
+    /// dates before 1600 are not supported as unix timestamps
+    DateTooSmall,
+    /// dates after 9999 are not supported as unix timestamps
+    DateTooLarge,
+    /// numeric times may not exceed 86,399 seconds
+    TimeTooLarge,
 }

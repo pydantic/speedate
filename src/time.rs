@@ -11,7 +11,7 @@ use crate::{get_digit, get_digit_unchecked, ParseError};
 ///
 /// Fractions of a second are to microsecond precision, if the value contains greater
 /// precision, an error is raised.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Time {
     /// Hour: 0 to 23
     pub hour: u8,
@@ -95,6 +95,43 @@ impl Time {
         }
 
         Ok(t)
+    }
+
+    /// Create a time from seconds and microseconds.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp_second` - timestamp in seconds
+    /// * `timestamp_microsecond` - microseconds fraction of a second timestamp
+    ///
+    /// If `seconds + timestamp_microsecond` exceeds 86400, an error is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let d = Time::from_timestamp(3740, 123).unwrap();
+    /// assert_eq!(d.to_string(), "01:02:20.000123");
+    /// ```
+    pub fn from_timestamp(timestamp_second: u32, timestamp_microsecond: u32) -> Result<Self, ParseError> {
+        let mut second = timestamp_second;
+        let mut microsecond = timestamp_microsecond;
+        if microsecond >= 1_000_000 {
+            second = second
+                .checked_add(microsecond / 1_000_000)
+                .ok_or(ParseError::TimeTooLarge)?;
+            microsecond %= 1_000_000;
+        }
+        if second >= 86_400 {
+            return Err(ParseError::TimeTooLarge);
+        }
+        Ok(Self {
+            hour: (second / 3600) as u8,
+            minute: ((second % 3600) / 60) as u8,
+            second: (second % 60) as u8,
+            microsecond,
+        })
     }
 
     /// Parse a time from bytes with a starting index, no check is performed for extract characters at
