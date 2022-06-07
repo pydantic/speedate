@@ -98,14 +98,14 @@ impl Date {
     ///
     /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
     ///
-    /// Dates much be between `1600-01-01` and `9999-12-31`.
+    /// Input must be between `-11,676,096,000` (`1600-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
     ///
-    /// If the absolute value is > 2e10 (`20_000_000_000`) it is interpreted as being in milliseconds.
+    /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
     ///
     /// That means:
     /// * `20_000_000_000` is `2603-10-11`
     /// * `20_000_000_001` is `1970-08-20`
-    /// * `-20_000_000_000` gives an error - `DateTooSmall`
+    /// * `-20_000_000_000` gives an error - `DateTooSmall` as it would be before 1600
     /// * `-20_000_000_001` is `1969-05-14`
     ///
     /// # Arguments
@@ -117,7 +117,7 @@ impl Date {
     /// ```
     /// use speedate::Date;
     ///
-    /// let d = Date::from_timestamp(1654619320).unwrap();
+    /// let d = Date::from_timestamp(1_654_619_320).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
     pub fn from_timestamp(timestamp: i64) -> Result<Self, ParseError> {

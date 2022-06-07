@@ -327,7 +327,7 @@ fn datetime_from_timestamp_specific() {
     assert_eq!(dt.to_string(), "1970-01-01T00:00:00.667444");
     let dt = DateTime::from_timestamp(32_503_680_000_000, 0).unwrap();
     assert_eq!(dt.to_string(), "3000-01-01T00:00:00");
-    let dt = DateTime::from_timestamp(-11676096000, 0).unwrap();
+    let dt = DateTime::from_timestamp(-11_676_096_000, 0).unwrap();
     assert_eq!(dt.to_string(), "1600-01-01T00:00:00");
     let dt = DateTime::from_timestamp(1_095_216_660_480, 3221223).unwrap();
     assert_eq!(dt.to_string(), "2004-09-15T02:51:03.701223");

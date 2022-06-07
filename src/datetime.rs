@@ -176,14 +176,15 @@ impl DateTime {
     ///
     /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
     ///
-    /// Datetimes much be between `1600-01-01T00:00:00` and `9999-12-31T23:59:59.999999` inclusive.
+    /// Input must be between `-11,676,096,000` (`1600-01-01T00:00:00`) and
+    /// `253,402,300,799,000` (`9999-12-31T23:59:59.999999`) inclusive.
     ///
-    /// If the absolute value is > 2e10 (`20_000_000_000`) it is interpreted as being in milliseconds.
+    /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
     ///
     /// That means:
     /// * `20_000_000_000` is `2603-10-11T11:33:20`
     /// * `20_000_000_001` is `1970-08-20T11:33:20.001`
-    /// * `-20_000_000_000` gives an error - `DateTooSmall`
+    /// * `-20_000_000_000` gives an error - `DateTooSmall` as it would be before 1600
     /// * `-20_000_000_001` is `1969-05-14T12:26:39.999`
     ///
     /// # Arguments
@@ -199,8 +200,11 @@ impl DateTime {
     /// ```
     /// use speedate::DateTime;
     ///
-    /// let d = DateTime::from_timestamp(1654619320, 123).unwrap();
+    /// let d = DateTime::from_timestamp(1_654_619_320, 123).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
+    ///
+    /// let d = DateTime::from_timestamp(1_654_619_320_123, 123_000).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246");
     /// ```
     pub fn from_timestamp(timestamp: i64, timestamp_microsecond: u32) -> Result<Self, ParseError> {
         let (mut second, extra_microsecond) = Date::timestamp_watershed(timestamp)?;

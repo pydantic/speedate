@@ -31,6 +31,10 @@ The following formats are supported:
 * Duration: `±...` - all duration formats shown here can be prefixed with `+` or `-` to indicate
   positive and negative durations respectively
 
+In addition, unix timestamps (both seconds and milliseconds) can be used to create dates and datetimes.
+
+See [the documentation](https://docs.rs/speedate/latest/speedate/index.html#structs) for each struct for more details.
+
 This will be the datetime parsing logic for [pydantic-core](https://github.com/samuelcolvin/pydantic-core).
 
 ## Usage
@@ -82,7 +86,7 @@ test duration_ok_iso8601     ... bench:          48 ns/iter (+/- 0)
 
 ## Why not full iso8601?
 
-ISO8601 has lots of allowed formats, see
+ISO8601 allows many formats, see
 [ijmacd.github.io/rfc3339-iso8601](https://ijmacd.github.io/rfc3339-iso8601/).
 
 Most of these are unknown to most users, and not desired. This library aims to support the most common formats
