@@ -53,7 +53,7 @@ jobs:
 
     - run: cargo bench
 
-  link:
+  lint:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3

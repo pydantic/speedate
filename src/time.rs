@@ -248,4 +248,3 @@ impl Time {
         total_seconds
     }
 }
-

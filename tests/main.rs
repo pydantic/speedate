@@ -403,15 +403,15 @@ fn time() {
 
 #[test]
 fn time_comparison() {
-     let t1 = Time::parse_str("12:13:14").unwrap();
-     let t2 = Time::parse_str("12:10:20").unwrap();
+    let t1 = Time::parse_str("12:13:14").unwrap();
+    let t2 = Time::parse_str("12:10:20").unwrap();
 
-     assert!(t1 > t2);
-     assert!(t1 >= t2);
-     assert!(t1 >= t1.clone());
-     assert!(t2 < t1);
-     assert!(t2 <= t1);
-     assert!(t2 <= t2.clone());
+    assert!(t1 > t2);
+    assert!(t1 >= t2);
+    assert!(t1 >= t1.clone());
+    assert!(t2 < t1);
+    assert!(t2 <= t1);
+    assert!(t2 <= t2.clone());
     assert!(t1.eq(&t1.clone()));
     assert!(!t1.eq(&t2.clone()));
 
