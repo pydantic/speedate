@@ -468,7 +468,7 @@ fn datetime_tz_2hours() {
                 second: 14,
                 microsecond: 0,
             },
-            offset: Some(120),
+            offset: Some(7_200),
         }
     );
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14+02:00");
@@ -478,7 +478,7 @@ fn datetime_tz_2hours() {
 fn datetime_tz_negative_2212() {
     // using U+2212 for negative timezones
     let dt = DateTime::parse_str("2020-01-01T12:13:14−02:15").unwrap();
-    assert_eq!(dt.offset, Some(-135));
+    assert_eq!(dt.offset, Some(-8100));
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14-02:15");
 }
 
@@ -507,6 +507,13 @@ param_tests! {
     dt_extra_space_tz1: err => "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
     dt_extra_space_tz2: err => "2020-01-01T12:00:00+0000 ", ExtraCharacters;
     dt_extra_xxx: err => "2020-01-01T12:00:00Zxxx", ExtraCharacters;
+    tz_pos_30hr: ok => "2020-01-01T12:00:00+30:00", "2020-01-01T12:00:00+30:00";
+    tz_neg_30hr: ok => "2020-01-01T12:00:00-30:00", "2020-01-01T12:00:00-30:00";
+    tz_60mins: err => "2020-01-01T12:00:00+00:60", OutOfRangeTzMinute;
+    tz_pos_gt30hr: err => "2020-01-01T12:00:00+30:01", OutOfRangeTz;
+    tz_neg_gt30hr: err => "2020-01-01T12:00:00-30:01", OutOfRangeTz;
+    tz_pos_99hr: err => "2020-01-01T12:00:00+99:59", OutOfRangeTz;
+    tz_neg_99hr: err => "2020-01-01T12:00:00-99:59", OutOfRangeTz;
 }
 
 #[test]

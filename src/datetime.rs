@@ -18,8 +18,8 @@ pub struct DateTime {
     pub date: Date,
     /// time part of the datetime
     pub time: Time,
-    /// timezone offset in minutes if provided
-    pub offset: Option<i16>,
+    /// timezone offset in seconds if provided
+    pub offset: Option<i32>,
 }
 
 impl fmt::Display for DateTime {
@@ -29,7 +29,8 @@ impl fmt::Display for DateTime {
             if offset == 0 {
                 write!(f, "Z")?;
             } else {
-                write!(f, "{:+03}:{:02}", offset / 60, (offset % 60).abs())?;
+                let mins = offset / 60;
+                write!(f, "{:+03}:{:02}", mins / 60, (mins % 60).abs())?;
             }
         }
         Ok(())
@@ -68,6 +69,34 @@ impl DateTime {
     /// );
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     /// ```
+    ///
+    /// With a non-zero timezone
+    /// (we also use a different separator and omit the colon in timezone here):
+    ///
+    /// ```
+    /// use speedate::{DateTime, Date, Time};
+    ///
+    /// let dt = DateTime::parse_str("2000-02-29 12:13:14-0830").unwrap();
+    /// assert_eq!(
+    ///     dt,
+    ///     DateTime {
+    ///         date: Date {
+    ///             year: 2000,
+    ///             month: 2,
+    ///             day: 29,
+    ///         },
+    ///         time: Time {
+    ///             hour: 12,
+    ///             minute: 13,
+    ///             second: 14,
+    ///             microsecond: 0,
+    ///         },
+    ///         offset: Some(-30600),
+    ///     }
+    /// );
+    /// assert_eq!(dt.to_string(), "2000-02-29T12:13:14-08:30");
+    /// ```
+    /// (note: the string representation is still canonical ISO8601)
     #[inline]
     pub fn parse_str(str: &str) -> Result<Self, ParseError> {
         Self::parse_bytes(str.as_bytes())
@@ -119,7 +148,7 @@ impl DateTime {
         let mut position = 11 + time_length;
 
         // And finally, parse the offset
-        let mut offset: Option<i16> = None;
+        let mut offset: Option<i32> = None;
 
         if let Some(next_char) = bytes.get(position).copied() {
             position += 1;
@@ -145,23 +174,33 @@ impl DateTime {
                     _ => return Err(ParseError::InvalidCharTzSign),
                 };
 
-                let h1 = get_digit!(bytes, position, InvalidCharTzHour) as i16;
-                let h2 = get_digit!(bytes, position + 1, InvalidCharTzHour) as i16;
+                let h1 = get_digit!(bytes, position, InvalidCharTzHour) as i32;
+                let h2 = get_digit!(bytes, position + 1, InvalidCharTzHour) as i32;
 
                 let m1 = match bytes.get(position + 2) {
                     Some(b':') => {
                         position += 3;
-                        get_digit!(bytes, position, InvalidCharTzMinute) as i16
+                        get_digit!(bytes, position, InvalidCharTzMinute) as i32
                     }
                     Some(c) if (b'0'..=b'9').contains(c) => {
                         position += 2;
-                        (c - b'0') as i16
+                        (c - b'0') as i32
                     }
                     _ => return Err(ParseError::InvalidCharTzMinute),
                 };
-                let m2 = get_digit!(bytes, position + 1, InvalidCharTzMinute) as i16;
+                let m2 = get_digit!(bytes, position + 1, InvalidCharTzMinute) as i32;
 
-                offset = Some(sign * (h1 * 600 + h2 * 60 + m1 * 10 + m2));
+                let minute_seconds = m1 * 600 + m2 * 60;
+                if minute_seconds >= 3600 {
+                    return Err(ParseError::OutOfRangeTzMinute);
+                }
+
+                let offset_val = sign * (h1 * 36000 + h2 * 3600 + minute_seconds);
+                // https://stackoverflow.com/a/8131056/949890
+                if offset_val.abs() > 30 * 3600 {
+                    return Err(ParseError::OutOfRangeTz);
+                }
+                offset = Some(offset_val);
                 position += 2;
             }
         }
