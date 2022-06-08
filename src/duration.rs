@@ -40,7 +40,21 @@ use crate::{ParseError, Time};
 ///    microsecond: 400_000
 /// }
 /// ```
-#[derive(Debug, PartialEq, Eq, Clone)]
+///
+/// # Comparison
+///
+/// `Duration` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+///
+/// ```
+/// use speedate::Duration;
+///
+/// let d1 = Duration::parse_str("P3DT4H5M6.7S").unwrap();
+/// let d2 = Duration::parse_str("P4DT1H").unwrap();
+///
+/// assert!(d2 > d1);
+/// ```
+/// (`positive` is included in in comparisons, thus `+P1D` is greater than `-P2D`)
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
 pub struct Duration {
     /// The positive or negative sign of the duration
     pub positive: bool,

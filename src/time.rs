@@ -11,7 +11,20 @@ use crate::{get_digit, get_digit_unchecked, ParseError};
 ///
 /// Fractions of a second are to microsecond precision, if the value contains greater
 /// precision, an error is raised.
-#[derive(Debug, PartialEq, Eq, Clone)]
+///
+/// # Comparison
+///
+/// `Time` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+///
+/// ```
+/// use speedate::Time;
+///
+/// let t1 = Time::parse_str("12:10:20").unwrap();
+/// let t2 = Time::parse_str("12:13:14").unwrap();
+///
+/// assert!(t2 > t1);
+/// ```
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
 pub struct Time {
     /// Hour: 0 to 23
     pub hour: u8,
@@ -215,4 +228,24 @@ impl Time {
         };
         Ok((t, length))
     }
+
+    /// Get the total seconds of the time
+    ///
+    /// E.g. hours + minutes + seconds
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let d = Time::parse_str("12:13:14.123456").unwrap();
+    /// assert_eq!(d.total_seconds(), 12 * 3600 + 13 * 60 + 14);
+    /// ```
+    pub fn total_seconds(&self) -> u32 {
+        let mut total_seconds = self.hour as u32 * 3600;
+        total_seconds += self.minute as u32 * 60;
+        total_seconds += self.second as u32;
+        total_seconds
+    }
 }
+

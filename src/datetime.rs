@@ -1,10 +1,11 @@
+use std::cmp::Ordering;
 use std::fmt;
 
 use crate::{get_digit, Date, ParseError, Time};
 
 /// A DateTime
 ///
-/// Combines a `Date`, `Time` and optionally a timezone offset in minutes.
+/// Combines a [Date], [Time] and optionally a timezone offset in minutes.
 /// Allowed values:
 /// * `YYYY-MM-DDTHH:MM:SS` - all the above time formats are allowed for the time part
 /// * `YYYY-MM-DD HH:MM:SS` - `T`, `t`, ` ` and `_` are allowed as separators
@@ -12,6 +13,21 @@ use crate::{get_digit, Date, ParseError, Time};
 /// * `YYYY-MM-DDTHH:MM:SS+08:00`- positive and negative timezone are allowed,
 ///   as per ISO 8601, U+2212 minus `−` is allowed as well as ascii minus `-` (U+002D)
 /// * `YYYY-MM-DDTHH:MM:SS+0800` - the colon (`:`) in the timezone is optional
+///
+/// # Comparison
+///
+/// `DateTime` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+///
+/// ```
+/// use speedate::DateTime;
+///
+/// let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
+/// let dt2 = DateTime::parse_str("2020-02-03T04:05:06.08").unwrap();
+///
+/// assert!(dt2 > dt1);
+/// ```
+///
+/// See [DateTime::partial_cmp] for details on how timezones are handled.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DateTime {
     /// date part of the datetime
@@ -34,6 +50,59 @@ impl fmt::Display for DateTime {
             }
         }
         Ok(())
+    }
+}
+
+impl PartialOrd for DateTime {
+    /// We want normal comparison logic for date and time, but custom (python) semantics for timezone,
+    /// thus comparison of timezone offsets needs to be reversed,
+    /// (otherwise we wouldn't need this custom implementation at all).
+    ///
+    /// In python:
+    /// ```py
+    /// from datetime import datetime, timezone, timedelta
+    /// dt1 = datetime(2000, 1, 1, tzinfo=timezone(timedelta(seconds=1)))
+    /// dt2 = datetime(2000, 1, 1, tzinfo=timezone(timedelta(seconds=2)))
+    /// assert dt1 > dt2
+    /// ```
+    ///
+    /// The [DateTime::comparable] method can be used to check if comparison of two datetimes is valid.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let dt1 = DateTime::parse_str("2000-01-01T00:00:00+01:00").unwrap();
+    /// let dt2 = DateTime::parse_str("2000-01-01T00:00:00+02:00").unwrap();
+    ///
+    /// assert!(dt1.comparable(&dt2));
+    /// assert!(dt1 > dt2);
+    ///
+    /// let dt3 = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+    /// assert_eq!(dt1.comparable(&dt3), false);
+    /// assert_eq!(dt1 > dt3, false);
+    /// assert_eq!(dt1 < dt3, false);
+    /// ```
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if !self.comparable(other) {
+            return None;
+        }
+        match self.date.partial_cmp(&other.date) {
+            Some(Ordering::Equal) => (),
+            otherwise => return otherwise,
+        }
+        match self.time.partial_cmp(&other.time) {
+            Some(Ordering::Equal) => (),
+            otherwise => return otherwise,
+        }
+        match (self.offset, other.offset) {
+            (None, None) => Some(Ordering::Equal),
+            // NOTE! we reverse other self and other, as per the above comment
+            (Some(off_self), Some(off_other)) => off_other.partial_cmp(&off_self),
+            // should not happen as per the above check
+            _ => None,
+        }
     }
 }
 
@@ -264,5 +333,11 @@ impl DateTime {
             time: Time::from_timestamp(time_second, total_microsecond)?,
             offset: None,
         })
+    }
+
+    /// Whether or not two [DateTime]s can be compared
+    /// E.g. they both have or don't have a timezone offset
+    pub fn comparable(&self, other: &Self) -> bool {
+        self.offset.is_none() == other.offset.is_none()
     }
 }

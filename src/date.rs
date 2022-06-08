@@ -9,7 +9,19 @@ use crate::{get_digit_unchecked, ParseError};
 ///
 /// Leap years are correct calculated according to the Gregorian calendar.
 /// Thus `2000-02-29` is a valid date, but `2001-02-29` is not.
-#[derive(Debug, PartialEq, Eq, Clone)]
+///
+/// # Comparison
+///
+/// `Date` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+///
+/// ```
+/// use speedate::Date;
+///
+/// let d1 = Date::parse_str("2022-01-01").unwrap();
+/// let d2 = Date::parse_str("2022-01-02").unwrap();
+/// assert!(d2 > d1);
+/// ```
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
 pub struct Date {
     /// Year: four digits
     pub year: u16,

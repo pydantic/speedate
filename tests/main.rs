@@ -183,6 +183,18 @@ fn date_from_timestamp_range() {
     }
 }
 
+#[test]
+fn date_comparison() {
+    let d1 = Date::parse_str("2020-02-03").unwrap();
+    let d2 = Date::parse_str("2021-01-02").unwrap();
+    assert!(d1 < d2);
+    assert!(d1 <= d2);
+    assert!(d1 <= d1.clone());
+    assert!(d2 > d1);
+    assert!(d2 >= d1);
+    assert!(d2 >= d2.clone());
+}
+
 macro_rules! date_from_timestamp {
     ($($year:literal, $month:literal, $day:literal;)*) => {
         $(
@@ -389,6 +401,25 @@ fn time() {
     );
 }
 
+#[test]
+fn time_comparison() {
+     let t1 = Time::parse_str("12:13:14").unwrap();
+     let t2 = Time::parse_str("12:10:20").unwrap();
+
+     assert!(t1 > t2);
+     assert!(t1 >= t2);
+     assert!(t1 >= t1.clone());
+     assert!(t2 < t1);
+     assert!(t2 <= t1);
+     assert!(t2 <= t2.clone());
+    assert!(t1.eq(&t1.clone()));
+    assert!(!t1.eq(&t2.clone()));
+
+    let t3 = Time::parse_str("12:13:14.123").unwrap();
+    let t4 = Time::parse_str("12:13:13.999").unwrap();
+    assert!(t3 > t4);
+}
+
 param_tests! {
     Time,
     time_min: ok => "00:00:00.000000", "00:00:00";
@@ -496,6 +527,43 @@ fn datetime_tz_negative_2212() {
     let dt = DateTime::parse_str("2020-01-01T12:13:14−02:15").unwrap();
     assert_eq!(dt.offset, Some(-8100));
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14-02:15");
+}
+
+#[test]
+fn datetime_comparison_naive() {
+    let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
+    let dt2 = DateTime::parse_str("2021-01-02T03:04:05.06").unwrap();
+
+    assert!(dt1.comparable(&dt2));
+    assert!(dt2 > dt1);
+    assert!(dt2 >= dt1);
+    assert!(dt2 >= dt2.clone());
+    assert!(dt1 < dt2);
+    assert!(dt1 <= dt2);
+    assert!(dt1 <= dt1.clone());
+
+    let dt3 = DateTime::parse_str("2020-02-03T04:05:06.123").unwrap();
+    let dt4 = DateTime::parse_str("2020-02-03T04:05:06.124").unwrap();
+    assert!(dt4 > dt3);
+    assert!(dt3 < dt4);
+}
+
+#[test]
+fn datetime_comparison_timezone() {
+    let dt1 = DateTime::parse_str("2000-01-01T00:00:00+01:00").unwrap();
+    let dt2 = DateTime::parse_str("2000-01-01T00:00:00+02:00").unwrap();
+
+    assert!(dt1.comparable(&dt2));
+    assert!(dt1 > dt2);
+    assert!(dt1 >= dt2);
+    assert!(dt2 < dt1);
+    assert!(dt2 <= dt1);
+
+    let dt3 = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+
+    assert_eq!(dt1.comparable(&dt3), false);
+    assert_eq!(dt1 > dt3, false);
+    assert_eq!(dt3 < dt1, false);
 }
 
 param_tests! {
@@ -683,6 +751,29 @@ fn duration_new_normalise2() {
             microsecond: 0,
         }
     );
+}
+
+#[test]
+fn duration_comparison() {
+    let d1 = Duration::new(true, 0, 0, 1_000_000);
+    let d2 = Duration::new(true, 0, 0, 1_000_001);
+    assert!(d1 < d2);
+    assert!(d1 <= d2);
+    assert!(d1 <= d1.clone());
+    assert!(d2 > d1);
+    assert!(d2 >= d1);
+    assert!(d2 >= d2.clone());
+
+    let d3 = Duration::new(true, 3, 0, 0);
+    let d4 = Duration::new(false, 4, 0, 0);
+    assert!(d3 > d4);
+    assert!(d3 >= d4);
+    assert!(d4 < d3);
+    assert!(d4 <= d3);
+    // from docs: (`positive` is included in in comparisons, thus `+P1D` is greater than `-P2D`)
+    let d5 = Duration::parse_str("+P1D").unwrap();
+    let d6 = Duration::parse_str("-P2D").unwrap();
+    assert!(d5 > d6);
 }
 
 param_tests! {
