@@ -78,7 +78,7 @@ fn error_str() {
     };
     assert_eq!(error, ParseError::TooShort);
     assert_eq!(error.to_string(), "too_short");
-    assert_eq!(error.get_documentation(), Some("Input is too short"));
+    assert_eq!(error.get_documentation(), Some("input is too short"));
 }
 
 param_tests! {

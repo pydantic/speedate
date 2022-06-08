@@ -52,64 +52,64 @@ pub(crate) use get_digit_unchecked;
 ///      Err(error) => {
 ///          assert_eq!(error, ParseError::TooShort);
 ///          assert_eq!(error.to_string(), "too_short");
-///          assert_eq!(error.get_documentation(), Some("Input is too short"));
+///          assert_eq!(error.get_documentation(), Some("input is too short"));
 ///      },
 /// };
 /// ```
 #[derive(Debug, Display, EnumMessage, PartialEq, Eq, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum ParseError {
-    /// Input is too short
+    /// input is too short
     TooShort,
-    /// Unexpected extra characters at the end of the input
+    /// unexpected extra characters at the end of the input
     ExtraCharacters,
-    /// Invalid datetime separator, expected `T`, `t`, `_` or space
+    /// invalid datetime separator, expected `T`, `t`, `_` or space
     InvalidCharDateTimeSep,
-    /// Invalid date separator, expected `-`
+    /// invalid date separator, expected `-`
     InvalidCharDateSep,
-    /// Invalid character in year
+    /// invalid character in year
     InvalidCharYear,
-    /// Invalid character in month
+    /// invalid character in month
     InvalidCharMonth,
-    /// Invalid character in day
+    /// invalid character in day
     InvalidCharDay,
-    /// Invalid time separator, expected `:`
+    /// invalid time separator, expected `:`
     InvalidCharTimeSep,
-    /// Invalid character in hour
+    /// invalid character in hour
     InvalidCharHour,
-    /// Invalid character in minute
+    /// invalid character in minute
     InvalidCharMinute,
-    /// Invalid character in second
+    /// invalid character in second
     InvalidCharSecond,
-    /// Invalid character in second fraction
+    /// invalid character in second fraction
     InvalidCharSecondFraction,
-    /// Invalid timezone sign
+    /// invalid timezone sign
     InvalidCharTzSign,
-    /// Invalid timezone hour
+    /// invalid timezone hour
     InvalidCharTzHour,
-    /// Invalid timezone minute
+    /// invalid timezone minute
     InvalidCharTzMinute,
-    /// Timezone minute value is outside expected range of 0-59
+    /// timezone minute value is outside expected range of 0-59
     OutOfRangeTzMinute,
-    /// Timezone offset may not be greater than 30 hours
+    /// timezone offset may not be greater than 30 hours
     OutOfRangeTz,
-    /// Month value is outside expected range of 1-12
+    /// month value is outside expected range of 1-12
     OutOfRangeMonth,
-    /// Day value is outside expected range
+    /// day value is outside expected range
     OutOfRangeDay,
-    /// Hour value is outside expected range of 0-23
+    /// hour value is outside expected range of 0-23
     OutOfRangeHour,
-    /// Minute value is outside expected range of 0-59
+    /// minute value is outside expected range of 0-59
     OutOfRangeMinute,
-    /// Second value is outside expected range of 0-59
+    /// second value is outside expected range of 0-59
     OutOfRangeSecond,
-    /// Second fraction value is more than 6 digits long
+    /// second fraction value is more than 6 digits long
     SecondFractionTooLong,
-    /// Second fraction digits missing after `.`
+    /// second fraction digits missing after `.`
     SecondFractionMissing,
-    /// Invalid digit in duration
+    /// invalid digit in duration
     DurationInvalidNumber,
-    /// `T` character repeated in duration
+    /// `t` character repeated in duration
     DurationTRepeated,
     /// quantity fraction invalid in duration
     DurationInvalidFraction,
