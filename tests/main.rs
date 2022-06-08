@@ -55,6 +55,22 @@ fn date() {
 }
 
 #[test]
+fn date_bytes_err() {
+    // https://github.com/python/cpython/blob/5849af7a80166e9e82040e082f22772bd7cf3061/Lib/test/datetimetester.py#L3237
+    // bytes of '\ud800'
+    let bytes: Vec<u8> = vec![92, 117, 100, 56, 48, 48];
+    match Date::parse_bytes(&bytes) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::TooShort),
+    }
+    let bytes: Vec<u8> = vec!['2' as u8, '0' as u8, '0' as u8, '0' as u8, 92, 117, 100, 56, 48, 48];
+    match Date::parse_bytes(&bytes) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => assert_eq!(e, ParseError::InvalidCharDateSep),
+    }
+}
+
+#[test]
 fn error_str() {
     let error = match Date::parse_str("123") {
         Ok(_) => panic!("unexpectedly valid"),
@@ -516,33 +532,66 @@ param_tests! {
     tz_neg_99hr: err => "2020-01-01T12:00:00-99:59", OutOfRangeTz;
 }
 
+fn extract_values(line: &str, prefix: &str) -> (String, String) {
+    let parts: Vec<&str> = line.trim_start_matches(prefix).split("->").collect();
+    assert_eq!(parts.len(), 2);
+    (parts[0].trim().to_string(), parts[1].trim().to_string())
+}
+
 #[test]
-fn test_rfc_3339_values_txt() {
-    let mut f = File::open("./tests/rfc-3339-values.txt").unwrap();
+fn test_ok_values_txt() {
+    let mut f = File::open("./tests/values_ok.txt").unwrap();
     let mut contents = String::new();
     f.read_to_string(&mut contents).unwrap();
     let mut success = 0;
-    for line in contents.split("\n") {
+    for (i, line) in contents.split("\n").enumerate() {
+        let line_no = i + 1;
         if line.starts_with("#") || line.is_empty() {
             continue;
         } else if line.starts_with("date:") {
-            Date::parse_str(line.trim_start_matches("date:").trim())
-                .map_err(|e| panic!("error on line {:?}: {:?}", line, e))
+            let (input, expected_str) = extract_values(line, "date:");
+            let d = Date::parse_str(&input)
+                .map_err(|e| panic!("error on line {} {:?}: {:?}", line_no, line, e))
                 .unwrap();
+            assert_eq!(d.to_string(), expected_str, "error on line {}", line_no);
         } else if line.starts_with("time:") {
-            Time::parse_str(line.trim_start_matches("time:").trim())
-                .map_err(|e| panic!("error on line {:?}: {:?}", line, e))
+            let (input, expected_str) = extract_values(line, "time:");
+            let t = Time::parse_str(&input)
+                .map_err(|e| panic!("error on line {} {:?}: {:?}", line_no, line, e))
                 .unwrap();
+            assert_eq!(t.to_string(), expected_str, "error on line {}", line_no);
         } else if line.starts_with("dt:") {
-            DateTime::parse_str(line.trim_start_matches("dt:").trim())
-                .map_err(|e| panic!("error on line {:?}: {:?}", line, e))
+            let (input, expected_str) = extract_values(line, "dt:");
+            let dt = DateTime::parse_str(&input)
+                .map_err(|e| panic!("error on line {} {:?}: {:?}", line_no, line, e))
                 .unwrap();
+            assert_eq!(dt.to_string(), expected_str, "error on line {}", line_no);
         } else {
             panic!("unexpected line: {:?}", line);
         }
         success += 1;
     }
     println!("{} formats successfully parsed", success);
+}
+
+#[test]
+fn test_err_values_txt() {
+    let mut f = File::open("./tests/values_err.txt").unwrap();
+    let mut contents = String::new();
+    f.read_to_string(&mut contents).unwrap();
+    let mut success = 0;
+    for (i, line) in contents.split("\n").enumerate() {
+        let line_no = i + 1;
+        if line.starts_with("#") || line.is_empty() {
+            continue;
+        }
+        match DateTime::parse_str(line.trim()) {
+            Ok(_) => panic!("unexpected valid line {}: {:?}", line_no, line),
+            Err(_) => (),
+        }
+        success += 1;
+    }
+    println!("{} correctly invalid", success);
 }
 
 #[test]
