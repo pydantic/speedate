@@ -156,17 +156,17 @@ impl Date {
         };
 
         // year day is the day of the year, starting from 1
-        let mut year_day: i16 = (delta_days % 365 - leap_years + 1) as i16;
+        let mut ordinal_day: i16 = (delta_days % 365 - leap_years + 1) as i16;
         let mut year: u16 = (1600 + delta_years) as u16;
         let mut leap_year: bool = is_leap_year(year);
-        while year_day < 1 {
+        while ordinal_day < 1 {
             year -= 1;
             leap_year = is_leap_year(year);
-            year_day += if leap_year { 366 } else { 365 };
+            ordinal_day += if leap_year { 366 } else { 365 };
         }
         let (month, day) = match leap_year {
-            true => leap_year_month_day(year_day),
-            false => non_leap_year_month_day(year_day),
+            true => leap_year_month_day(ordinal_day),
+            false => common_year_month_day(ordinal_day),
         };
         Ok(Self { year, month, day })
     }
@@ -238,7 +238,7 @@ fn is_leap_year(year: u16) -> bool {
 
 fn leap_year_month_day(day: i16) -> (u8, u8) {
     match day {
-        0..=31 => (1, day as u8),
+        1..=31 => (1, day as u8),
         32..=60 => (2, day as u8 - 31),
         61..=91 => (3, day as u8 - 60),
         92..=121 => (4, day as u8 - 91),
@@ -253,9 +253,9 @@ fn leap_year_month_day(day: i16) -> (u8, u8) {
     }
 }
 
-fn non_leap_year_month_day(day: i16) -> (u8, u8) {
+fn common_year_month_day(day: i16) -> (u8, u8) {
     match day {
-        0..=31 => (1, day as u8),
+        1..=31 => (1, day as u8),
         32..=59 => (2, day as u8 - 31),
         60..=90 => (3, day as u8 - 59),
         91..=120 => (4, day as u8 - 90),

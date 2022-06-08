@@ -89,6 +89,10 @@ pub enum ParseError {
     InvalidCharTzHour,
     /// Invalid timezone minute
     InvalidCharTzMinute,
+    /// Timezone minute value is outside expected range of 0-59
+    OutOfRangeTzMinute,
+    /// Timezone offset may not be greater than 30 hours
+    OutOfRangeTz,
     /// Month value is outside expected range of 1-12
     OutOfRangeMonth,
     /// Day value is outside expected range
