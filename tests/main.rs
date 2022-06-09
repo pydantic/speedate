@@ -552,22 +552,41 @@ fn datetime_tz_negative_2212() {
 
 #[test]
 fn datetime_timestamp() {
-    let d = DateTime::from_timestamp(1_000_000_000, 999_999).unwrap();
-    assert_eq!(d.to_string(), "2001-09-09T01:46:40.999999");
-    assert_eq!(d.timestamp(), 1_000_000_000);
+    let dt = DateTime::from_timestamp(1_000_000_000, 999_999).unwrap();
+    assert_eq!(dt.to_string(), "2001-09-09T01:46:40.999999");
+    assert_eq!(dt.timestamp(), 1_000_000_000);
 
     // using ms unix timestamp
-    let d = DateTime::from_timestamp(1_000_000_000_000, 999_999).unwrap();
-    assert_eq!(d.to_string(), "2001-09-09T01:46:40.999999");
-    assert_eq!(d.timestamp(), 1_000_000_000);
+    let dt = DateTime::from_timestamp(1_000_000_000_000, 999_999).unwrap();
+    assert_eq!(dt.to_string(), "2001-09-09T01:46:40.999999");
+    assert_eq!(dt.timestamp(), 1_000_000_000);
+    // using ms unix timestamp
+
+    let d_naive = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    assert_eq!(d_naive.timestamp(), 86400);
 }
+
+#[test]
+fn datetime_timestamp_tz() {
+    let t_naive = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    assert_eq!(t_naive.timestamp(), 24 * 3600);
+    assert_eq!(t_naive.timestamp_tz(), 24 * 3600);
+
+    let dt_zulu = DateTime::parse_str("1970-01-02T00:00Z").unwrap();
+    assert_eq!(dt_zulu.timestamp(), 24 * 3600);
+    assert_eq!(dt_zulu.timestamp_tz(), 24 * 3600);
+
+    let dt_plus_1 = DateTime::parse_str("1970-01-02T00:00+01:00").unwrap();
+    assert_eq!(dt_plus_1.timestamp(), 24 * 3600);
+    assert_eq!(dt_plus_1.timestamp_tz(), 23 * 3600);
+}
+
 
 #[test]
 fn datetime_comparison_naive() {
     let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
     let dt2 = DateTime::parse_str("2021-01-02T03:04:05.06").unwrap();
 
-    // assert!(dt1.comparable(&dt2));
     assert!(dt2 > dt1);
     assert!(dt2 >= dt1);
     assert!(dt2 >= dt2.clone());
@@ -586,7 +605,6 @@ fn datetime_comparison_timezone() {
     let dt1 = DateTime::parse_str("2000-01-01T00:00:00+01:00").unwrap();
     let dt2 = DateTime::parse_str("2000-01-01T00:00:00+02:00").unwrap();
 
-    // assert!(dt1.comparable(&dt2));
     assert!(dt1 > dt2);
     assert!(dt1 >= dt2);
     assert!(dt2 < dt1);
@@ -594,9 +612,21 @@ fn datetime_comparison_timezone() {
 
     let dt3 = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
 
-    // assert_eq!(dt1.comparable(&dt3), false);
-    assert_eq!(dt1 > dt3, false);
-    assert_eq!(dt3 < dt1, false);
+    assert!(dt1 >= dt3);
+    assert!(dt3 <= dt1);
+
+    let dt4 = DateTime::parse_str("1970-01-01T04:00:00.222+02:00").unwrap();
+    assert_eq!(dt4.timestamp_tz(), 2 * 3600);
+    let dt5 = DateTime::parse_str("1970-01-01T03:00:00Z").unwrap();
+    assert_eq!(dt5.timestamp_tz(), 3 * 3600);
+    assert!(dt5 > dt4);
+    assert_eq!(dt4 > dt4.clone(), false);
+
+    // assert that microseconds are used for comparison here
+    let dt6 = DateTime::parse_str("1970-01-01T04:00:00.333+02:00").unwrap();
+    assert_eq!(dt6.timestamp_tz(), 2 * 3600);
+    assert!(dt6 > dt4);
+    assert_ne!(dt6, dt4);
 }
 
 param_tests! {

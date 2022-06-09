@@ -91,7 +91,7 @@ impl PartialOrd for DateTime {
     ///
     /// ## Timezone Examples
     ///
-    /// ```ignore
+    /// ```
     /// use speedate::DateTime;
     ///
     /// let dt_uk_3pm = DateTime::parse_str("2000-01-01T15:00:00Z").unwrap();
@@ -112,20 +112,19 @@ impl PartialOrd for DateTime {
     /// assert!(dt_france_4pm > dt_naive_330pm);
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.date.partial_cmp(&other.date) {
-            Some(Ordering::Equal) => (),
-            otherwise => return otherwise,
-        }
-        match self.time.partial_cmp(&other.time) {
-            Some(Ordering::Equal) => (),
-            otherwise => return otherwise,
-        }
         match (self.offset, other.offset) {
-            (None, None) => Some(Ordering::Equal),
-            // NOTE! we reverse other self and other, as per the above comment
-            (Some(off_self), Some(off_other)) => off_other.partial_cmp(&off_self),
-            // should not happen as per the above check
-            _ => None,
+            (Some(_), Some(_)) => {
+                match self.timestamp_tz().partial_cmp(&other.timestamp_tz()) {
+                    Some(Ordering::Equal) => self.time.microsecond.partial_cmp(&other.time.microsecond),
+                    otherwise => otherwise,
+                }
+            },
+            _ => {
+                match self.date.partial_cmp(&other.date) {
+                    Some(Ordering::Equal) => self.time.partial_cmp(&other.time),
+                    otherwise => otherwise,
+                }
+            }
         }
     }
 }
@@ -373,5 +372,33 @@ impl DateTime {
     /// ```
     pub fn timestamp(&self) -> i64 {
         self.date.timestamp() + self.time.total_seconds() as i64
+    }
+
+    /// Unix timestamp assuming epoch (1970-01-01T00:00:00) is in zulu time and accounting
+    /// timezone offset.
+    ///
+    /// This is effectively [timestamp] minus [offset], see [partial_cmp] for details on
+    /// why timezone offset is subtracted. If [offset] if `None`, this is the same as [timestamp].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let t_naive = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    /// assert_eq!(t_naive.timestamp_tz(), 24 * 3600);
+    ///
+    /// let dt_zulu = DateTime::parse_str("1970-01-02T00:00Z").unwrap();
+    /// assert_eq!(dt_zulu.timestamp_tz(), 24 * 3600);
+    ///
+    /// let dt_plus_1 = DateTime::parse_str("1970-01-02T00:00+01:00").unwrap();
+    /// assert_eq!(dt_plus_1.timestamp_tz(), 23 * 3600);
+    /// ```
+    pub fn timestamp_tz(&self) -> i64 {
+        let adjustment = match self.offset {
+            Some(offset) => -offset as i64,
+            None => 0,
+        };
+        self.timestamp() + adjustment
     }
 }
