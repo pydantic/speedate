@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
+extern crate core;
 extern crate strum;
+
 use strum::{Display, EnumMessage};
 
 mod date;

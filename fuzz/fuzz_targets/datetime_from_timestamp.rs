@@ -55,6 +55,7 @@ fn check_timestamp(timestamp: i64, microseconds: u32) {
                     dt,
                     chrono_dt
                 );
+                assert_eq!(dt.timestamp(), chrono_dt.timestamp(), "{}, timestamp comparison", dt);
                 return;
             }
         }

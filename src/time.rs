@@ -228,4 +228,23 @@ impl Time {
         };
         Ok((t, length))
     }
+
+    /// Get the total seconds of the time
+    ///
+    /// E.g. hours + minutes + seconds
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let d = Time::parse_str("12:13:14.123456").unwrap();
+    /// assert_eq!(d.total_seconds(), 12 * 3600 + 13 * 60 + 14);
+    /// ```
+    pub fn total_seconds(&self) -> u32 {
+        let mut total_seconds = self.hour as u32 * 3600;
+        total_seconds += self.minute as u32 * 60;
+        total_seconds += self.second as u32;
+        total_seconds
+    }
 }

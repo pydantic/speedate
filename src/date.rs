@@ -137,6 +137,45 @@ impl Date {
         Self::from_timestamp_calc(timestamp_second)
     }
 
+    /// Unix timestamp in seconds (number of seconds between self and 1970-01-01)
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use speedate::Date;
+    ///
+    /// let d = Date::from_timestamp(1_654_560_000).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07");
+    /// assert_eq!(d.timestamp(), 1_654_560_000);
+    /// ```
+    pub fn timestamp(&self) -> i64 {
+        let days = (self.year - 1600) as i64 * 365
+            + (self.ordinal_day() - 1) as i64
+            + intervening_leap_years(self.year - 1600) as i64;
+        days * 86400 + UNIX_1600
+    }
+
+    /// Day of the year, starting from 1
+    pub fn ordinal_day(&self) -> u16 {
+        let leap_extra = if is_leap_year(self.year) { 1 } else { 0 };
+        let day = self.day as u16;
+        match self.month {
+            1 => day,
+            2 => day + 31,
+            3 => day + 59 + leap_extra,
+            4 => day + 90 + leap_extra,
+            5 => day + 120 + leap_extra,
+            6 => day + 151 + leap_extra,
+            7 => day + 181 + leap_extra,
+            8 => day + 212 + leap_extra,
+            9 => day + 243 + leap_extra,
+            10 => day + 273 + leap_extra,
+            11 => day + 304 + leap_extra,
+            12 => day + 334 + leap_extra,
+            _ => unreachable!(),
+        }
+    }
+
     pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
         let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
         let (mut seconds, mut microseconds) = if ts_abs > MS_WATERSHED {
@@ -160,16 +199,12 @@ impl Date {
         }
         let seconds_diff = timestamp_second - UNIX_1600;
         let delta_days = seconds_diff / 86_400;
-        let delta_years = delta_days / 365;
-        let leap_years = if delta_years == 0 {
-            0
-        } else {
-            (delta_years - 1) / 4 - (delta_years - 1) / 100 + (delta_years - 1) / 400 + 1
-        };
+        let delta_years = (delta_days / 365) as u16;
+        let leap_years = intervening_leap_years(delta_years) as i64;
 
         // year day is the day of the year, starting from 1
         let mut ordinal_day: i16 = (delta_days % 365 - leap_years + 1) as i16;
-        let mut year: u16 = (1600 + delta_years) as u16;
+        let mut year: u16 = 1600 + delta_years;
         let mut leap_year: bool = is_leap_year(year);
         while ordinal_day < 1 {
             year -= 1;
@@ -245,6 +280,16 @@ fn is_leap_year(year: u16) -> bool {
         year % 400 == 0
     } else {
         year % 4 == 0
+    }
+}
+
+/// internal function to calculate the number of leap years since 1600, `delta_years` is the number of
+/// years since 1600
+fn intervening_leap_years(delta_years: u16) -> u16 {
+    if delta_years == 0 {
+        0
+    } else {
+        (delta_years - 1) / 4 - (delta_years - 1) / 100 + (delta_years - 1) / 400 + 1
     }
 }
 

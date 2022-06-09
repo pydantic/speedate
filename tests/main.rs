@@ -156,7 +156,7 @@ fn date_from_timestamp_milliseconds() {
     assert_eq!(d2, d1);
 }
 
-fn try_date_timestamp(ts: i64) {
+fn try_date_timestamp(ts: i64, check_timestamp: bool) {
     let chrono_date = NaiveDateTime::from_timestamp(ts, 0).date();
     let d = Date::from_timestamp(ts).unwrap();
     // println!("{} => {:?}", ts, d);
@@ -171,15 +171,18 @@ fn try_date_timestamp(ts: i64) {
         ts,
         chrono_date
     );
+    if check_timestamp {
+        assert_eq!(d.timestamp(), ts);
+    }
 }
 
 #[test]
 fn date_from_timestamp_range() {
     for ts in (0..4_000_000_000).step_by(86_400) {
-        try_date_timestamp(ts);
-        try_date_timestamp(ts + 40_000);
-        try_date_timestamp(-ts);
-        try_date_timestamp(-ts - 40_000);
+        try_date_timestamp(ts, true);
+        try_date_timestamp(ts + 40_000, false);
+        try_date_timestamp(-ts, true);
+        try_date_timestamp(-ts - 40_000, false);
     }
 }
 
@@ -193,6 +196,13 @@ fn date_comparison() {
     assert!(d2 > d1);
     assert!(d2 >= d1);
     assert!(d2 >= d2.clone());
+}
+
+#[test]
+fn date_timestamp() {
+    let d = Date::from_timestamp(1_654_560_000).unwrap();
+    assert_eq!(d.to_string(), "2022-06-07");
+    assert_eq!(d.timestamp(), 1_654_560_000);
 }
 
 macro_rules! date_from_timestamp {
@@ -314,6 +324,7 @@ fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
         ts,
         chrono_dt
     );
+    assert_eq!(dt.timestamp(), ts);
 }
 
 macro_rules! datetime_from_timestamp {
@@ -418,6 +429,16 @@ fn time_comparison() {
     let t3 = Time::parse_str("12:13:14.123").unwrap();
     let t4 = Time::parse_str("12:13:13.999").unwrap();
     assert!(t3 > t4);
+}
+
+#[test]
+
+fn time_total_seconds() {
+    let t = Time::parse_str("01:02:03.04").unwrap();
+    assert_eq!(t.total_seconds(), 1 * 3600 + 2 * 60 + 3);
+
+    let t = Time::parse_str("12:13:14.999999").unwrap();
+    assert_eq!(t.total_seconds(), 12 * 3600 + 13 * 60 + 14);
 }
 
 param_tests! {
@@ -530,11 +551,23 @@ fn datetime_tz_negative_2212() {
 }
 
 #[test]
+fn datetime_timestamp() {
+    let d = DateTime::from_timestamp(1_000_000_000, 999_999).unwrap();
+    assert_eq!(d.to_string(), "2001-09-09T01:46:40.999999");
+    assert_eq!(d.timestamp(), 1_000_000_000);
+
+    // using ms unix timestamp
+    let d = DateTime::from_timestamp(1_000_000_000_000, 999_999).unwrap();
+    assert_eq!(d.to_string(), "2001-09-09T01:46:40.999999");
+    assert_eq!(d.timestamp(), 1_000_000_000);
+}
+
+#[test]
 fn datetime_comparison_naive() {
     let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
     let dt2 = DateTime::parse_str("2021-01-02T03:04:05.06").unwrap();
 
-    assert!(dt1.comparable(&dt2));
+    // assert!(dt1.comparable(&dt2));
     assert!(dt2 > dt1);
     assert!(dt2 >= dt1);
     assert!(dt2 >= dt2.clone());
@@ -553,7 +586,7 @@ fn datetime_comparison_timezone() {
     let dt1 = DateTime::parse_str("2000-01-01T00:00:00+01:00").unwrap();
     let dt2 = DateTime::parse_str("2000-01-01T00:00:00+02:00").unwrap();
 
-    assert!(dt1.comparable(&dt2));
+    // assert!(dt1.comparable(&dt2));
     assert!(dt1 > dt2);
     assert!(dt1 >= dt2);
     assert!(dt2 < dt1);
@@ -561,7 +594,7 @@ fn datetime_comparison_timezone() {
 
     let dt3 = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
 
-    assert_eq!(dt1.comparable(&dt3), false);
+    // assert_eq!(dt1.comparable(&dt3), false);
     assert_eq!(dt1 > dt3, false);
     assert_eq!(dt3 < dt1, false);
 }

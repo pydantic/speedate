@@ -18,16 +18,7 @@ use crate::{get_digit, Date, ParseError, Time};
 ///
 /// `DateTime` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
 ///
-/// ```
-/// use speedate::DateTime;
-///
-/// let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
-/// let dt2 = DateTime::parse_str("2020-02-03T04:05:06.08").unwrap();
-///
-/// assert!(dt2 > dt1);
-/// ```
-///
-/// See [DateTime::partial_cmp] for details on how timezones are handled.
+/// See [DateTime::partial_cmp] for how this works.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DateTime {
     /// date part of the datetime
@@ -54,40 +45,73 @@ impl fmt::Display for DateTime {
 }
 
 impl PartialOrd for DateTime {
-    /// We want normal comparison logic for date and time, but custom (python) semantics for timezone,
-    /// thus comparison of timezone offsets needs to be reversed,
-    /// (otherwise we wouldn't need this custom implementation at all).
+    /// Compare two datetimes by inequality
     ///
-    /// In python:
-    /// ```py
-    /// from datetime import datetime, timezone, timedelta
-    /// dt1 = datetime(2000, 1, 1, tzinfo=timezone(timedelta(seconds=1)))
-    /// dt2 = datetime(2000, 1, 1, tzinfo=timezone(timedelta(seconds=2)))
-    /// assert dt1 > dt2
-    /// ```
+    /// `DateTime` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
     ///
-    /// The [DateTime::comparable] method can be used to check if comparison of two datetimes is valid.
-    ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// use speedate::DateTime;
     ///
-    /// let dt1 = DateTime::parse_str("2000-01-01T00:00:00+01:00").unwrap();
-    /// let dt2 = DateTime::parse_str("2000-01-01T00:00:00+02:00").unwrap();
+    /// let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
+    /// let dt2 = DateTime::parse_str("2020-02-03T04:05:06.08").unwrap();
     ///
-    /// assert!(dt1.comparable(&dt2));
-    /// assert!(dt1 > dt2);
+    /// assert!(dt2 > dt1);
+    /// ```
     ///
-    /// let dt3 = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
-    /// assert_eq!(dt1.comparable(&dt3), false);
-    /// assert_eq!(dt1 > dt3, false);
-    /// assert_eq!(dt1 < dt3, false);
+    ///  # Comparison with Timezones
+    ///
+    /// When comparing two datetimes, we want "less than" or "greater than" refer to "earlier" or "later"
+    /// in the absolute course of time. We therefore need to be careful when comparing datetimes with different
+    /// timezones. (If it wasn't for timezones, we could omit all this extra logic and thinking and just compare
+    /// struct members directly as we do with [Time], [Date] and [crate::Duration]).
+    ///
+    /// From [wikipedia](https://en.wikipedia.org/wiki/UTC_offset#Time_zones_and_time_offsets)
+    ///
+    /// > The UTC offset is an amount of time subtracted from or added to UTC time to specify the local solar time...
+    ///
+    /// So, we can imagine that at 3pm in the UK (UTC+0) (in winter, to avoid DST confusion) it's 4pm in France (UTC+1).
+    ///
+    /// Thus to compare two datetimes in absolute terms we need to **SUBTRACT** the timezone offset.
+    ///
+    /// As if timezones weren't complicated enough, there are three extra considerations here:
+    /// 1. **naïve vs. non-naïve: We also have to consider the case where one datetime has a timezone and the other
+    ///    does not (e.g. is "timezone "naïve"). When comparing naïve datetimes to non-naïve, this library
+    ///    assumes the naïve datetime has the same timezone as the non-naïve, th is is different to other
+    ///    implementations (e.g. python) where such comparisons fail.
+    /// 2. **Direction:** As described in PostgreSQL's docs, in the POSIX Time Zone Specification
+    ///    "The positive sign is used for zones west of Greenwich", which is opposite to the ISO-8601 sign convention.
+    ///    In other words, the offset is reversed, see the end of
+    ///    [this blog](http://blog.untrod.com/2016/08/actually-understanding-timezones-in-postgresql.html)
+    ///    and the [PostgreSQL docs](https://www.postgresql.org/docs/14/datetime-posix-timezone-specs.html) for more
+    ///    info.
+    /// 3  **Equality comparison:** None of logic is used for equality (`==`) comparison where we can just compare
+    ///    struct members directly, e.g. require the timezone offset to be the same for two datetimes to be equal.
+    ///
+    /// ## Timezone Examples
+    ///
+    /// ```ignore
+    /// use speedate::DateTime;
+    ///
+    /// let dt_uk_3pm = DateTime::parse_str("2000-01-01T15:00:00Z").unwrap();
+    /// let dt_france_4pm = DateTime::parse_str("2000-01-01T16:00:00+01:00").unwrap();
+    ///
+    /// assert!(dt_uk_3pm >= dt_france_4pm);  // the two dts are actually the same instant
+    /// assert!(dt_uk_3pm <= dt_france_4pm);  // the two dts are actually the same instant
+    /// assert_ne!(dt_uk_3pm, dt_france_4pm);  // no equal because timezones much match for equality
+    ///
+    /// let dt_uk_330pm = DateTime::parse_str("2000-01-01T15:30:00Z").unwrap();
+    ///
+    /// assert!(dt_uk_330pm > dt_uk_3pm);
+    /// assert!(dt_uk_330pm > dt_france_4pm);
+    ///
+    /// // as described in point 1 above, naïve datetimes are assumed to have the same timezone as the non-naïve
+    /// let dt_naive_330pm = DateTime::parse_str("2000-01-01T15:30:00").unwrap();
+    /// assert!(dt_uk_3pm < dt_naive_330pm);
+    /// assert!(dt_france_4pm > dt_naive_330pm);
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if !self.comparable(other) {
-            return None;
-        }
         match self.date.partial_cmp(&other.date) {
             Some(Ordering::Equal) => (),
             otherwise => return otherwise,
@@ -335,9 +359,19 @@ impl DateTime {
         })
     }
 
-    /// Whether or not two [DateTime]s can be compared
-    /// E.g. they both have or don't have a timezone offset
-    pub fn comparable(&self, other: &Self) -> bool {
-        self.offset.is_none() == other.offset.is_none()
+    /// Unix timestamp (seconds since 1970-01-01T00:00:00) omitting timezone offset
+    /// (or equivalently comparing to 1970-01-01T00:00:00 in the same timezone)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let d = DateTime::from_timestamp(1_654_619_320, 123).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
+    /// assert_eq!(d.timestamp(), 1_654_619_320);
+    /// ```
+    pub fn timestamp(&self) -> i64 {
+        self.date.timestamp() + self.time.total_seconds() as i64
     }
 }
