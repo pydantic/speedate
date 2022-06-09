@@ -12,7 +12,7 @@ use crate::{get_digit_unchecked, ParseError};
 ///
 /// # Comparison
 ///
-/// `Date` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+/// `Date` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
 /// ```
 /// use speedate::Date;
@@ -129,7 +129,7 @@ impl Date {
     /// ```
     /// use speedate::Date;
     ///
-    /// let d = Date::from_timestamp(1_654_619_320).unwrap();
+    /// let d = Date::from_timestamp(1_654_560_000).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
     pub fn from_timestamp(timestamp: i64) -> Result<Self, ParseError> {
@@ -144,8 +144,7 @@ impl Date {
     /// ```
     /// use speedate::Date;
     ///
-    /// let d = Date::from_timestamp(1_654_560_000).unwrap();
-    /// assert_eq!(d.to_string(), "2022-06-07");
+    /// let d = Date::parse_str("2022-06-07").unwrap();
     /// assert_eq!(d.timestamp(), 1_654_560_000);
     /// ```
     pub fn timestamp(&self) -> i64 {
@@ -155,7 +154,7 @@ impl Date {
         days * 86400 + UNIX_1600
     }
 
-    /// Day of the year, starting from 1
+    /// Day of the year, starting from 1.
     pub fn ordinal_day(&self) -> u16 {
         let leap_extra = if is_leap_year(self.year) { 1 } else { 0 };
         let day = self.day as u16;
@@ -171,8 +170,7 @@ impl Date {
             9 => day + 243 + leap_extra,
             10 => day + 273 + leap_extra,
             11 => day + 304 + leap_extra,
-            12 => day + 334 + leap_extra,
-            _ => unreachable!(),
+            _ => day + 334 + leap_extra,
         }
     }
 

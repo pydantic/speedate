@@ -16,7 +16,7 @@ use crate::{get_digit, Date, ParseError, Time};
 ///
 /// # Comparison
 ///
-/// `DateTime` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+/// `DateTime` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
 /// See [DateTime::partial_cmp] for how this works.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -45,7 +45,7 @@ impl fmt::Display for DateTime {
 }
 
 impl PartialOrd for DateTime {
-    /// Compare two datetimes by inequality
+    /// Compare two datetimes by inequality.
     ///
     /// `DateTime` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
     ///
@@ -76,7 +76,7 @@ impl PartialOrd for DateTime {
     /// Thus to compare two datetimes in absolute terms we need to **SUBTRACT** the timezone offset.
     ///
     /// As if timezones weren't complicated enough, there are three extra considerations here:
-    /// 1. **naïve vs. non-naïve: We also have to consider the case where one datetime has a timezone and the other
+    /// 1. **naïve vs. non-naïve:** We also have to consider the case where one datetime has a timezone and the other
     ///    does not (e.g. is "timezone "naïve"). When comparing naïve datetimes to non-naïve, this library
     ///    assumes the naïve datetime has the same timezone as the non-naïve, th is is different to other
     ///    implementations (e.g. python) where such comparisons fail.
@@ -86,7 +86,7 @@ impl PartialOrd for DateTime {
     ///    [this blog](http://blog.untrod.com/2016/08/actually-understanding-timezones-in-postgresql.html)
     ///    and the [PostgreSQL docs](https://www.postgresql.org/docs/14/datetime-posix-timezone-specs.html) for more
     ///    info.
-    /// 3  **Equality comparison:** None of logic is used for equality (`==`) comparison where we can just compare
+    /// 3. **Equality comparison:** None of this logic is used for equality (`==`) comparison where we can just compare
     ///    struct members directly, e.g. require the timezone offset to be the same for two datetimes to be equal.
     ///
     /// ## Timezone Examples
@@ -106,7 +106,8 @@ impl PartialOrd for DateTime {
     /// assert!(dt_uk_330pm > dt_uk_3pm);
     /// assert!(dt_uk_330pm > dt_france_4pm);
     ///
-    /// // as described in point 1 above, naïve datetimes are assumed to have the same timezone as the non-naïve
+    /// // as described in point 1 above, naïve datetimes are assumed to
+    /// // have the same timezone as the non-naïve
     /// let dt_naive_330pm = DateTime::parse_str("2000-01-01T15:30:00").unwrap();
     /// assert!(dt_uk_3pm < dt_naive_330pm);
     /// assert!(dt_france_4pm > dt_naive_330pm);
@@ -362,9 +363,12 @@ impl DateTime {
     /// ```
     /// use speedate::DateTime;
     ///
-    /// let d = DateTime::from_timestamp(1_654_619_320, 123).unwrap();
-    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
-    /// assert_eq!(d.timestamp(), 1_654_619_320);
+    /// let dt = DateTime::from_timestamp(1_654_619_320, 123).unwrap();
+    /// assert_eq!(dt.to_string(), "2022-06-07T16:28:40.000123");
+    /// assert_eq!(dt.timestamp(), 1_654_619_320);
+    ///
+    /// let dt = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    /// assert_eq!(dt.timestamp(), 24 * 3600);
     /// ```
     pub fn timestamp(&self) -> i64 {
         self.date.timestamp() + self.time.total_seconds() as i64
@@ -373,16 +377,16 @@ impl DateTime {
     /// Unix timestamp assuming epoch is in zulu timezone (1970-01-01T00:00:00Z) and accounting for
     /// timezone offset.
     ///
-    /// This is effectively [timestamp] minus [offset], see [partial_cmp] for details on
-    /// why timezone offset is subtracted. If [offset] if `None`, this is the same as [timestamp].
+    /// This is effectively [Self::timestamp] minus [Self::offset], see [Self::partial_cmp] for details on
+    /// why timezone offset is subtracted. If [Self::offset] if `None`, this is the same as [Self::timestamp].
     ///
     /// # Examples
     ///
     /// ```
     /// use speedate::DateTime;
     ///
-    /// let t_naive = DateTime::parse_str("1970-01-02T00:00").unwrap();
-    /// assert_eq!(t_naive.timestamp_tz(), 24 * 3600);
+    /// let dt_naive = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    /// assert_eq!(dt_naive.timestamp_tz(), 24 * 3600);
     ///
     /// let dt_zulu = DateTime::parse_str("1970-01-02T00:00Z").unwrap();
     /// assert_eq!(dt_zulu.timestamp_tz(), 24 * 3600);

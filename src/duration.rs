@@ -43,7 +43,7 @@ use crate::{ParseError, Time};
 ///
 /// # Comparison
 ///
-/// `Duration` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+/// `Duration` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
 /// ```
 /// use speedate::Duration;

@@ -14,7 +14,7 @@ use crate::{get_digit, get_digit_unchecked, ParseError};
 ///
 /// # Comparison
 ///
-/// `Time` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+/// `Time` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
 /// ```
 /// use speedate::Time;
