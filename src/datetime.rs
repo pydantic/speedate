@@ -113,18 +113,14 @@ impl PartialOrd for DateTime {
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self.offset, other.offset) {
-            (Some(_), Some(_)) => {
-                match self.timestamp_tz().partial_cmp(&other.timestamp_tz()) {
-                    Some(Ordering::Equal) => self.time.microsecond.partial_cmp(&other.time.microsecond),
-                    otherwise => otherwise,
-                }
+            (Some(_), Some(_)) => match self.timestamp_tz().partial_cmp(&other.timestamp_tz()) {
+                Some(Ordering::Equal) => self.time.microsecond.partial_cmp(&other.time.microsecond),
+                otherwise => otherwise,
             },
-            _ => {
-                match self.date.partial_cmp(&other.date) {
-                    Some(Ordering::Equal) => self.time.partial_cmp(&other.time),
-                    otherwise => otherwise,
-                }
-            }
+            _ => match self.date.partial_cmp(&other.date) {
+                Some(Ordering::Equal) => self.time.partial_cmp(&other.time),
+                otherwise => otherwise,
+            },
         }
     }
 }
@@ -358,8 +354,8 @@ impl DateTime {
         })
     }
 
-    /// Unix timestamp (seconds since 1970-01-01T00:00:00) omitting timezone offset
-    /// (or equivalently comparing to 1970-01-01T00:00:00 in the same timezone)
+    /// Unix timestamp (seconds since epoch, 1970-01-01T00:00:00) omitting timezone offset
+    /// (or equivalently comparing to 1970-01-01T00:00:00 in the same timezone as self)
     ///
     /// # Examples
     ///
@@ -374,7 +370,7 @@ impl DateTime {
         self.date.timestamp() + self.time.total_seconds() as i64
     }
 
-    /// Unix timestamp assuming epoch (1970-01-01T00:00:00) is in zulu time and accounting
+    /// Unix timestamp assuming epoch is in zulu timezone (1970-01-01T00:00:00Z) and accounting for
     /// timezone offset.
     ///
     /// This is effectively [timestamp] minus [offset], see [partial_cmp] for details on

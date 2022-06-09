@@ -581,7 +581,6 @@ fn datetime_timestamp_tz() {
     assert_eq!(dt_plus_1.timestamp_tz(), 23 * 3600);
 }
 
-
 #[test]
 fn datetime_comparison_naive() {
     let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
@@ -627,6 +626,11 @@ fn datetime_comparison_timezone() {
     assert_eq!(dt6.timestamp_tz(), 2 * 3600);
     assert!(dt6 > dt4);
     assert_ne!(dt6, dt4);
+
+    // even on different dates, tz has an effect
+    let dt7 = DateTime::parse_str("2022-01-01T23:00:00Z").unwrap();
+    let dt8 = DateTime::parse_str("2022-01-02T01:00:00+03:00").unwrap();
+    assert!(dt7 > dt8);
 }
 
 param_tests! {
