@@ -25,7 +25,7 @@ pub struct DateTime {
     pub date: Date,
     /// time part of the datetime
     pub time: Time,
-    /// timezone offset in seconds if provided, between -23hrs 59mins and +23hrs 59mins inclusive
+    /// timezone offset in seconds if provided, must be >-24h and <24h
     // This range is to match python,
     // Note: [Stack Overflow suggests](https://stackoverflow.com/a/8131056/949890) larger offsets can happen
     pub offset: Option<i32>,
