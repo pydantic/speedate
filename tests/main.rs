@@ -658,11 +658,11 @@ param_tests! {
     dt_extra_space_tz1: err => "2020-01-01T12:00:00+00:00 ", ExtraCharacters;
     dt_extra_space_tz2: err => "2020-01-01T12:00:00+0000 ", ExtraCharacters;
     dt_extra_xxx: err => "2020-01-01T12:00:00Zxxx", ExtraCharacters;
-    tz_pos_30hr: ok => "2020-01-01T12:00:00+30:00", "2020-01-01T12:00:00+30:00";
-    tz_neg_30hr: ok => "2020-01-01T12:00:00-30:00", "2020-01-01T12:00:00-30:00";
+    tz_pos_2359: ok => "2020-01-01T12:00:00+23:59", "2020-01-01T12:00:00+23:59";
+    tz_neg_2359: ok => "2020-01-01T12:00:00-23:59", "2020-01-01T12:00:00-23:59";
     tz_60mins: err => "2020-01-01T12:00:00+00:60", OutOfRangeTzMinute;
-    tz_pos_gt30hr: err => "2020-01-01T12:00:00+30:01", OutOfRangeTz;
-    tz_neg_gt30hr: err => "2020-01-01T12:00:00-30:01", OutOfRangeTz;
+    tz_pos_gt2359: err => "2020-01-01T12:00:00+24:00", OutOfRangeTz;
+    tz_neg_gt2359: err => "2020-01-01T12:00:00-24:00", OutOfRangeTz;
     tz_pos_99hr: err => "2020-01-01T12:00:00+99:59", OutOfRangeTz;
     tz_neg_99hr: err => "2020-01-01T12:00:00-99:59", OutOfRangeTz;
 }
