@@ -25,7 +25,9 @@ pub struct DateTime {
     pub date: Date,
     /// time part of the datetime
     pub time: Time,
-    /// timezone offset in seconds if provided
+    /// timezone offset in seconds if provided, must be >-24h and <24h
+    // This range is to match python,
+    // Note: [Stack Overflow suggests](https://stackoverflow.com/a/8131056/949890) larger offsets can happen
     pub offset: Option<i32>,
 }
 
@@ -285,8 +287,10 @@ impl DateTime {
                 }
 
                 let offset_val = sign * (h1 * 36000 + h2 * 3600 + minute_seconds);
-                // https://stackoverflow.com/a/8131056/949890
-                if offset_val.abs() > 30 * 3600 {
+                // To match python, error:
+                // ValueError: offset must be a timedelta strictly between -timedelta(hours=24) and timedelta(hours=24)
+                // Note: SO suggests large offsets can be allowed https://stackoverflow.com/a/8131056/949890
+                if offset_val.abs() >= 24 * 3600 {
                     return Err(ParseError::OutOfRangeTz);
                 }
                 offset = Some(offset_val);
