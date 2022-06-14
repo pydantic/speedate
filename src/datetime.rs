@@ -287,9 +287,7 @@ impl DateTime {
                 }
 
                 let offset_val = sign * (h1 * 36000 + h2 * 3600 + minute_seconds);
-                // To match python, error:
-                // ValueError: offset must be a timedelta strictly between -timedelta(hours=24) and timedelta(hours=24)
-                // Note: SO suggests large offsets can be allowed https://stackoverflow.com/a/8131056/949890
+                // TZ must be less than 24 hours to match python
                 if offset_val.abs() >= 24 * 3600 {
                     return Err(ParseError::OutOfRangeTz);
                 }
