@@ -94,6 +94,9 @@ impl fmt::Display for Duration {
     }
 }
 
+// so that after multiplying by 10 and adding the current digit, the value cannot overflow
+const U64_LIMIT: u64 = u64::MAX;
+
 impl Duration {
     /// Create a duration from raw values.
     ///
@@ -410,6 +413,9 @@ impl Duration {
                 Some(c) if (b'0'..=b'9').contains(c) => {
                     value *= 10;
                     value += (c - b'0') as u64;
+                    if value >= U64_LIMIT {
+                        return Err(ParseError::DurationInvalidNumber)
+                    }
                     position += 1;
                 }
                 _ => return Ok((value, position)),

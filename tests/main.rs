@@ -897,4 +897,16 @@ param_tests! {
     duration_days_time_too_shoert: err => "1 day 00:", TooShort;
     duration_days_time_wrong: err => "1 day 00:xx", InvalidCharMinute;
     duration_days_time_extra: err => "1 day 00:00:00.123 ", ExtraCharacters;
+    duration_overflow: err => "18446744073709551616 day 12:00", DurationInvalidNumber;
+}
+
+#[test]
+fn duration_large() {
+    let d = Duration::parse_str(&format!("{} day 00:00", u64::MAX - 1)).unwrap();
+    assert_eq!(d.to_string(), "P50539024859478223Y219D");
+
+    match Duration::parse_str(&format!("{} day 00:00", u64::MAX)) {
+        Ok(dur_string) => panic!("unexpected ok: {:?}", dur_string),
+        Err(e) => assert_eq!(e, ParseError::DurationInvalidNumber),
+    }
 }
