@@ -275,9 +275,8 @@ impl Duration {
                             let extra_seconds = fraction * mult as f64;
                             let extra_full_seconds = extra_seconds.trunc();
                             second = checked!(second + extra_full_seconds as u32);
-                            microsecond = checked!(
-                                microsecond + ((extra_seconds - extra_full_seconds) * 1_000_000.0).round() as u32
-                            );
+                            let micro_extra = ((extra_seconds - extra_full_seconds) * 1_000_000.0).round() as u32;
+                            microsecond = checked!(microsecond + micro_extra);
                         }
                     } else {
                         let mult: u64 = match bytes.get(position).copied() {
