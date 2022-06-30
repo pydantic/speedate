@@ -121,6 +121,8 @@ pub enum ParseError {
     DurationInvalidDateUnit,
     /// "day" identifier in duration not correctly formatted
     DurationInvalidDays,
+    /// a numeric value in the duration is too large
+    DurationValueTooLarge,
     /// dates before 1600 are not supported as unix timestamps
     DateTooSmall,
     /// dates after 9999 are not supported as unix timestamps

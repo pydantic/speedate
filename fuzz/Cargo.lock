@@ -107,7 +107,7 @@ checksum = "f2cc38e8fa666e2de3c4aba7edeb5ffc5246c1c2ed0e3d17e560aeeba736b23f"
 
 [[package]]
 name = "speedate"
-version = "0.3.0"
+version = "0.4.1"
 dependencies = [
  "strum",
  "strum_macros",
