@@ -112,7 +112,7 @@ impl Duration {
     /// * `second` - the number of seconds in the `Duration`
     /// * `microsecond` - the number of microseconds in the `Duration`
     ///
-    /// `second` and `microsecond` are normalised to be in the ranges 0 to 59 and 0 to 999999
+    /// `second` and `microsecond` are normalised to be in the ranges 0 to `86_400` and 0 to `999_999`
     /// respectively.
     ///
     /// # Examples
@@ -120,7 +120,7 @@ impl Duration {
     /// ```
     /// use speedate::Duration;
     ///
-    /// let d = Duration::new(false, 1, 86500, 1_000_123);
+    /// let d = Duration::new(false, 1, 86500, 1_000_123).unwrap();
     /// assert_eq!(
     ///     d,
     ///     Duration {
@@ -131,15 +131,15 @@ impl Duration {
     ///     }
     /// );
     /// ```
-    pub fn new(positive: bool, day: u64, second: u32, microsecond: u32) -> Self {
+    pub fn new(positive: bool, day: u64, second: u32, microsecond: u32) -> Result<Self, ParseError> {
         let mut d = Self {
             positive,
             day,
             second,
             microsecond,
         };
-        d.normalize();
-        d
+        d.normalize()?;
+        Ok(d)
     }
 
     /// Parse a duration from a string
@@ -224,19 +224,26 @@ impl Duration {
         }?;
         d.positive = positive;
 
-        d.normalize();
+        d.normalize()?;
         Ok(d)
     }
 
-    fn normalize(&mut self) {
+    fn normalize(&mut self) -> Result<(), ParseError> {
         if self.microsecond >= 1_000_000 {
-            self.second += self.microsecond / 1_000_000;
+            self.second = self
+                .second
+                .checked_add(self.microsecond / 1_000_000)
+                .ok_or(ParseError::DurationValueTooLarge)?;
             self.microsecond %= 1_000_000;
         }
         if self.second >= 86_400 {
-            self.day += self.second as u64 / 86_400;
+            self.day = self
+                .day
+                .checked_add(self.second as u64 / 86_400)
+                .ok_or(ParseError::DurationValueTooLarge)?;
             self.second %= 86_400;
         }
+        Ok(())
     }
 
     fn parse_iso_duration(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
