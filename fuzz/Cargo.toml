@@ -28,3 +28,9 @@ name = "datetime_parse_bytes"
 path = "fuzz_targets/datetime_parse_bytes.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "duration_parse_bytes"
+path = "fuzz_targets/duration_parse_bytes.rs"
+test = false
+doc = false

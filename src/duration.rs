@@ -94,6 +94,15 @@ impl fmt::Display for Duration {
     }
 }
 
+macro_rules! checked {
+    ($a:ident + $b:expr) => {
+        $a.checked_add($b).ok_or(ParseError::DurationValueTooLarge)?
+    };
+    ($a:ident * $b:expr) => {
+        $a.checked_mul($b).ok_or(ParseError::DurationValueTooLarge)?
+    };
+}
+
 impl Duration {
     /// Create a duration from raw values.
     ///
@@ -103,7 +112,7 @@ impl Duration {
     /// * `second` - the number of seconds in the `Duration`
     /// * `microsecond` - the number of microseconds in the `Duration`
     ///
-    /// `second` and `microsecond` are normalised to be in the ranges 0 to 59 and 0 to 999999
+    /// `second` and `microsecond` are normalised to be in the ranges 0 to `86_400` and 0 to `999_999`
     /// respectively.
     ///
     /// # Examples
@@ -111,7 +120,7 @@ impl Duration {
     /// ```
     /// use speedate::Duration;
     ///
-    /// let d = Duration::new(false, 1, 86500, 1_000_123);
+    /// let d = Duration::new(false, 1, 86500, 1_000_123).unwrap();
     /// assert_eq!(
     ///     d,
     ///     Duration {
@@ -122,15 +131,15 @@ impl Duration {
     ///     }
     /// );
     /// ```
-    pub fn new(positive: bool, day: u64, second: u32, microsecond: u32) -> Self {
+    pub fn new(positive: bool, day: u64, second: u32, microsecond: u32) -> Result<Self, ParseError> {
         let mut d = Self {
             positive,
             day,
             second,
             microsecond,
         };
-        d.normalize();
-        d
+        d.normalize()?;
+        Ok(d)
     }
 
     /// Parse a duration from a string
@@ -215,19 +224,26 @@ impl Duration {
         }?;
         d.positive = positive;
 
-        d.normalize();
+        d.normalize()?;
         Ok(d)
     }
 
-    fn normalize(&mut self) {
+    fn normalize(&mut self) -> Result<(), ParseError> {
         if self.microsecond >= 1_000_000 {
-            self.second += self.microsecond / 1_000_000;
+            self.second = self
+                .second
+                .checked_add(self.microsecond / 1_000_000)
+                .ok_or(ParseError::DurationValueTooLarge)?;
             self.microsecond %= 1_000_000;
         }
         if self.second >= 86_400 {
-            self.day += self.second as u64 / 86_400;
+            self.day = self
+                .day
+                .checked_add(self.second as u64 / 86_400)
+                .ok_or(ParseError::DurationValueTooLarge)?;
             self.second %= 86_400;
         }
+        Ok(())
     }
 
     fn parse_iso_duration(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
@@ -261,12 +277,13 @@ impl Duration {
                             Some(b'S') => 1,
                             _ => return Err(ParseError::DurationInvalidTimeUnit),
                         };
-                        second += value as u32 * mult;
+                        second = checked!(second + checked!(mult * value as u32));
                         if let Some(fraction) = op_fraction {
                             let extra_seconds = fraction * mult as f64;
                             let extra_full_seconds = extra_seconds.trunc();
-                            second += extra_full_seconds as u32;
-                            microsecond += ((extra_seconds - extra_full_seconds) * 1_000_000.0).round() as u32;
+                            second = checked!(second + extra_full_seconds as u32);
+                            let micro_extra = ((extra_seconds - extra_full_seconds) * 1_000_000.0).round() as u32;
+                            microsecond = checked!(microsecond + micro_extra);
                         }
                     } else {
                         let mult: u64 = match bytes.get(position).copied() {
@@ -276,14 +293,14 @@ impl Duration {
                             Some(b'D') => 1,
                             _ => return Err(ParseError::DurationInvalidDateUnit),
                         };
-                        day += value * mult;
+                        day = checked!(day + checked!(value * mult));
                         if let Some(fraction) = op_fraction {
                             let extra_days = fraction * mult as f64;
                             let extra_full_days = extra_days.trunc();
-                            day += extra_full_days as u64;
+                            day = checked!(day + extra_full_days as u64);
                             let extra_seconds = (extra_days - extra_full_days) * 86_400.0;
                             let extra_full_seconds = extra_seconds.trunc();
-                            second += extra_full_seconds as u32;
+                            second = checked!(second + extra_full_seconds as u32);
                             microsecond += ((extra_seconds - extra_full_seconds) * 1_000_000.0).round() as u32;
                         }
                     }
@@ -408,8 +425,8 @@ impl Duration {
         loop {
             match bytes.get(position) {
                 Some(c) if (b'0'..=b'9').contains(c) => {
-                    value *= 10;
-                    value += (c - b'0') as u64;
+                    value = checked!(value * 10);
+                    value = checked!(value + (c - b'0') as u64);
                     position += 1;
                 }
                 _ => return Ok((value, position)),
