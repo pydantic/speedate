@@ -113,12 +113,12 @@ impl PartialOrd for Duration {
         match (self.positive, other.positive) {
             (true, true) => {
                 (self.day, self.second, self.microsecond).partial_cmp(&(other.day, other.second, other.microsecond))
-            },
+            }
             (true, false) => Some(Ordering::Greater),
             (false, true) => Some(Ordering::Less),
             (false, false) => {
                 (other.day, other.second, other.microsecond).partial_cmp(&(self.day, self.second, self.microsecond))
-            },
+            }
         }
     }
 }
