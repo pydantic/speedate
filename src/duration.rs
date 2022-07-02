@@ -91,8 +91,10 @@ impl PartialOrd for Duration {
     /// ```
     /// use speedate::Duration;
     ///
-    /// let d1 = Duration::parse_str("P3DT4H5M6.7S").unwrap();
-    /// let d2 = Duration::parse_str("P4DT1H").unwrap();
+    /// let duration = |s| Duration::parse_str(s).unwrap();
+    ///
+    /// let d1 = duration("P3DT4H5M6.7S");
+    /// let d2 = duration("P4DT1H");
     ///
     /// assert!(d2 > d1);
     /// ```
@@ -100,14 +102,10 @@ impl PartialOrd for Duration {
     /// `positive` is included in in comparisons, thus `+P1D` is greater than `-P2D`,
     /// similarly `-P2D` is less than `-P1D`.
     /// ```
-    /// use speedate::Duration;
-    ///
-    /// fn d(s: &str) -> Duration {
-    ///   Duration::parse_str(s).unwrap()
-    /// }
-    ///
-    /// assert!(d("+P1D") > d("-P2D"));
-    /// assert!(d("-P2D") < d("-P1D"));
+    /// # use speedate::Duration;
+    /// # let duration = |s| Duration::parse_str(s).unwrap();
+    /// assert!(duration("+P1D") > duration("-P2D"));
+    /// assert!(duration("-P2D") < duration("-P1D"));
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self.positive, other.positive) {
