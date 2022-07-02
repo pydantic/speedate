@@ -306,10 +306,10 @@ impl DateTime {
     ///
     /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
     ///
-    /// Input must be between `-11,676,096,000` (`1600-01-01T00:00:00`) and
-    /// `253,402,300,799,000` (`9999-12-31T23:59:59.999999`) inclusive.
+    /// Input must be between `-11_676_096_000` (`1600-01-01T00:00:00`) and
+    /// `253_402_300_799_000` (`9999-12-31T23:59:59.999999`) inclusive.
     ///
-    /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
+    /// If the absolute value is > 2e10 (`20_000_000_000`) it is interpreted as being in milliseconds.
     ///
     /// That means:
     /// * `20_000_000_000` is `2603-10-11T11:33:20`
