@@ -845,12 +845,7 @@ fn duration_comparison() {
 
 #[test]
 fn duration_new_err() {
-    let d = Duration::new(
-	    true,
-	    18446744073709551615,
-	    4294967295,
-	    905969663,
-	);
+    let d = Duration::new(true, 18446744073709551615, 4294967295, 905969663);
     match d {
         Ok(t) => panic!("unexpectedly valid: {:?}", t),
         Err(e) => assert_eq!(e, ParseError::DurationValueTooLarge),
