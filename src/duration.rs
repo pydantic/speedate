@@ -111,13 +111,16 @@ impl PartialOrd for Duration {
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self.positive, other.positive) {
-            (true, true) => {
-                (self.day, self.second, self.microsecond).partial_cmp(&(other.day, other.second, other.microsecond))
-            }
             (true, false) => Some(Ordering::Greater),
             (false, true) => Some(Ordering::Less),
-            (false, false) => {
-                (other.day, other.second, other.microsecond).partial_cmp(&(self.day, self.second, self.microsecond))
+            (self_positive, _) => {
+                let self_t = (self.day, self.second, self.microsecond);
+                let other_t = (other.day, other.second, other.microsecond);
+                if self_positive {
+                    self_t.partial_cmp(&other_t)
+                } else {
+                    other_t.partial_cmp(&self_t)
+                }
             }
         }
     }
