@@ -908,6 +908,7 @@ param_tests! {
     duration_days_time_extra: err => "1 day 00:00:00.123 ", ExtraCharacters;
     duration_overflow: err => "18446744073709551616 day 12:00", DurationValueTooLarge;
     duration_fuzz1: err => "P18446744073709551611DT8031M1M1M1M", DurationValueTooLarge;
+    duration_fuzz2: err => "P18446744073709550PT9970442H6R15D1D", DurationInvalidDateUnit;
 }
 
 #[test]
