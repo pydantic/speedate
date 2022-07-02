@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 
 use crate::{ParseError, Time};
@@ -40,21 +41,7 @@ use crate::{ParseError, Time};
 ///    microsecond: 400_000
 /// }
 /// ```
-///
-/// # Comparison
-///
-/// `Duration` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
-///
-/// ```
-/// use speedate::Duration;
-///
-/// let d1 = Duration::parse_str("P3DT4H5M6.7S").unwrap();
-/// let d2 = Duration::parse_str("P4DT1H").unwrap();
-///
-/// assert!(d2 > d1);
-/// ```
-/// (`positive` is included in in comparisons, thus `+P1D` is greater than `-P2D`)
-#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Duration {
     /// The positive or negative sign of the duration
     pub positive: bool,
@@ -91,6 +78,51 @@ impl fmt::Display for Duration {
             write!(f, "S")?;
         }
         Ok(())
+    }
+}
+
+impl PartialOrd for Duration {
+    /// Compare two durations by inequality.
+    ///
+    /// `Duration` supports equality (`==`, `!=`) and inequality (`>`, `<`, `>=` & `<=`) comparisons.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use speedate::Duration;
+    ///
+    /// let d1 = Duration::parse_str("P3DT4H5M6.7S").unwrap();
+    /// let d2 = Duration::parse_str("P4DT1H").unwrap();
+    ///
+    /// assert!(d2 > d1);
+    /// ```
+    ///
+    /// `positive` is included in in comparisons, thus `+P1D` is greater than `-P2D`,
+    /// similarly `-P2D` is less than `-P1D`.
+    /// ```
+    /// use speedate::Duration;
+    ///
+    /// fn d(s: &str) -> Duration {
+    ///   Duration::parse_str(s).unwrap()
+    /// }
+    ///
+    /// assert!(d("+P1D") > d("-P2D"));
+    /// assert!(d("-P2D") < d("-P1D"));
+    /// ```
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self.positive, other.positive) {
+            (true, false) => Some(Ordering::Greater),
+            (false, true) => Some(Ordering::Less),
+            (self_positive, _) => {
+                let self_t = (self.day, self.second, self.microsecond);
+                let other_t = (other.day, other.second, other.microsecond);
+                if self_positive {
+                    self_t.partial_cmp(&other_t)
+                } else {
+                    other_t.partial_cmp(&self_t)
+                }
+            }
+        }
     }
 }
 

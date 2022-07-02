@@ -49,7 +49,7 @@ impl fmt::Display for DateTime {
 impl PartialOrd for DateTime {
     /// Compare two datetimes by inequality.
     ///
-    /// `DateTime` supports equality and inequality comparisons (`>`, `<`, `>=` & `<=`).
+    /// `DateTime` supports equality (`==`, `!=`) and inequality comparisons (`>`, `<`, `>=` & `<=`).
     ///
     /// # Examples
     ///

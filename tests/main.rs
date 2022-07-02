@@ -837,10 +837,15 @@ fn duration_comparison() {
     assert!(d3 >= d4);
     assert!(d4 < d3);
     assert!(d4 <= d3);
-    // from docs: (`positive` is included in in comparisons, thus `+P1D` is greater than `-P2D`)
+    // from docs: `positive` is included in in comparisons, thus `+P1D` is greater than `-P2D`
     let d5 = Duration::parse_str("+P1D").unwrap();
     let d6 = Duration::parse_str("-P2D").unwrap();
     assert!(d5 > d6);
+
+    let d7 = Duration::new(false, 3, 0, 0).unwrap();
+    let d8 = Duration::new(false, 4, 0, 0).unwrap();
+    assert!(d7 > d8);
+    assert!(d8 < d7);
 }
 
 #[test]
