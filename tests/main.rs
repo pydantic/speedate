@@ -932,3 +932,21 @@ fn duration_large() {
         Err(e) => assert_eq!(e, ParseError::DurationValueTooLarge),
     }
 }
+
+#[test]
+fn duration_limit() {
+    let d = Duration::new(true, 999_999_999, 86399, 999_999).unwrap();
+    assert_eq!(d.to_string(), "P2739726Y9DT86399.999999S");
+
+    match Duration::new(true, 999_999_999, 86399, 999_999 + 1) {
+        Ok(t) => panic!("unexpectedly valid -> {:?}", t),
+        Err(e) => assert_eq!(e, ParseError::DurationDaysTooLarge),
+    }
+    let d = Duration::new(false, 999_999_999, 86399, 999_999).unwrap();
+    assert_eq!(d.to_string(), "-P2739726Y9DT86399.999999S");
+
+    match Duration::new(false, 999_999_999, 86399, 999_999 + 1) {
+        Ok(t) => panic!("unexpectedly valid -> {:?}", t),
+        Err(e) => assert_eq!(e, ParseError::DurationDaysTooLarge),
+    }
+}

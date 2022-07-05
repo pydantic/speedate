@@ -138,12 +138,15 @@ impl Duration {
     ///
     /// # Arguments
     /// * `positive` - the positive or negative sign of the duration
-    /// * `day` - the number of days in the `Duration`
+    /// * `day` - the number of days in the `Duration`, max allowed value is `999_999_999` to match python's `timedelta`
     /// * `second` - the number of seconds in the `Duration`
     /// * `microsecond` - the number of microseconds in the `Duration`
     ///
     /// `second` and `microsecond` are normalised to be in the ranges 0 to `86_400` and 0 to `999_999`
     /// respectively.
+    ///
+    /// Due to the limit on days, the maximum duration which can be represented is `P2739726Y9DT86399.999999S`,
+    /// that is 1 microsecond short of 2,739,726 years and 10 days, positive or negative.
     ///
     /// # Examples
     ///
