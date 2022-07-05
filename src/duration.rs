@@ -46,7 +46,7 @@ pub struct Duration {
     /// The positive or negative sign of the duration
     pub positive: bool,
     /// The number of days
-    pub day: u64,
+    pub day: u32,
     /// The number of seconds, range 0 to 86399
     pub second: u32,
     /// The number of microseconds, range 0 to 999999
@@ -161,7 +161,7 @@ impl Duration {
     ///     }
     /// );
     /// ```
-    pub fn new(positive: bool, day: u64, second: u32, microsecond: u32) -> Result<Self, ParseError> {
+    pub fn new(positive: bool, day: u32, second: u32, microsecond: u32) -> Result<Self, ParseError> {
         let mut d = Self {
             positive,
             day,
@@ -198,20 +198,6 @@ impl Duration {
     #[inline]
     pub fn parse_str(str: &str) -> Result<Self, ParseError> {
         Self::parse_bytes(str.as_bytes())
-    }
-
-    /// Total number of seconds in the duration (days + seconds) with sign based on `self.positive`
-    #[inline]
-    pub fn signed_total_seconds(&self) -> i64 {
-        let sign = if self.positive { 1 } else { -1 };
-        sign * (self.day as i64 * 86400 + self.second as i64)
-    }
-
-    /// Microseconds in the duration with sign based on `self.positive`
-    #[inline]
-    pub fn signed_microseconds(&self) -> i32 {
-        let sign = if self.positive { 1 } else { -1 };
-        sign * self.microsecond as i32
     }
 
     /// Parse a duration from bytes
@@ -258,6 +244,20 @@ impl Duration {
         Ok(d)
     }
 
+    /// Total number of seconds in the duration (days + seconds) with sign based on `self.positive`
+    #[inline]
+    pub fn signed_total_seconds(&self) -> i64 {
+        let sign = if self.positive { 1 } else { -1 };
+        sign * (self.day as i64 * 86400 + self.second as i64)
+    }
+
+    /// Microseconds in the duration with sign based on `self.positive`
+    #[inline]
+    pub fn signed_microseconds(&self) -> i32 {
+        let sign = if self.positive { 1 } else { -1 };
+        sign * self.microsecond as i32
+    }
+
     fn normalize(&mut self) -> Result<(), ParseError> {
         if self.microsecond >= 1_000_000 {
             self.second = self
@@ -269,18 +269,22 @@ impl Duration {
         if self.second >= 86_400 {
             self.day = self
                 .day
-                .checked_add(self.second as u64 / 86_400)
+                .checked_add(self.second as u32 / 86_400)
                 .ok_or(ParseError::DurationValueTooLarge)?;
             self.second %= 86_400;
         }
-        Ok(())
+        if self.day > 999_999_999 {
+            Err(ParseError::DurationDaysTooLarge)
+        } else {
+            Ok(())
+        }
     }
 
     fn parse_iso_duration(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
         let mut got_t = false;
         let mut last_had_fraction = false;
         let mut position: usize = offset;
-        let mut day: u64 = 0;
+        let mut day: u32 = 0;
         let mut second: u32 = 0;
         let mut microsecond: u32 = 0;
         loop {
@@ -316,7 +320,7 @@ impl Duration {
                             microsecond = checked!(microsecond + micro_extra);
                         }
                     } else {
-                        let mult: u64 = match bytes.get(position).copied() {
+                        let mult: u32 = match bytes.get(position).copied() {
                             Some(b'Y') => 365,
                             Some(b'M') => 30,
                             Some(b'W') => 7,
@@ -327,7 +331,7 @@ impl Duration {
                         if let Some(fraction) = op_fraction {
                             let extra_days = fraction * mult as f64;
                             let extra_full_days = extra_days.trunc();
-                            day = checked!(day + extra_full_days as u64);
+                            day = checked!(day + extra_full_days as u32);
                             let extra_seconds = (extra_days - extra_full_days) * 86_400.0;
                             let extra_full_seconds = extra_seconds.trunc();
                             second = checked!(second + extra_full_seconds as u32);
@@ -446,9 +450,9 @@ impl Duration {
         })
     }
 
-    fn parse_number(bytes: &[u8], d1: u8, offset: usize) -> Result<(u64, usize), ParseError> {
+    fn parse_number(bytes: &[u8], d1: u8, offset: usize) -> Result<(u32, usize), ParseError> {
         let mut value = match d1 {
-            c if (b'0'..=b'9').contains(&d1) => (c - b'0') as u64,
+            c if (b'0'..=b'9').contains(&d1) => (c - b'0') as u32,
             _ => return Err(ParseError::DurationInvalidNumber),
         };
         let mut position = offset + 1;
@@ -456,7 +460,7 @@ impl Duration {
             match bytes.get(position) {
                 Some(c) if (b'0'..=b'9').contains(c) => {
                     value = checked!(value * 10);
-                    value = checked!(value + (c - b'0') as u64);
+                    value = checked!(value + (c - b'0') as u32);
                     position += 1;
                 }
                 _ => return Ok((value, position)),
@@ -464,7 +468,7 @@ impl Duration {
         }
     }
 
-    fn parse_number_frac(bytes: &[u8], d1: u8, offset: usize) -> Result<(u64, Option<f64>, usize), ParseError> {
+    fn parse_number_frac(bytes: &[u8], d1: u8, offset: usize) -> Result<(u32, Option<f64>, usize), ParseError> {
         let (value, offset) = Self::parse_number(bytes, d1, offset)?;
         let mut position = offset;
         let next_char = bytes.get(position).copied();

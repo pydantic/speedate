@@ -850,10 +850,15 @@ fn duration_comparison() {
 
 #[test]
 fn duration_new_err() {
-    let d = Duration::new(true, 18446744073709551615, 4294967295, 905969663);
+    let d = Duration::new(true, u32::MAX, 4294967295, 905969663);
     match d {
         Ok(t) => panic!("unexpectedly valid: {:?}", t),
         Err(e) => assert_eq!(e, ParseError::DurationValueTooLarge),
+    }
+    let d = Duration::new(true, u32::MAX, 0, 0);
+    match d {
+        Ok(t) => panic!("unexpectedly valid: {:?}", t),
+        Err(e) => assert_eq!(e, ParseError::DurationDaysTooLarge),
     }
 }
 
@@ -913,13 +918,13 @@ param_tests! {
     duration_days_time_extra: err => "1 day 00:00:00.123 ", ExtraCharacters;
     duration_overflow: err => "18446744073709551616 day 12:00", DurationValueTooLarge;
     duration_fuzz1: err => "P18446744073709551611DT8031M1M1M1M", DurationValueTooLarge;
-    duration_fuzz2: err => "P18446744073709550PT9970442H6R15D1D", DurationInvalidDateUnit;
+    duration_fuzz2: err => "P18446744073709550PT9970442H6R15D1D", DurationValueTooLarge;
 }
 
 #[test]
 fn duration_large() {
-    let d = Duration::parse_str(&format!("{} day 00:00", u64::MAX)).unwrap();
-    assert_eq!(d.to_string(), "P50539024859478223Y220D");
+    let d = Duration::parse_str("999999999 day 00:00").unwrap();
+    assert_eq!(d.to_string(), "P2739726Y9D");
 
     let input = format!("{}1 day 00:00", u64::MAX);
     match Duration::parse_str(&input) {
