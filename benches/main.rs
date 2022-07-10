@@ -201,3 +201,50 @@ fn x_combined(bench: &mut Bencher) {
         black_box(Time::parse_str(&t4).unwrap());
     })
 }
+
+
+#[bench]
+fn bench_format_date(bench: &mut Bencher) {
+    let date = Date{
+        year: 2022,
+        month: 7,
+        day: 10
+    };
+    bench.iter(|| {
+        date.to_string();
+    })
+}
+
+#[bench]
+fn bench_format_time(bench: &mut Bencher) {
+    let time = Time{
+        hour: 10,
+        minute: 11,
+        second: 12,
+        microsecond: 11
+    };
+    bench.iter(|| {
+        time.to_string();
+    })
+}
+
+#[bench]
+fn bench_format_date_time(bench: &mut Bencher) {
+    let date = DateTime{
+        date: Date {
+            year: 2022,
+            month: 7,
+            day: 10
+        },
+        time: Time {
+            hour: 0,
+            minute: 0,
+            second: 0,
+            microsecond: 0
+        },
+        offset: Some(60)
+    };
+    bench.iter(|| {
+        date.to_string();
+    })
+}

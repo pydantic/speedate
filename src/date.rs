@@ -33,7 +33,23 @@ pub struct Date {
 
 impl fmt::Display for Date {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:04}-{:02}-{:02}", self.year, self.month, self.day)
+        // write!(f, "{:04}-{:02}-{:02}", self.year, self.month, self.day)
+
+        // use this impl 154 ns/iter (+/- 2) to 49 ns/iter (+/- 0)
+        let mut buf: [u8; 10] = *b"0000-00-00";
+
+        buf[0] = b'0' + (self.year / 1000) as u8;
+        buf[1] = b'0' + (self.year / 100 % 10) as u8;
+        buf[2] = b'0' + (self.year / 10 % 10) as u8;
+        buf[3] = b'0' + (self.year % 10) as u8;
+
+
+        buf[5] = b'0' + (self.month / 10) as u8;
+        buf[6] = b'0' + (self.month % 10) as u8;
+
+        buf[8] = b'0' + (self.day / 10) as u8;
+        buf[9] = b'0' + (self.day % 10) as u8;
+        f.write_str(std::str::from_utf8(&buf[..]).unwrap())
     }
 }
 
