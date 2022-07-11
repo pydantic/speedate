@@ -59,7 +59,7 @@ impl fmt::Display for Time {
             buf[12] = b'0' + (self.microsecond / 100 % 10) as u8;
             buf[13] = b'0' + (self.microsecond / 10 % 10) as u8;
             buf[14] = b'0' + (self.microsecond % 10) as u8;
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap())
+            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches("0"))
         } else {
             let mut buf: [u8; 8] = *b"00:00:00";
             buf[0] = b'0' + (self.hour / 10) as u8;

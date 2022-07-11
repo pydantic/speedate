@@ -57,7 +57,7 @@ impl fmt::Display for DateTime {
             buf[23] = b'0' + (self.time.microsecond / 100 % 10) as u8;
             buf[24] = b'0' + (self.time.microsecond / 10 % 10) as u8;
             buf[25] = b'0' + (self.time.microsecond % 10) as u8;
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
+            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches("0"))?;
         } else {
             let mut buf: [u8; 19] = *b"0000-00-00T00:00:00";
             buf[0] = b'0' + (self.date.year / 1000) as u8;
@@ -84,9 +84,13 @@ impl fmt::Display for DateTime {
                 // write!(f, "{:03}:{:02}", mins / 60, (mins % 60).abs())?; //+00:01
                 //this change 105 ns/iter (+/- 1) to 63 ns/iter (+/- 0)
                 let mins = offset / 60;
-                let min = mins / 60;
+                let mut min = mins / 60;
                 let sec = (mins % 60).abs();
                 let mut buf: [u8; 6] = *b"+00:00";
+                if min < 0 {
+                    buf[0] = b'-';
+                    min = min.abs();
+                }
                 buf[1] = b'0' + (min / 10 % 10) as u8;
                 buf[2] = b'0' + (min % 10) as u8;
                 buf[4] = b'0' + (sec / 10 % 10) as u8;
