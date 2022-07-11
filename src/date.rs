@@ -43,7 +43,6 @@ impl fmt::Display for Date {
         buf[2] = b'0' + (self.year / 10 % 10) as u8;
         buf[3] = b'0' + (self.year % 10) as u8;
 
-
         buf[5] = b'0' + (self.month / 10) as u8;
         buf[6] = b'0' + (self.month % 10) as u8;
 

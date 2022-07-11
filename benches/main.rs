@@ -202,13 +202,12 @@ fn x_combined(bench: &mut Bencher) {
     })
 }
 
-
 #[bench]
 fn bench_format_date(bench: &mut Bencher) {
-    let date = black_box(Date{
+    let date = black_box(Date {
         year: 2022,
         month: 7,
-        day: 10
+        day: 10,
     });
     bench.iter(|| {
         black_box(date.to_string());
@@ -217,11 +216,11 @@ fn bench_format_date(bench: &mut Bencher) {
 
 #[bench]
 fn bench_format_time(bench: &mut Bencher) {
-    let time = black_box(Time{
+    let time = black_box(Time {
         hour: 10,
         minute: 11,
         second: 12,
-        microsecond: 11
+        microsecond: 11,
     });
     bench.iter(|| {
         black_box(time.to_string());
@@ -230,19 +229,19 @@ fn bench_format_time(bench: &mut Bencher) {
 
 #[bench]
 fn bench_format_date_time(bench: &mut Bencher) {
-    let date = black_box(DateTime{
+    let date = black_box(DateTime {
         date: Date {
             year: 2022,
             month: 7,
-            day: 10
+            day: 10,
         },
         time: Time {
             hour: 0,
             minute: 0,
             second: 0,
-            microsecond: 0
+            microsecond: 0,
         },
-        offset: Some(60)
+        offset: Some(60),
     });
     bench.iter(|| {
         black_box(date.to_string());

@@ -1,6 +1,6 @@
+use crate::{get_digit, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
-use crate::{get_digit, Date, ParseError, Time};
 
 /// A DateTime
 ///
