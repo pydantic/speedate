@@ -215,7 +215,7 @@ fn format_date(bench: &mut Bencher) {
 }
 
 #[bench]
-fn bench_format_time(bench: &mut Bencher) {
+fn format_time(bench: &mut Bencher) {
     let time = black_box(Time {
         hour: 10,
         minute: 11,
