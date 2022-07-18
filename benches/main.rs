@@ -228,7 +228,7 @@ fn format_time(bench: &mut Bencher) {
 }
 
 #[bench]
-fn bench_format_date_time(bench: &mut Bencher) {
+fn format_date_time(bench: &mut Bencher) {
     let date = black_box(DateTime {
         date: Date {
             year: 2022,
