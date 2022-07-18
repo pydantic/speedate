@@ -40,29 +40,16 @@ impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.microsecond != 0 {
             let mut buf: [u8; 15] = *b"00:00:00.000000";
-            buf[0] = b'0' + (self.hour / 10) as u8;
-            buf[1] = b'0' + (self.hour % 10) as u8;
-            buf[3] = b'0' + (self.minute / 10) as u8;
-            buf[4] = b'0' + (self.minute % 10) as u8;
-            buf[6] = b'0' + (self.second / 10) as u8;
-            buf[7] = b'0' + (self.second % 10) as u8;
-
-            buf[8] = b'.';
-            buf[9] = b'0' + (self.microsecond / 100000 % 10) as u8;
-            buf[10] = b'0' + (self.microsecond / 10000 % 10) as u8;
-            buf[11] = b'0' + (self.microsecond / 1000 % 10) as u8;
-            buf[12] = b'0' + (self.microsecond / 100 % 10) as u8;
-            buf[13] = b'0' + (self.microsecond / 10 % 10) as u8;
-            buf[14] = b'0' + (self.microsecond % 10) as u8;
+            crate::display_num_buf(2, 0, self.hour as u32, &mut buf);
+            crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
+            crate::display_num_buf(2, 6, self.second as u32, &mut buf);
+            crate::display_num_buf(6, 9, self.microsecond, &mut buf);
             f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches("0"))
         } else {
             let mut buf: [u8; 8] = *b"00:00:00";
-            buf[0] = b'0' + (self.hour / 10) as u8;
-            buf[1] = b'0' + (self.hour % 10) as u8;
-            buf[3] = b'0' + (self.minute / 10) as u8;
-            buf[4] = b'0' + (self.minute % 10) as u8;
-            buf[6] = b'0' + (self.second / 10) as u8;
-            buf[7] = b'0' + (self.second % 10) as u8;
+            crate::display_num_buf(2, 0, self.hour as u32, &mut buf);
+            crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
+            crate::display_num_buf(2, 6, self.second as u32, &mut buf);
             f.write_str(std::str::from_utf8(&buf[..]).unwrap())
         }
     }

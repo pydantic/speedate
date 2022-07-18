@@ -30,48 +30,27 @@ pub struct DateTime {
     pub offset: Option<i32>,
 }
 
+
 impl fmt::Display for DateTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.time.microsecond != 0 {
             let mut buf: [u8; 26] = *b"0000-00-00T00:00:00.000000";
-            buf[0] = b'0' + (self.date.year / 1000) as u8;
-            buf[1] = b'0' + (self.date.year / 100 % 10) as u8;
-            buf[2] = b'0' + (self.date.year / 10 % 10) as u8;
-            buf[3] = b'0' + (self.date.year % 10) as u8;
-            buf[5] = b'0' + (self.date.month / 10) as u8;
-            buf[6] = b'0' + (self.date.month % 10) as u8;
-            buf[8] = b'0' + (self.date.day / 10) as u8;
-            buf[9] = b'0' + (self.date.day % 10) as u8;
-            buf[11] = b'0' + (self.time.hour / 10) as u8;
-            buf[12] = b'0' + (self.time.hour % 10) as u8;
-            buf[14] = b'0' + (self.time.minute / 10) as u8;
-            buf[15] = b'0' + (self.time.minute % 10) as u8;
-            buf[17] = b'0' + (self.time.second / 10) as u8;
-            buf[18] = b'0' + (self.time.second % 10) as u8;
-            buf[19] = b'.';
-            buf[20] = b'0' + (self.time.microsecond / 100000 % 10) as u8;
-            buf[21] = b'0' + (self.time.microsecond / 10000 % 10) as u8;
-            buf[22] = b'0' + (self.time.microsecond / 1000 % 10) as u8;
-            buf[23] = b'0' + (self.time.microsecond / 100 % 10) as u8;
-            buf[24] = b'0' + (self.time.microsecond / 10 % 10) as u8;
-            buf[25] = b'0' + (self.time.microsecond % 10) as u8;
+            crate::display_num_buf(4, 0, self.date.year as u32, &mut buf);
+            crate::display_num_buf(2, 5, self.date.month as u32, &mut buf);
+            crate::display_num_buf(2, 8, self.date.day as u32, &mut buf);
+            crate::display_num_buf(2, 11, self.time.hour as u32, &mut buf);
+            crate::display_num_buf(2, 14, self.time.minute as u32, &mut buf);
+            crate::display_num_buf(2, 17, self.time.second as u32, &mut buf);
+            crate::display_num_buf(6, 20, self.time.microsecond, &mut buf);
             f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches("0"))?;
         } else {
             let mut buf: [u8; 19] = *b"0000-00-00T00:00:00";
-            buf[0] = b'0' + (self.date.year / 1000) as u8;
-            buf[1] = b'0' + (self.date.year / 100 % 10) as u8;
-            buf[2] = b'0' + (self.date.year / 10 % 10) as u8;
-            buf[3] = b'0' + (self.date.year % 10) as u8;
-            buf[5] = b'0' + (self.date.month / 10) as u8;
-            buf[6] = b'0' + (self.date.month % 10) as u8;
-            buf[8] = b'0' + (self.date.day / 10) as u8;
-            buf[9] = b'0' + (self.date.day % 10) as u8;
-            buf[11] = b'0' + (self.time.hour / 10) as u8;
-            buf[12] = b'0' + (self.time.hour % 10) as u8;
-            buf[14] = b'0' + (self.time.minute / 10) as u8;
-            buf[15] = b'0' + (self.time.minute % 10) as u8;
-            buf[17] = b'0' + (self.time.second / 10) as u8;
-            buf[18] = b'0' + (self.time.second % 10) as u8;
+            crate::display_num_buf(4, 0, self.date.year as u32, &mut buf);
+            crate::display_num_buf(2, 5, self.date.month as u32, &mut buf);
+            crate::display_num_buf(2, 8, self.date.day as u32, &mut buf);
+            crate::display_num_buf(2, 11, self.time.hour as u32, &mut buf);
+            crate::display_num_buf(2, 14, self.time.minute as u32, &mut buf);
+            crate::display_num_buf(2, 17, self.time.second as u32, &mut buf);
             f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
         }
         if let Some(offset) = self.offset {
@@ -86,10 +65,8 @@ impl fmt::Display for DateTime {
                     buf[0] = b'-';
                     min = min.abs();
                 }
-                buf[1] = b'0' + (min / 10 % 10) as u8;
-                buf[2] = b'0' + (min % 10) as u8;
-                buf[4] = b'0' + (sec / 10 % 10) as u8;
-                buf[5] = b'0' + (sec % 10) as u8;
+                crate::display_num_buf(2, 1, min as u32, &mut buf);
+                crate::display_num_buf(2, 4, sec as u32, &mut buf);
                 f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
             }
         }
