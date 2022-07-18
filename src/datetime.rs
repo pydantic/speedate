@@ -30,7 +30,6 @@ pub struct DateTime {
     pub offset: Option<i32>,
 }
 
-
 impl fmt::Display for DateTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.time.microsecond != 0 {
