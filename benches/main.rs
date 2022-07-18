@@ -203,7 +203,7 @@ fn x_combined(bench: &mut Bencher) {
 }
 
 #[bench]
-fn bench_format_date(bench: &mut Bencher) {
+fn format_date(bench: &mut Bencher) {
     let date = black_box(Date {
         year: 2022,
         month: 7,
