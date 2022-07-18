@@ -32,8 +32,6 @@ pub struct DateTime {
 
 impl fmt::Display for DateTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        //write!(f, "{}T{}", self.date, self.time)?;
-        //this change 129ns/iter => 52ns/iter
         if self.time.microsecond != 0 {
             let mut buf: [u8; 26] = *b"0000-00-00T00:00:00.000000";
             buf[0] = b'0' + (self.date.year / 1000) as u8;
@@ -80,9 +78,6 @@ impl fmt::Display for DateTime {
             if offset == 0 {
                 write!(f, "Z")?;
             } else {
-                // let mins = offset / 60;
-                // write!(f, "{:03}:{:02}", mins / 60, (mins % 60).abs())?; //+00:01
-                //this change 105 ns/iter (+/- 1) to 63 ns/iter (+/- 0)
                 let mins = offset / 60;
                 let mut min = mins / 60;
                 let sec = (mins % 60).abs();

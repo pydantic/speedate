@@ -38,11 +38,6 @@ pub struct Time {
 
 impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // write!(f, "{:02}:{:02}:{:02}", self.hour, self.minute, self.second)?;
-        // if self.microsecond != 0 {
-        //     let s = format!("{:06}", self.microsecond);
-        //     write!(f, ".{}", s.trim_end_matches('0'))?;
-        // }
         if self.microsecond != 0 {
             let mut buf: [u8; 15] = *b"00:00:00.000000";
             buf[0] = b'0' + (self.hour / 10) as u8;
