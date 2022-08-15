@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
 use speedate::{Date, DateTime, Duration, ParseError, Time};
@@ -391,6 +391,60 @@ fn datetime_watershed() {
     }
     let dt = DateTime::from_timestamp(-20_000_000_001, 0).unwrap();
     assert_eq!(dt.to_string(), "1969-05-14T12:26:39.999");
+}
+
+#[test]
+fn datetime_now() {
+    let speedate_now = DateTime::now();
+    let chrono_now = ChronoUtc::now();
+    let diff = speedate_now.timestamp() as f64 - chrono_now.timestamp() as f64;
+    assert!(diff.abs() < 0.1);
+}
+
+#[test]
+fn datetime_with_tz_offset() {
+    let dt_z = DateTime::parse_str("2022-01-01T12:13:14+00:00").unwrap();
+
+    let dt_m8 = dt_z.with_timezone_offset(Some(-8 * 3600)).unwrap();
+    assert_eq!(dt_m8.to_string(), "2022-01-01T12:13:14-08:00");
+
+    let dt_naive = dt_z.with_timezone_offset(None).unwrap();
+    assert_eq!(dt_naive.to_string(), "2022-01-01T12:13:14");
+
+    let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+
+    let dt_p16 = dt_naive.with_timezone_offset(Some(16 * 3600)).unwrap();
+    assert_eq!(dt_p16.to_string(), "2000-01-01T00:00:00+16:00");
+
+    let error = match dt_naive.with_timezone_offset(Some(86_400)) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::OutOfRangeTz);
+}
+
+#[test]
+fn datetime_in_timezone() {
+    let dt_z = DateTime::parse_str("2000-01-01T15:00:00Z").unwrap();
+
+    let dt_p1 = dt_z.in_timezone(3_600).unwrap();
+    assert_eq!(dt_p1.to_string(), "2000-01-01T16:00:00+01:00");
+
+    let dt_m2 = dt_z.in_timezone(-7_200).unwrap();
+    assert_eq!(dt_m2.to_string(), "2000-01-01T13:00:00-02:00");
+
+    let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+    let error = match dt_naive.in_timezone(3_600) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::TzRequired);
+
+    let error = match dt_z.in_timezone(86_400) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::OutOfRangeTz);
 }
 
 #[test]

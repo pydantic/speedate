@@ -95,6 +95,8 @@ pub enum ParseError {
     OutOfRangeTzMinute,
     /// timezone offset must be less than 24 hours
     OutOfRangeTz,
+    /// timezone is required to adjust to a new timezone
+    TzRequired,
     /// month value is outside expected range of 1-12
     OutOfRangeMonth,
     /// day value is outside expected range
