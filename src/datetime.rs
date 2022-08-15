@@ -358,30 +358,38 @@ impl DateTime {
         })
     }
 
-    /// Create a datetime from the system time in UTC. This method uses [std::time::SystemTime] to get
-    /// the system time.
+    /// Create a datetime from the system time. This method uses [std::time::SystemTime] to get
+    /// the system time
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - timezone offset in seconds, must be less than `86_400`
     ///
     /// # Examples
     ///
     /// ```
     /// use speedate::DateTime;
     ///
-    /// let now = DateTime::now();
+    /// let now = DateTime::now(0).unwrap();
     /// println!("Current date and time: {}", now);
     /// ```
-    pub fn now() -> Self {
+    pub fn now(offset: i32) -> Result<Self, ParseError> {
         let t = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("Error getting system time");
-        let mut now = Self::from_timestamp(t.as_secs() as i64, t.subsec_micros()).expect("Error getting system time");
+            .map_err(|_| ParseError::SystemTimeError)?;
+        let mut now = Self::from_timestamp(t.as_secs() as i64, t.subsec_micros())?;
         now.offset = Some(0);
-        now
+        if offset == 0 {
+            Ok(now)
+        } else {
+            now.in_timezone(offset)
+        }
     }
 
     /// Clone the datetime and set a new timezone offset.
     ///
     /// The returned datetime will represent a different point in time since the timezone offset is changed without
-    /// modifying the date and time.
+    /// modifying the date and time. See [DateTime::in_timezone] for alternative behaviour.
     ///
     /// # Arguments
     ///
@@ -394,8 +402,7 @@ impl DateTime {
     /// ```
     /// use speedate::DateTime;
     ///
-    /// let dt = DateTime::parse_str("2022-01-01T12:13:14+00:00").unwrap();
-    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
+    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
     ///
     /// let dt2 = dt.with_timezone_offset(Some(-8 * 3600)).unwrap();
     /// assert_eq!(dt2.to_string(), "2022-01-01T12:13:14-08:00");
@@ -413,6 +420,25 @@ impl DateTime {
         })
     }
 
+    /// Create a new datetime in a different timezone with date & time adjusted to represent the same moment in time.
+    /// See [DateTime::with_timezone_offset] for alternative behaviour.
+    ///
+    /// The datetime must have a offset, otherwise an error is returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - timezone offset in seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let dt_z = DateTime::parse_str("2000-01-01T15:00:00Z").unwrap();
+    ///
+    /// let dt_utc_plus2 = dt_z.in_timezone(7200).unwrap();
+    /// assert_eq!(dt_utc_plus2.to_string(), "2000-01-01T17:00:00+02:00");
+    /// ```
     pub fn in_timezone(&self, offset: i32) -> Result<Self, ParseError> {
         if offset.abs() >= 24 * 3600 {
             Err(ParseError::OutOfRangeTz)

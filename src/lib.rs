@@ -97,6 +97,8 @@ pub enum ParseError {
     OutOfRangeTz,
     /// timezone is required to adjust to a new timezone
     TzRequired,
+    /// Error getting system time
+    SystemTimeError,
     /// month value is outside expected range of 1-12
     OutOfRangeMonth,
     /// day value is outside expected range

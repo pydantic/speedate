@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike, Utc as ChronoUtc};
+use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTime, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
 use speedate::{Date, DateTime, Duration, ParseError, Time};
@@ -251,6 +251,38 @@ date_from_timestamp! {
     2200, 1, 1;
 }
 
+#[test]
+fn date_today() {
+    let today = Date::today(0).unwrap();
+    let chrono_now = ChronoUtc::now();
+    assert_eq!(
+        today,
+        Date {
+            year: chrono_now.year() as u16,
+            month: chrono_now.month() as u8,
+            day: chrono_now.day() as u8,
+        }
+    );
+}
+
+#[test]
+fn date_today_offset() {
+    for offset in (-86399..86399).step_by(1000) {
+        let today = Date::today(offset).unwrap();
+        let chrono_now_utc = ChronoUtc::now();
+        let chrono_tz = ChronoFixedOffset::east(offset);
+        let chrono_now = chrono_now_utc.with_timezone(&chrono_tz);
+        assert_eq!(
+            today,
+            Date {
+                year: chrono_now.year() as u16,
+                month: chrono_now.month() as u8,
+                day: chrono_now.day() as u8,
+            }
+        );
+    }
+}
+
 macro_rules! time_from_timestamp {
     ($($ts_secs:literal, $ts_micro:literal => $hour:literal, $minute:literal, $second:literal, $microsecond:literal;)*) => {
         $(
@@ -395,9 +427,19 @@ fn datetime_watershed() {
 
 #[test]
 fn datetime_now() {
-    let speedate_now = DateTime::now();
+    let speedate_now = DateTime::now(0).unwrap();
     let chrono_now = ChronoUtc::now();
     let diff = speedate_now.timestamp() as f64 - chrono_now.timestamp() as f64;
+    assert!(diff.abs() < 0.1);
+}
+
+#[test]
+fn datetime_now_offset() {
+    let speedate_now = DateTime::now(3600).unwrap();
+    let chrono_now = ChronoUtc::now();
+    let diff = speedate_now.timestamp() as f64 - chrono_now.timestamp() as f64 - 3600.0;
+    assert!(diff.abs() < 0.1);
+    let diff = speedate_now.timestamp_tz() as f64 - chrono_now.timestamp() as f64;
     assert!(diff.abs() < 0.1);
 }
 
