@@ -154,11 +154,11 @@ impl Date {
         days * 86400 + UNIX_1600
     }
 
-    /// Current date. Uses [DateTime::now]
+    /// Current date. Internally, this uses [DateTime::now].
     ///
     /// # Arguments
     ///
-    /// * `offset` - timezone offset in seconds, meaning as per [DateTime], must be less than `86_400`
+    /// * `offset` - timezone offset in seconds, meaning as per [DateTime::now], must be less than `86_400`
     ///
     /// # Example
     ///

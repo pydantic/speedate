@@ -445,13 +445,13 @@ fn datetime_now_offset() {
 
 #[test]
 fn datetime_with_tz_offset() {
-    let dt_z = DateTime::parse_str("2022-01-01T12:13:14+00:00").unwrap();
+    let dt_z = DateTime::parse_str("2022-01-01T12:13:14.567+00:00").unwrap();
 
     let dt_m8 = dt_z.with_timezone_offset(Some(-8 * 3600)).unwrap();
-    assert_eq!(dt_m8.to_string(), "2022-01-01T12:13:14-08:00");
+    assert_eq!(dt_m8.to_string(), "2022-01-01T12:13:14.567-08:00");
 
     let dt_naive = dt_z.with_timezone_offset(None).unwrap();
-    assert_eq!(dt_naive.to_string(), "2022-01-01T12:13:14");
+    assert_eq!(dt_naive.to_string(), "2022-01-01T12:13:14.567");
 
     let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
 
@@ -467,13 +467,13 @@ fn datetime_with_tz_offset() {
 
 #[test]
 fn datetime_in_timezone() {
-    let dt_z = DateTime::parse_str("2000-01-01T15:00:00Z").unwrap();
+    let dt_z = DateTime::parse_str("2000-01-01T15:00:00.567Z").unwrap();
 
     let dt_p1 = dt_z.in_timezone(3_600).unwrap();
-    assert_eq!(dt_p1.to_string(), "2000-01-01T16:00:00+01:00");
+    assert_eq!(dt_p1.to_string(), "2000-01-01T16:00:00.567+01:00");
 
     let dt_m2 = dt_z.in_timezone(-7_200).unwrap();
-    assert_eq!(dt_m2.to_string(), "2000-01-01T13:00:00-02:00");
+    assert_eq!(dt_m2.to_string(), "2000-01-01T13:00:00.567-02:00");
 
     let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
     let error = match dt_naive.in_timezone(3_600) {

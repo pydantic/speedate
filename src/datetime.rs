@@ -359,7 +359,7 @@ impl DateTime {
     }
 
     /// Create a datetime from the system time. This method uses [std::time::SystemTime] to get
-    /// the system time
+    /// the system time and uses it to create a [DateTime] adjusted to the specified timezone offset.
     ///
     /// # Arguments
     ///
@@ -393,9 +393,9 @@ impl DateTime {
     ///
     /// # Arguments
     ///
-    /// * `offset` - optional timezone offset in seconds.
+    /// * `offset` - optional timezone offset in seconds, set to `None` to create a naïve datetime.
     ///
-    /// This method will return `Err(ParseError::OutOfRangeTz)` if `abs(offset)` exceeds 24 hours `86_400`.
+    /// This method will return `Err(ParseError::OutOfRangeTz)` if `abs(offset)` is not less than 24 hours `86_400`.
     ///
     /// # Examples
     ///
@@ -423,11 +423,11 @@ impl DateTime {
     /// Create a new datetime in a different timezone with date & time adjusted to represent the same moment in time.
     /// See [DateTime::with_timezone_offset] for alternative behaviour.
     ///
-    /// The datetime must have a offset, otherwise an error is returned.
+    /// The datetime must have a offset, otherwise a `ParseError::TzRequired` error is returned.
     ///
     /// # Arguments
     ///
-    /// * `offset` - timezone offset in seconds.
+    /// * `offset` - new timezone offset in seconds.
     ///
     /// # Examples
     ///
@@ -444,7 +444,7 @@ impl DateTime {
             Err(ParseError::OutOfRangeTz)
         } else if let Some(current_offset) = self.offset {
             let new_ts = self.timestamp() + (offset - current_offset) as i64;
-            let mut new_dt = Self::from_timestamp(new_ts, 0)?;
+            let mut new_dt = Self::from_timestamp(new_ts, self.time.microsecond)?;
             new_dt.offset = Some(offset);
             Ok(new_dt)
         } else {
@@ -492,10 +492,9 @@ impl DateTime {
     /// assert_eq!(dt_plus_1.timestamp_tz(), 23 * 3600);
     /// ```
     pub fn timestamp_tz(&self) -> i64 {
-        let adjustment = match self.offset {
-            Some(offset) => -offset as i64,
-            None => 0,
-        };
-        self.timestamp() + adjustment
+        match self.offset {
+            Some(offset) => self.timestamp() - (offset as i64),
+            None => self.timestamp(),
+        }
     }
 }
