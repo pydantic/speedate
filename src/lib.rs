@@ -133,17 +133,15 @@ pub enum ParseError {
     TimeTooLarge,
 }
 
-/// display time
+/// Used internally to write numbers to a buffer for `Display` of speedate types
 fn display_num_buf(num: usize, start: usize, value: u32, buf: &mut [u8]) {
     for i in 0..num {
         if (i + 1) == num {
             buf[i + start] = b'0' + (value % 10) as u8;
+        } else if num <= 2 {
+            buf[i + start] = b'0' + (value / (10i32.pow((num - 1 - i) as u32)) as u32) as u8;
         } else {
-            if num <= 2 {
-                buf[i + start] = b'0' + (value / (10i32.pow((num - 1 - i) as u32)) as u32) as u8;
-            } else {
-                buf[i + start] = b'0' + (value / (10i32.pow((num - 1 - i) as u32)) as u32 % 10) as u8;
-            }
+            buf[i + start] = b'0' + (value / (10i32.pow((num - 1 - i) as u32)) as u32 % 10) as u8;
         }
     }
 }
