@@ -1,6 +1,7 @@
 use crate::{get_digit, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
+use std::time::SystemTime;
 
 /// A DateTime
 ///
@@ -107,7 +108,7 @@ impl PartialOrd for DateTime {
     /// As if timezones weren't complicated enough, there are three extra considerations here:
     /// 1. **naïve vs. non-naïve:** We also have to consider the case where one datetime has a timezone and the other
     ///    does not (e.g. is "timezone "naïve"). When comparing naïve datetimes to non-naïve, this library
-    ///    assumes the naïve datetime has the same timezone as the non-naïve, th is is different to other
+    ///    assumes the naïve datetime has the same timezone as the non-naïve, this is different to other
     ///    implementations (e.g. python) where such comparisons fail.
     /// 2. **Direction:** As described in PostgreSQL's docs, in the POSIX Time Zone Specification
     ///    "The positive sign is used for zones west of Greenwich", which is opposite to the ISO-8601 sign convention.
@@ -384,6 +385,100 @@ impl DateTime {
         })
     }
 
+    /// Create a datetime from the system time. This method uses [std::time::SystemTime] to get
+    /// the system time and uses it to create a [DateTime] adjusted to the specified timezone offset.
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - timezone offset in seconds, must be less than `86_400`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let now = DateTime::now(0).unwrap();
+    /// println!("Current date and time: {}", now);
+    /// ```
+    pub fn now(offset: i32) -> Result<Self, ParseError> {
+        let t = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map_err(|_| ParseError::SystemTimeError)?;
+        let mut now = Self::from_timestamp(t.as_secs() as i64, t.subsec_micros())?;
+        now.offset = Some(0);
+        if offset == 0 {
+            Ok(now)
+        } else {
+            now.in_timezone(offset)
+        }
+    }
+
+    /// Clone the datetime and set a new timezone offset.
+    ///
+    /// The returned datetime will represent a different point in time since the timezone offset is changed without
+    /// modifying the date and time. See [DateTime::in_timezone] for alternative behaviour.
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - optional timezone offset in seconds, set to `None` to create a naïve datetime.
+    ///
+    /// This method will return `Err(ParseError::OutOfRangeTz)` if `abs(offset)` is not less than 24 hours `86_400`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+    ///
+    /// let dt2 = dt.with_timezone_offset(Some(-8 * 3600)).unwrap();
+    /// assert_eq!(dt2.to_string(), "2022-01-01T12:13:14-08:00");
+    /// ```
+    pub fn with_timezone_offset(&self, offset: Option<i32>) -> Result<Self, ParseError> {
+        if let Some(offset_val) = offset {
+            if offset_val.abs() >= 24 * 3600 {
+                return Err(ParseError::OutOfRangeTz);
+            }
+        }
+        Ok(Self {
+            date: self.date.clone(),
+            time: self.time.clone(),
+            offset,
+        })
+    }
+
+    /// Create a new datetime in a different timezone with date & time adjusted to represent the same moment in time.
+    /// See [DateTime::with_timezone_offset] for alternative behaviour.
+    ///
+    /// The datetime must have a offset, otherwise a `ParseError::TzRequired` error is returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - new timezone offset in seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let dt_z = DateTime::parse_str("2000-01-01T15:00:00Z").unwrap();
+    ///
+    /// let dt_utc_plus2 = dt_z.in_timezone(7200).unwrap();
+    /// assert_eq!(dt_utc_plus2.to_string(), "2000-01-01T17:00:00+02:00");
+    /// ```
+    pub fn in_timezone(&self, offset: i32) -> Result<Self, ParseError> {
+        if offset.abs() >= 24 * 3600 {
+            Err(ParseError::OutOfRangeTz)
+        } else if let Some(current_offset) = self.offset {
+            let new_ts = self.timestamp() + (offset - current_offset) as i64;
+            let mut new_dt = Self::from_timestamp(new_ts, self.time.microsecond)?;
+            new_dt.offset = Some(offset);
+            Ok(new_dt)
+        } else {
+            Err(ParseError::TzRequired)
+        }
+    }
+
     /// Unix timestamp (seconds since epoch, 1970-01-01T00:00:00) omitting timezone offset
     /// (or equivalently comparing to 1970-01-01T00:00:00 in the same timezone as self)
     ///
@@ -424,10 +519,9 @@ impl DateTime {
     /// assert_eq!(dt_plus_1.timestamp_tz(), 23 * 3600);
     /// ```
     pub fn timestamp_tz(&self) -> i64 {
-        let adjustment = match self.offset {
-            Some(offset) => -offset as i64,
-            None => 0,
-        };
-        self.timestamp() + adjustment
+        match self.offset {
+            Some(offset) => self.timestamp() - (offset as i64),
+            None => self.timestamp(),
+        }
     }
 }

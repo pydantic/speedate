@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
+use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTime, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
 use speedate::{Date, DateTime, Duration, ParseError, Time};
@@ -251,6 +251,38 @@ date_from_timestamp! {
     2200, 1, 1;
 }
 
+#[test]
+fn date_today() {
+    let today = Date::today(0).unwrap();
+    let chrono_now = ChronoUtc::now();
+    assert_eq!(
+        today,
+        Date {
+            year: chrono_now.year() as u16,
+            month: chrono_now.month() as u8,
+            day: chrono_now.day() as u8,
+        }
+    );
+}
+
+#[test]
+fn date_today_offset() {
+    for offset in (-86399..86399).step_by(1000) {
+        let today = Date::today(offset).unwrap();
+        let chrono_now_utc = ChronoUtc::now();
+        let chrono_tz = ChronoFixedOffset::east(offset);
+        let chrono_now = chrono_now_utc.with_timezone(&chrono_tz);
+        assert_eq!(
+            today,
+            Date {
+                year: chrono_now.year() as u16,
+                month: chrono_now.month() as u8,
+                day: chrono_now.day() as u8,
+            }
+        );
+    }
+}
+
 macro_rules! time_from_timestamp {
     ($($ts_secs:literal, $ts_micro:literal => $hour:literal, $minute:literal, $second:literal, $microsecond:literal;)*) => {
         $(
@@ -391,6 +423,70 @@ fn datetime_watershed() {
     }
     let dt = DateTime::from_timestamp(-20_000_000_001, 0).unwrap();
     assert_eq!(dt.to_string(), "1969-05-14T12:26:39.999");
+}
+
+#[test]
+fn datetime_now() {
+    let speedate_now = DateTime::now(0).unwrap();
+    let chrono_now = ChronoUtc::now();
+    let diff = speedate_now.timestamp() as f64 - chrono_now.timestamp() as f64;
+    assert!(diff.abs() < 0.1);
+}
+
+#[test]
+fn datetime_now_offset() {
+    let speedate_now = DateTime::now(3600).unwrap();
+    let chrono_now = ChronoUtc::now();
+    let diff = speedate_now.timestamp() as f64 - chrono_now.timestamp() as f64 - 3600.0;
+    assert!(diff.abs() < 0.1);
+    let diff = speedate_now.timestamp_tz() as f64 - chrono_now.timestamp() as f64;
+    assert!(diff.abs() < 0.1);
+}
+
+#[test]
+fn datetime_with_tz_offset() {
+    let dt_z = DateTime::parse_str("2022-01-01T12:13:14.567+00:00").unwrap();
+
+    let dt_m8 = dt_z.with_timezone_offset(Some(-8 * 3600)).unwrap();
+    assert_eq!(dt_m8.to_string(), "2022-01-01T12:13:14.567-08:00");
+
+    let dt_naive = dt_z.with_timezone_offset(None).unwrap();
+    assert_eq!(dt_naive.to_string(), "2022-01-01T12:13:14.567");
+
+    let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+
+    let dt_p16 = dt_naive.with_timezone_offset(Some(16 * 3600)).unwrap();
+    assert_eq!(dt_p16.to_string(), "2000-01-01T00:00:00+16:00");
+
+    let error = match dt_naive.with_timezone_offset(Some(86_400)) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::OutOfRangeTz);
+}
+
+#[test]
+fn datetime_in_timezone() {
+    let dt_z = DateTime::parse_str("2000-01-01T15:00:00.567Z").unwrap();
+
+    let dt_p1 = dt_z.in_timezone(3_600).unwrap();
+    assert_eq!(dt_p1.to_string(), "2000-01-01T16:00:00.567+01:00");
+
+    let dt_m2 = dt_z.in_timezone(-7_200).unwrap();
+    assert_eq!(dt_m2.to_string(), "2000-01-01T13:00:00.567-02:00");
+
+    let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+    let error = match dt_naive.in_timezone(3_600) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::TzRequired);
+
+    let error = match dt_z.in_timezone(86_400) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::OutOfRangeTz);
 }
 
 #[test]

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{get_digit_unchecked, ParseError};
+use crate::{get_digit_unchecked, DateTime, ParseError};
 
 /// A Date
 ///
@@ -156,6 +156,24 @@ impl Date {
             + (self.ordinal_day() - 1) as i64
             + intervening_leap_years(self.year - 1600) as i64;
         days * 86400 + UNIX_1600
+    }
+
+    /// Current date. Internally, this uses [DateTime::now].
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - timezone offset in seconds, meaning as per [DateTime::now], must be less than `86_400`
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use speedate::Date;
+    ///
+    /// let d = Date::today(0).unwrap();
+    /// println!("The date today is: {}", d)
+    /// ```
+    pub fn today(offset: i32) -> Result<Self, ParseError> {
+        Ok(DateTime::now(offset)?.date)
     }
 
     /// Day of the year, starting from 1.
