@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.md")]
+#![doc = include_str ! ("../README.md")]
 extern crate core;
 extern crate strum;
 
@@ -55,7 +55,7 @@ pub(crate) use get_digit_unchecked;
 ///          assert_eq!(error, ParseError::TooShort);
 ///          assert_eq!(error.to_string(), "too_short");
 ///          assert_eq!(error.get_documentation(), Some("input is too short"));
-///      },
+///      }
 /// };
 /// ```
 #[derive(Debug, Display, EnumMessage, PartialEq, Eq, Clone)]
@@ -131,4 +131,17 @@ pub enum ParseError {
     DateTooLarge,
     /// numeric times may not exceed 86,399 seconds
     TimeTooLarge,
+}
+
+/// Used internally to write numbers to a buffer for `Display` of speedate types
+fn display_num_buf(num: usize, start: usize, value: u32, buf: &mut [u8]) {
+    for i in 0..num {
+        if (i + 1) == num {
+            buf[i + start] = b'0' + (value % 10) as u8;
+        } else if num <= 2 {
+            buf[i + start] = b'0' + (value / (10i32.pow((num - 1 - i) as u32)) as u32) as u8;
+        } else {
+            buf[i + start] = b'0' + (value / (10i32.pow((num - 1 - i) as u32)) as u32 % 10) as u8;
+        }
+    }
 }

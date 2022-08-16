@@ -38,12 +38,20 @@ pub struct Time {
 
 impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:02}:{:02}:{:02}", self.hour, self.minute, self.second)?;
         if self.microsecond != 0 {
-            let s = format!("{:06}", self.microsecond);
-            write!(f, ".{}", s.trim_end_matches('0'))?;
+            let mut buf: [u8; 15] = *b"00:00:00.000000";
+            crate::display_num_buf(2, 0, self.hour as u32, &mut buf);
+            crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
+            crate::display_num_buf(2, 6, self.second as u32, &mut buf);
+            crate::display_num_buf(6, 9, self.microsecond, &mut buf);
+            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches("0"))
+        } else {
+            let mut buf: [u8; 8] = *b"00:00:00";
+            crate::display_num_buf(2, 0, self.hour as u32, &mut buf);
+            crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
+            crate::display_num_buf(2, 6, self.second as u32, &mut buf);
+            f.write_str(std::str::from_utf8(&buf[..]).unwrap())
         }
-        Ok(())
     }
 }
 
