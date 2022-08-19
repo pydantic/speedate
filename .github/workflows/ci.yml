@@ -35,12 +35,12 @@ jobs:
 
     - run: rustup component add llvm-tools-preview
 
-    - run: cargo test
+    - run: cargo test --test test_date --test test_datetime --test test_time --test test_duration
       env:
         RUST_BACKTRACE: 1
         RUSTFLAGS: '-C instrument-coverage'
 
-    - run: coverage-prepare lcov $(find target/debug/deps -regex '.*/main[^.]*')
+    - run: coverage-prepare lcov $(find target/debug/deps -regex '.*/test_[^.]*')
 
     - run: cargo test --doc
 

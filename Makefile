@@ -31,8 +31,8 @@ bench:
 
 .PHONY: testcov
 testcov:
-	RUSTFLAGS='-C instrument-coverage' cargo test --test main
-	coverage-prepare html $(shell find target/debug/deps -regex '.*/main[^.]*')
+	RUSTFLAGS='-C instrument-coverage' cargo test --test test_date --test test_datetime --test test_time --test test_duration
+	coverage-prepare html $(shell find target/debug/deps -regex '.*/test_[^.]*') --no-delete
 
 .PHONY: all
 all: format lint test
