@@ -1,7 +1,7 @@
 # speedate
 
-[![CI](https://github.com/samuelcolvin/speedate/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/samuelcolvin/speedate/actions/workflows/ci.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/samuelcolvin/speedate/branch/main/graph/badge.svg?token=xCXg5aV9wM)](https://codecov.io/gh/samuelcolvin/speedate)
+[![CI](https://github.com/pydantic/speedate/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/pydantic/speedate/actions/workflows/ci.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/pydantic/speedate/branch/main/graph/badge.svg)](https://codecov.io/gh/pydantic/speedate)
 [![Crates.io](https://img.shields.io/crates/v/speedate?color=green)](https://crates.io/crates/speedate)
 
 Fast and simple datetime, date, time and duration parsing for rust.
@@ -35,7 +35,7 @@ In addition, unix timestamps (both seconds and milliseconds) can be used to crea
 
 See [the documentation](https://docs.rs/speedate/latest/speedate/index.html#structs) for each struct for more details.
 
-This will be the datetime parsing logic for [pydantic-core](https://github.com/samuelcolvin/pydantic-core).
+This will be the datetime parsing logic for [pydantic-core](https://github.com/pydantic/pydantic-core).
 
 ## Usage
 
@@ -71,7 +71,7 @@ fn main() {
 [chrono's `parse_from_rfc3339`](https://docs.rs/chrono/latest/chrono/struct.DateTime.html#method.parse_from_rfc3339)
 and [iso8601](https://crates.io/crates/iso8601).
 
-Micro-benchmarking from [`benches/main.rs`](https://github.com/samuelcolvin/speedate/blob/main/benches/main.rs):
+Micro-benchmarking from [`benches/main.rs`](https://github.com/pydantic/speedate/blob/main/benches/main.rs):
 
 ```text
 test datetime_error_speedate ... bench:           6 ns/iter (+/- 0)
