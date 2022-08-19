@@ -53,7 +53,6 @@ fn time_from_timestamp_error() {
     }
 }
 
-
 #[test]
 fn time() {
     let t = Time::parse_str("12:13:14.123456").unwrap();
@@ -123,4 +122,3 @@ param_tests! {
     time_extra_x: err => "23:59:59xxx", ExtraCharacters;
     time_extra_space: err => "23:59:59 ", ExtraCharacters;
 }
-
