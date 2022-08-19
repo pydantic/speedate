@@ -31,7 +31,8 @@ bench:
 
 .PHONY: testcov
 testcov:
-	./tests/test_coverage_html.sh
+	RUSTFLAGS='-C instrument-coverage' cargo test --test main
+	coverage-prepare html $(shell find target/debug/deps -regex '.*/main[^.]*')
 
 .PHONY: all
 all: format lint test

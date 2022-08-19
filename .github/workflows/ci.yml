@@ -24,16 +24,23 @@ jobs:
 
     - run: rustup update ${{ matrix.rust-version }}
     - run: rustup default ${{ matrix.rust-version }}
+
     - id: cache-rust
       uses: Swatinem/rust-cache@v1
+      with:
+        key: v2
 
-    - run: cargo install rustfilt cargo-binutils
+    - run: cargo install rustfilt coverage-prepare
       if: steps.cache-rust.outputs.cache-hit != 'true'
 
     - run: rustup component add llvm-tools-preview
 
-    - run: ./tests/test_coverage_export.sh
+    - run: cargo test
+      env:
+        RUST_BACKTRACE: 1
+        RUSTFLAGS: '-C instrument-coverage'
 
+    - run: coverage-prepare lcov $(find target/debug/deps -regex '.*/main[^.]*')
 
     - run: cargo test --doc
 
