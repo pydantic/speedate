@@ -40,7 +40,7 @@ jobs:
         RUST_BACKTRACE: 1
         RUSTFLAGS: '-C instrument-coverage'
 
-    - run: coverage-prepare lcov $(find target/debug/deps -regex '.*/test_[^.]*')
+    - run: coverage-prepare --ignore-filename-regex '/tests/' lcov $(find target/debug/deps -regex '.*/test_[^.]*')
 
     - run: cargo test --doc
 
