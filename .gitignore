@@ -5,3 +5,4 @@
 /htmlcov/
 /*.profraw
 /*.profdata
+*.lcov
