@@ -32,7 +32,9 @@ bench:
 .PHONY: testcov
 testcov:
 	RUSTFLAGS='-C instrument-coverage' cargo test --test main
-	coverage-prepare html $(shell find target/debug/deps -regex '.*/main[^.]*')
+	coverage-prepare --ignore-filename-regex '/tests/' lcov $(shell find target/debug/deps -regex '.*/main[^.]*')
+	genhtml rust_coverage.lcov --output-directory htmlcov
+	@echo "HTML coverage report available at htmlcov/index.html"
 
 .PHONY: all
 all: format lint test
