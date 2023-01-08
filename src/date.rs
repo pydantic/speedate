@@ -1,3 +1,4 @@
+#![allow(clippy::bool_to_int_with_if)]
 use std::fmt;
 
 use crate::{get_digit_unchecked, DateTime, ParseError};
