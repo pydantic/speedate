@@ -3,8 +3,6 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::time::SystemTime;
 
-const ZERO: char = '0';
-
 /// A DateTime
 ///
 /// Combines a [Date], [Time] and optionally a timezone offset in minutes.
@@ -44,7 +42,7 @@ impl fmt::Display for DateTime {
             crate::display_num_buf(2, 14, self.time.minute as u32, &mut buf);
             crate::display_num_buf(2, 17, self.time.second as u32, &mut buf);
             crate::display_num_buf(6, 20, self.time.microsecond, &mut buf);
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches(ZERO))?;
+            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches('0'))?;
         } else {
             let mut buf: [u8; 19] = *b"0000-00-00T00:00:00";
             crate::display_num_buf(4, 0, self.date.year as u32, &mut buf);
