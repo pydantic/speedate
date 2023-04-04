@@ -272,7 +272,7 @@ impl Duration {
         if self.second >= 86_400 {
             self.day = self
                 .day
-                .checked_add(self.second as u32 / 86_400)
+                .checked_add(self.second / 86_400)
                 .ok_or(ParseError::DurationValueTooLarge)?;
             self.second %= 86_400;
         }
@@ -314,7 +314,7 @@ impl Duration {
                             Some(b'S') => 1,
                             _ => return Err(ParseError::DurationInvalidTimeUnit),
                         };
-                        second = checked!(second + checked!(mult * value as u32));
+                        second = checked!(second + checked!(mult * value));
                         if let Some(fraction) = op_fraction {
                             let extra_seconds = fraction * mult as f64;
                             let extra_full_seconds = extra_seconds.trunc();
@@ -455,13 +455,13 @@ impl Duration {
 
     fn parse_number(bytes: &[u8], d1: u8, offset: usize) -> Result<(u32, usize), ParseError> {
         let mut value = match d1 {
-            c if (b'0'..=b'9').contains(&d1) => (c - b'0') as u32,
+            c if d1.is_ascii_digit() => (c - b'0') as u32,
             _ => return Err(ParseError::DurationInvalidNumber),
         };
         let mut position = offset + 1;
         loop {
             match bytes.get(position) {
-                Some(c) if (b'0'..=b'9').contains(c) => {
+                Some(c) if c.is_ascii_digit() => {
                     value = checked!(value * 10);
                     value = checked!(value + (c - b'0') as u32);
                     position += 1;
@@ -481,7 +481,7 @@ impl Duration {
             loop {
                 position += 1;
                 match bytes.get(position) {
-                    Some(c) if (b'0'..=b'9').contains(c) => {
+                    Some(c) if c.is_ascii_digit() => {
                         decimal *= 10.0;
                         decimal += (c - b'0') as f64;
                         denominator *= 10.0;

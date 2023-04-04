@@ -157,7 +157,7 @@ fn date_from_timestamp_milliseconds() {
 }
 
 fn try_date_timestamp(ts: i64, check_timestamp: bool) {
-    let chrono_date = NaiveDateTime::from_timestamp(ts, 0).date();
+    let chrono_date = NaiveDateTime::from_timestamp_opt(ts, 0).unwrap().date();
     let d = Date::from_timestamp(ts).unwrap();
     // println!("{} => {:?}", ts, d);
     assert_eq!(
@@ -211,8 +211,8 @@ macro_rules! date_from_timestamp {
         paste::item! {
             #[test]
             fn [< date_from_timestamp_ $year _ $month _ $day >]() {
-                let chrono_date = NaiveDate::from_ymd($year, $month, $day);
-                let ts = chrono_date.and_hms(0, 0, 0).timestamp();
+                let chrono_date = NaiveDate::from_ymd_opt($year, $month, $day).unwrap();
+                let ts = chrono_date.and_hms_opt(0, 0, 0).unwrap().timestamp();
                 let d = Date::from_timestamp(ts).unwrap();
                 assert_eq!(
                     d,
@@ -270,7 +270,7 @@ fn date_today_offset() {
     for offset in (-86399..86399).step_by(1000) {
         let today = Date::today(offset).unwrap();
         let chrono_now_utc = ChronoUtc::now();
-        let chrono_tz = ChronoFixedOffset::east(offset);
+        let chrono_tz = ChronoFixedOffset::east_opt(offset).unwrap();
         let chrono_now = chrono_now_utc.with_timezone(&chrono_tz);
         assert_eq!(
             today,
@@ -365,7 +365,7 @@ macro_rules! datetime_from_timestamp {
         paste::item! {
             #[test]
             fn [< datetime_from_timestamp_ $year _ $month _ $day _t_ $hour _ $minute _ $second _ $microsecond >]() {
-                let chrono_dt = NaiveDate::from_ymd($year, $month, $day).and_hms_nano($hour, $minute, $second, $microsecond * 1_000);
+                let chrono_dt = NaiveDate::from_ymd_opt($year, $month, $day).unwrap().and_hms_nano_opt($hour, $minute, $second, $microsecond * 1_000).unwrap();
                 try_datetime_timestamp(chrono_dt);
             }
         }
@@ -385,8 +385,8 @@ datetime_from_timestamp! {
 #[test]
 fn datetime_from_timestamp_range() {
     for ts in (0..157_766_400).step_by(757) {
-        try_datetime_timestamp(NaiveDateTime::from_timestamp(ts, 0));
-        try_datetime_timestamp(NaiveDateTime::from_timestamp(-ts, 0));
+        try_datetime_timestamp(NaiveDateTime::from_timestamp_opt(ts, 0).unwrap());
+        try_datetime_timestamp(NaiveDateTime::from_timestamp_opt(-ts, 0).unwrap());
     }
 }
 
