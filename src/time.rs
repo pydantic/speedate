@@ -135,7 +135,7 @@ impl Time {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        Self::parse_bytes_partial(bytes, 0)
+        Self::parse_bytes_offset(bytes, 0)
     }
 
     /// Create a time from seconds and microseconds.
@@ -178,7 +178,7 @@ impl Time {
 
     /// Parse a time from bytes with a starting index, no check is performed for extract characters at
     /// the end of the string
-    pub(crate) fn parse_bytes_partial(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
         if bytes.len() - offset < 5 {
             return Err(ParseError::TooShort);
         }
@@ -286,7 +286,7 @@ impl Time {
                         position += 3;
                         get_digit!(bytes, position, InvalidCharTzMinute) as i32
                     }
-                    Some(c) if (b'0'..=b'9').contains(c) => {
+                    Some(c) if c.is_ascii_digit() => {
                         position += 2;
                         (c - b'0') as i32
                     }
@@ -393,13 +393,14 @@ impl Time {
     // / assert_eq!(t2.to_string(), "17:00:00+02:00");
     /// ```
     pub fn in_timezone(&self, tz_offset: i32) -> Result<Self, ParseError> {
-        if tz_offset.abs() >= 24 * 3600 || tz_offset.abs() > self.total_seconds() as i32 {
+        if tz_offset.abs() >= 24 * 3600 {
             Err(ParseError::OutOfRangeTz)
         } else if let Some(current_offset) = self.tz_offset {
-            let seconds = self.total_seconds() as i32 + (tz_offset - current_offset);
-            let mut t = Self::from_timestamp(seconds.try_into().unwrap(), self.microsecond)?;
-            t.tz_offset = Some(tz_offset - current_offset);
-            Ok(t)
+            let offset = tz_offset - current_offset;
+            let seconds = self.total_seconds().saturating_add_signed(offset);
+            let mut time = Self::from_timestamp(seconds, self.microsecond)?;
+            time.tz_offset = Some(offset);
+            Ok(time)
         } else {
             Err(ParseError::TzRequired)
         }

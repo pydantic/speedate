@@ -583,12 +583,6 @@ fn time_in_timezone() {
         Err(e) => e,
     };
     assert_eq!(error, ParseError::OutOfRangeTz);
-
-    let error = match t_z.in_timezone(80_400) {
-        Ok(_) => panic!("unexpectedly valid"),
-        Err(e) => e,
-    };
-    assert_eq!(error, ParseError::OutOfRangeTz);
 }
 
 param_tests! {

@@ -422,7 +422,7 @@ impl Duration {
 
         match bytes.get(position).copied() {
             Some(_) => {
-                let t = Time::parse_bytes_partial(bytes, position)?;
+                let t = Time::parse_bytes_offset(bytes, position)?;
 
                 Ok(Self {
                     positive: false, // is set above
@@ -436,7 +436,7 @@ impl Duration {
     }
 
     fn parse_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let t = Time::parse_bytes_partial(bytes, offset)?;
+        let t = Time::parse_bytes_offset(bytes, offset)?;
 
         Ok(Self {
             positive: false, // is set above

@@ -5,7 +5,7 @@ use std::time::SystemTime;
 
 /// A DateTime
 ///
-/// Combines a [Date], [Time] and optionally a timezone offset in seconds.
+/// Combines a [Date], [Time].
 /// Allowed values:
 /// * `YYYY-MM-DDTHH:MM:SS` - all the above time formats are allowed for the time part
 /// * `YYYY-MM-DD HH:MM:SS` - `T`, `t`, ` ` and `_` are allowed as separators
@@ -29,43 +29,9 @@ pub struct DateTime {
 
 impl fmt::Display for DateTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.time.microsecond != 0 {
-            let mut buf: [u8; 26] = *b"0000-00-00T00:00:00.000000";
-            crate::display_num_buf(4, 0, self.date.year as u32, &mut buf);
-            crate::display_num_buf(2, 5, self.date.month as u32, &mut buf);
-            crate::display_num_buf(2, 8, self.date.day as u32, &mut buf);
-            crate::display_num_buf(2, 11, self.time.hour as u32, &mut buf);
-            crate::display_num_buf(2, 14, self.time.minute as u32, &mut buf);
-            crate::display_num_buf(2, 17, self.time.second as u32, &mut buf);
-            crate::display_num_buf(6, 20, self.time.microsecond, &mut buf);
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches('0'))?;
-        } else {
-            let mut buf: [u8; 19] = *b"0000-00-00T00:00:00";
-            crate::display_num_buf(4, 0, self.date.year as u32, &mut buf);
-            crate::display_num_buf(2, 5, self.date.month as u32, &mut buf);
-            crate::display_num_buf(2, 8, self.date.day as u32, &mut buf);
-            crate::display_num_buf(2, 11, self.time.hour as u32, &mut buf);
-            crate::display_num_buf(2, 14, self.time.minute as u32, &mut buf);
-            crate::display_num_buf(2, 17, self.time.second as u32, &mut buf);
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
-        }
-        if let Some(tz_offset) = self.time.tz_offset {
-            if tz_offset == 0 {
-                write!(f, "Z")?;
-            } else {
-                let mins = tz_offset / 60;
-                let mut min = mins / 60;
-                let sec = (mins % 60).abs();
-                let mut buf: [u8; 6] = *b"+00:00";
-                if min < 0 {
-                    buf[0] = b'-';
-                    min = min.abs();
-                }
-                crate::display_num_buf(2, 1, min as u32, &mut buf);
-                crate::display_num_buf(2, 4, sec as u32, &mut buf);
-                f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
-            }
-        }
+        write!(f, "{}", self.date)?;
+        write!(f, "T")?;
+        write!(f, "{}", self.time)?;
         Ok(())
     }
 }
@@ -259,7 +225,7 @@ impl DateTime {
         }
 
         // Next try to parse the time
-        let time = Time::parse_bytes_partial(bytes, 11)?;
+        let time = Time::parse_bytes_offset(bytes, 11)?;
 
         Ok(Self { date, time })
     }
@@ -368,11 +334,6 @@ impl DateTime {
     /// assert_eq!(dt2.to_string(), "2022-01-01T12:13:14-08:00");
     /// ```
     pub fn with_timezone_offset(&self, tz_offset: Option<i32>) -> Result<Self, ParseError> {
-        if let Some(offset_val) = tz_offset {
-            if offset_val.abs() >= 24 * 3600 {
-                return Err(ParseError::OutOfRangeTz);
-            }
-        }
         Ok(Self {
             date: self.date.clone(),
             time: self.time.with_timezone_offset(tz_offset)?,
