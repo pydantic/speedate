@@ -221,6 +221,7 @@ fn format_time(bench: &mut Bencher) {
         minute: 11,
         second: 12,
         microsecond: 11,
+        tz_offset: None,
     });
     bench.iter(|| {
         black_box(time.to_string());
