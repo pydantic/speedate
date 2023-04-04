@@ -177,6 +177,7 @@ impl Date {
     }
 
     /// Day of the year, starting from 1.
+    #[allow(clippy::bool_to_int_with_if)]
     pub fn ordinal_day(&self) -> u16 {
         let leap_extra = if is_leap_year(self.year) { 1 } else { 0 };
         let day = self.day as u16;
