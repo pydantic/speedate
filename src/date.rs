@@ -162,7 +162,7 @@ impl Date {
     ///
     /// # Arguments
     ///
-    /// * `offset` - timezone offset in seconds, meaning as per [DateTime::now], must be less than `86_400`
+    /// * `tz_offset` - timezone offset in seconds, meaning as per [DateTime::now], must be less than `86_400`
     ///
     /// # Example
     ///
@@ -172,8 +172,8 @@ impl Date {
     /// let d = Date::today(0).unwrap();
     /// println!("The date today is: {}", d)
     /// ```
-    pub fn today(offset: i32) -> Result<Self, ParseError> {
-        Ok(DateTime::now(offset)?.date)
+    pub fn today(tz_offset: i32) -> Result<Self, ParseError> {
+        Ok(DateTime::now(tz_offset)?.date)
     }
 
     /// Day of the year, starting from 1.

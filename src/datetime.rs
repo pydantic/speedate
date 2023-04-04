@@ -1,11 +1,11 @@
-use crate::{get_digit, Date, ParseError, Time};
+use crate::{Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
 use std::time::SystemTime;
 
 /// A DateTime
 ///
-/// Combines a [Date], [Time] and optionally a timezone offset in minutes.
+/// Combines a [Date], [Time] and optionally a timezone offset in seconds.
 /// Allowed values:
 /// * `YYYY-MM-DDTHH:MM:SS` - all the above time formats are allowed for the time part
 /// * `YYYY-MM-DD HH:MM:SS` - `T`, `t`, ` ` and `_` are allowed as separators
@@ -25,10 +25,6 @@ pub struct DateTime {
     pub date: Date,
     /// time part of the datetime
     pub time: Time,
-    /// timezone offset in seconds if provided, must be >-24h and <24h
-    // This range is to match python,
-    // Note: [Stack Overflow suggests](https://stackoverflow.com/a/8131056/949890) larger offsets can happen
-    pub offset: Option<i32>,
 }
 
 impl fmt::Display for DateTime {
@@ -53,11 +49,11 @@ impl fmt::Display for DateTime {
             crate::display_num_buf(2, 17, self.time.second as u32, &mut buf);
             f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
         }
-        if let Some(offset) = self.offset {
-            if offset == 0 {
+        if let Some(tz_offset) = self.time.tz_offset {
+            if tz_offset == 0 {
                 write!(f, "Z")?;
             } else {
-                let mins = offset / 60;
+                let mins = tz_offset / 60;
                 let mut min = mins / 60;
                 let sec = (mins % 60).abs();
                 let mut buf: [u8; 6] = *b"+00:00";
@@ -143,7 +139,7 @@ impl PartialOrd for DateTime {
     /// assert!(dt_france_4pm > dt_naive_330pm);
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self.offset, other.offset) {
+        match (self.time.tz_offset, other.time.tz_offset) {
             (Some(_), Some(_)) => match self.timestamp_tz().partial_cmp(&other.timestamp_tz()) {
                 Some(Ordering::Equal) => self.time.microsecond.partial_cmp(&other.time.microsecond),
                 otherwise => otherwise,
@@ -182,8 +178,8 @@ impl DateTime {
     ///             minute: 13,
     ///             second: 14,
     ///             microsecond: 0,
+    ///             tz_offset: Some(0),
     ///         },
-    ///         offset: Some(0),
     ///     }
     /// );
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
@@ -209,8 +205,8 @@ impl DateTime {
     ///             minute: 13,
     ///             second: 14,
     ///             microsecond: 0,
+    ///             tz_offset: Some(-30600),
     ///         },
-    ///         offset: Some(-30600),
     ///     }
     /// );
     /// assert_eq!(dt.to_string(), "2000-02-29T12:13:14-08:30");
@@ -246,8 +242,8 @@ impl DateTime {
     ///             minute: 13,
     ///             second: 14,
     ///             microsecond: 0,
+    ///             tz_offset: Some(0),
     ///         },
-    ///         offset: Some(0),
     ///     }
     /// );
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
@@ -263,71 +259,9 @@ impl DateTime {
         }
 
         // Next try to parse the time
-        let (time, time_length) = Time::parse_bytes_partial(bytes, 11)?;
-        let mut position = 11 + time_length;
+        let time = Time::parse_bytes_partial(bytes, 11)?;
 
-        // And finally, parse the offset
-        let mut offset: Option<i32> = None;
-
-        if let Some(next_char) = bytes.get(position).copied() {
-            position += 1;
-            if next_char == b'Z' || next_char == b'z' {
-                offset = Some(0);
-            } else {
-                let sign = match next_char {
-                    b'+' => 1,
-                    b'-' => -1,
-                    226 => {
-                        // U+2212 MINUS "−" is allowed under ISO 8601 for negative timezones
-                        // > python -c 'print([c for c in "−".encode()])'
-                        // its raw byte values are [226, 136, 146]
-                        if bytes.get(position).copied() != Some(136) {
-                            return Err(ParseError::InvalidCharTzSign);
-                        }
-                        if bytes.get(position + 1).copied() != Some(146) {
-                            return Err(ParseError::InvalidCharTzSign);
-                        }
-                        position += 2;
-                        -1
-                    }
-                    _ => return Err(ParseError::InvalidCharTzSign),
-                };
-
-                let h1 = get_digit!(bytes, position, InvalidCharTzHour) as i32;
-                let h2 = get_digit!(bytes, position + 1, InvalidCharTzHour) as i32;
-
-                let m1 = match bytes.get(position + 2) {
-                    Some(b':') => {
-                        position += 3;
-                        get_digit!(bytes, position, InvalidCharTzMinute) as i32
-                    }
-                    Some(c) if (b'0'..=b'9').contains(c) => {
-                        position += 2;
-                        (c - b'0') as i32
-                    }
-                    _ => return Err(ParseError::InvalidCharTzMinute),
-                };
-                let m2 = get_digit!(bytes, position + 1, InvalidCharTzMinute) as i32;
-
-                let minute_seconds = m1 * 600 + m2 * 60;
-                if minute_seconds >= 3600 {
-                    return Err(ParseError::OutOfRangeTzMinute);
-                }
-
-                let offset_val = sign * (h1 * 36000 + h2 * 3600 + minute_seconds);
-                // TZ must be less than 24 hours to match python
-                if offset_val.abs() >= 24 * 3600 {
-                    return Err(ParseError::OutOfRangeTz);
-                }
-                offset = Some(offset_val);
-                position += 2;
-            }
-        }
-        if bytes.len() > position {
-            return Err(ParseError::ExtraCharacters);
-        }
-
-        Ok(Self { date, time, offset })
+        Ok(Self { date, time })
     }
 
     /// Create a datetime from a Unix Timestamp in seconds or milliseconds
@@ -381,7 +315,6 @@ impl DateTime {
         Ok(Self {
             date,
             time: Time::from_timestamp(time_second, total_microsecond)?,
-            offset: None,
         })
     }
 
@@ -390,7 +323,7 @@ impl DateTime {
     ///
     /// # Arguments
     ///
-    /// * `offset` - timezone offset in seconds, must be less than `86_400`
+    /// * `tz_offset` - timezone offset in seconds, must be less than `86_400`
     ///
     /// # Examples
     ///
@@ -400,16 +333,16 @@ impl DateTime {
     /// let now = DateTime::now(0).unwrap();
     /// println!("Current date and time: {}", now);
     /// ```
-    pub fn now(offset: i32) -> Result<Self, ParseError> {
+    pub fn now(tz_offset: i32) -> Result<Self, ParseError> {
         let t = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .map_err(|_| ParseError::SystemTimeError)?;
         let mut now = Self::from_timestamp(t.as_secs() as i64, t.subsec_micros())?;
-        now.offset = Some(0);
-        if offset == 0 {
+        now.time.tz_offset = Some(0);
+        if tz_offset == 0 {
             Ok(now)
         } else {
-            now.in_timezone(offset)
+            now.in_timezone(tz_offset)
         }
     }
 
@@ -420,9 +353,9 @@ impl DateTime {
     ///
     /// # Arguments
     ///
-    /// * `offset` - optional timezone offset in seconds, set to `None` to create a naïve datetime.
+    /// * `tz_offset` - optional timezone offset in seconds, set to `None` to create a naïve datetime.
     ///
-    /// This method will return `Err(ParseError::OutOfRangeTz)` if `abs(offset)` is not less than 24 hours `86_400`.
+    /// This method will return `Err(ParseError::OutOfRangeTz)` if `abs(tz_offset)` is not less than 24 hours `86_400`.
     ///
     /// # Examples
     ///
@@ -434,16 +367,15 @@ impl DateTime {
     /// let dt2 = dt.with_timezone_offset(Some(-8 * 3600)).unwrap();
     /// assert_eq!(dt2.to_string(), "2022-01-01T12:13:14-08:00");
     /// ```
-    pub fn with_timezone_offset(&self, offset: Option<i32>) -> Result<Self, ParseError> {
-        if let Some(offset_val) = offset {
+    pub fn with_timezone_offset(&self, tz_offset: Option<i32>) -> Result<Self, ParseError> {
+        if let Some(offset_val) = tz_offset {
             if offset_val.abs() >= 24 * 3600 {
                 return Err(ParseError::OutOfRangeTz);
             }
         }
         Ok(Self {
             date: self.date.clone(),
-            time: self.time.clone(),
-            offset,
+            time: self.time.with_timezone_offset(tz_offset)?,
         })
     }
 
@@ -454,7 +386,7 @@ impl DateTime {
     ///
     /// # Arguments
     ///
-    /// * `offset` - new timezone offset in seconds.
+    /// * `tz_offset` - new timezone offset in seconds.
     ///
     /// # Examples
     ///
@@ -466,13 +398,13 @@ impl DateTime {
     /// let dt_utc_plus2 = dt_z.in_timezone(7200).unwrap();
     /// assert_eq!(dt_utc_plus2.to_string(), "2000-01-01T17:00:00+02:00");
     /// ```
-    pub fn in_timezone(&self, offset: i32) -> Result<Self, ParseError> {
-        if offset.abs() >= 24 * 3600 {
+    pub fn in_timezone(&self, tz_offset: i32) -> Result<Self, ParseError> {
+        if tz_offset.abs() >= 24 * 3600 {
             Err(ParseError::OutOfRangeTz)
-        } else if let Some(current_offset) = self.offset {
-            let new_ts = self.timestamp() + (offset - current_offset) as i64;
+        } else if let Some(current_offset) = self.time.tz_offset {
+            let new_ts = self.timestamp() + (tz_offset - current_offset) as i64;
             let mut new_dt = Self::from_timestamp(new_ts, self.time.microsecond)?;
-            new_dt.offset = Some(offset);
+            new_dt.time.tz_offset = Some(tz_offset);
             Ok(new_dt)
         } else {
             Err(ParseError::TzRequired)
@@ -501,8 +433,8 @@ impl DateTime {
     /// Unix timestamp assuming epoch is in zulu timezone (1970-01-01T00:00:00Z) and accounting for
     /// timezone offset.
     ///
-    /// This is effectively [Self::timestamp] minus [Self::offset], see [Self::partial_cmp] for details on
-    /// why timezone offset is subtracted. If [Self::offset] if `None`, this is the same as [Self::timestamp].
+    /// This is effectively [Self::timestamp] minus [Self.time::tz_offset], see [Self::partial_cmp] for details on
+    /// why timezone offset is subtracted. If [Self.time::tz_offset] if `None`, this is the same as [Self::timestamp].
     ///
     /// # Examples
     ///
@@ -519,8 +451,8 @@ impl DateTime {
     /// assert_eq!(dt_plus_1.timestamp_tz(), 23 * 3600);
     /// ```
     pub fn timestamp_tz(&self) -> i64 {
-        match self.offset {
-            Some(offset) => self.timestamp() - (offset as i64),
+        match self.time.tz_offset {
+            Some(tz_offset) => self.timestamp() - (tz_offset as i64),
             None => self.timestamp(),
         }
     }
