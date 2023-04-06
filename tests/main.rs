@@ -530,7 +530,29 @@ fn time_comparison() {
 }
 
 #[test]
+fn time_comparison_timezone() {
+    let t1 = Time::parse_str("12:10:00+00:00").unwrap();
+    let t2 = Time::parse_str("12:10:00+01:00").unwrap();
 
+    assert!(t1 > t2);
+    assert!(t1 >= t2);
+    assert!(t1 >= t1.clone());
+    assert!(t2 < t1);
+    assert!(t2 <= t1);
+    assert!(t2 <= t2.clone());
+    assert!(t1.eq(&t1.clone()));
+    assert!(!t1.eq(&t2.clone()));
+
+    let t3 = Time::parse_str("12:13:13.999+00:00").unwrap();
+    let t4 = Time::parse_str("12:13:13.123+00:00").unwrap();
+    assert!(t3 > t4);
+
+    let t5 = Time::parse_str("12:13:13-20:00").unwrap();
+    let t6 = Time::parse_str("12:13:13+00:00").unwrap();
+    assert!(t5 > t6);
+}
+
+#[test]
 fn time_total_seconds() {
     let t = Time::parse_str("01:02:03.04").unwrap();
     assert_eq!(t.total_seconds(), 1 * 3600 + 2 * 60 + 3);

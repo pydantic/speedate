@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 
 use crate::{get_digit, get_digit_unchecked, ParseError};
@@ -18,15 +19,8 @@ use crate::{get_digit, get_digit_unchecked, ParseError};
 ///
 /// `Time` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
-/// ```
-/// use speedate::Time;
-///
-/// let t1 = Time::parse_str("12:10:20").unwrap();
-/// let t2 = Time::parse_str("12:13:14").unwrap();
-///
-/// assert!(t2 > t1);
-/// ```
-#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
+/// See [Time::partial_cmp] for how this works.
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Time {
     /// Hour: 0 to 23
     pub hour: u8,
@@ -76,6 +70,62 @@ impl fmt::Display for Time {
             }
         }
         Ok(())
+    }
+}
+
+impl PartialOrd for Time {
+    /// Compare two times by inequality.
+    ///
+    /// `Time` supports equality (`==`, `!=`) and inequality comparisons (`>`, `<`, `>=` & `<=`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let t1 = Time::parse_str("04:05:06.07").unwrap();
+    /// let t2 = Time::parse_str("04:05:06.08").unwrap();
+    ///
+    /// assert!(t1 < t2);
+    /// ```
+    ///
+    ///  # Comparison with Timezones
+    ///
+    /// When comparing two times, we want "less than" or "greater than" refer to "earlier" or "later"
+    /// in the absolute course of time. We therefore need to be careful when comparing times with different
+    /// timezones. (If it wasn't for timezones, we could omit all this extra logic and thinking and just compare
+    /// struct members directly as we do with [crate::Date] and [crate::Duration]).
+    ///
+    /// See [crate::DateTime::partial_cmp] for more information about comparisons with timezones.
+    ///
+    /// ## Timezone Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let t1 = Time::parse_str("15:00:00Z").unwrap();
+    /// let t2 = Time::parse_str("15:00:00+01:00").unwrap();
+    ///
+    /// assert!(t1 > t2);
+    ///
+    /// let t3 = Time::parse_str("15:00:00-01:00").unwrap();
+    /// let t4 = Time::parse_str("15:00:00+01:00").unwrap();
+    ///
+    /// assert!(t3 > t4);
+    /// ```
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self.tz_offset, other.tz_offset) {
+            (Some(tz_offset), Some(other_tz_offset)) => match (self.total_seconds() as i64 - tz_offset as i64)
+                .partial_cmp(&(other.total_seconds() as i64 - other_tz_offset as i64))
+            {
+                Some(Ordering::Equal) => self.microsecond.partial_cmp(&other.microsecond),
+                otherwise => otherwise,
+            },
+            _ => match self.total_seconds().partial_cmp(&other.total_seconds()) {
+                Some(Ordering::Equal) => self.microsecond.partial_cmp(&other.microsecond),
+                otherwise => otherwise,
+            },
+        }
     }
 }
 

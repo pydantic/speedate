@@ -57,7 +57,7 @@ impl PartialOrd for DateTime {
     /// When comparing two datetimes, we want "less than" or "greater than" refer to "earlier" or "later"
     /// in the absolute course of time. We therefore need to be careful when comparing datetimes with different
     /// timezones. (If it wasn't for timezones, we could omit all this extra logic and thinking and just compare
-    /// struct members directly as we do with [Time], [Date] and [crate::Duration]).
+    /// struct members directly as we do with [Date] and [crate::Duration]).
     ///
     /// From [wikipedia](https://en.wikipedia.org/wiki/UTC_offset#Time_zones_and_time_offsets)
     ///
