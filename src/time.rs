@@ -399,7 +399,8 @@ impl Time {
     ///
     /// * `tz_offset` - optional timezone offset in seconds.
     ///
-    /// This method will return `Err(ParseError::OutOfRangeTz)` if `abs(tz_offset)` is not less than 24 hours `86_400`.
+    /// This method will return `Err(ParseError::OutOfRangeTz)` if `abs(tz_offset)` is not less than 
+    /// 24 hours - `86_400` seconds.
     ///
     /// # Examples
     ///
