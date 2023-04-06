@@ -226,8 +226,7 @@ impl Time {
         })
     }
 
-    /// Parse a time from bytes with a starting index, no check is performed for extract characters at
-    /// the end of the string
+    /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
     pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
         if bytes.len() - offset < 5 {
             return Err(ParseError::TooShort);
