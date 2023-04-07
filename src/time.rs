@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 
 use crate::{get_digit, get_digit_unchecked, ParseError};
@@ -8,6 +9,8 @@ use crate::{get_digit, get_digit_unchecked, ParseError};
 /// * `HH:MM:SS`
 /// * `HH:MM:SS.FFFFFF` 1 to 6 digits are allowed
 /// * `HH:MM`
+/// * `HH:MM:SSZ`
+/// * `HH:MM:SS.FFFFFFZ`
 ///
 /// Fractions of a second are to microsecond precision, if the value contains greater
 /// precision, an error is raised.
@@ -16,15 +19,8 @@ use crate::{get_digit, get_digit_unchecked, ParseError};
 ///
 /// `Time` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
-/// ```
-/// use speedate::Time;
-///
-/// let t1 = Time::parse_str("12:10:20").unwrap();
-/// let t2 = Time::parse_str("12:13:14").unwrap();
-///
-/// assert!(t2 > t1);
-/// ```
-#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
+/// See [Time::partial_cmp] for how this works.
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Time {
     /// Hour: 0 to 23
     pub hour: u8,
@@ -34,6 +30,10 @@ pub struct Time {
     pub second: u8,
     /// microseconds: 0 to 999999
     pub microsecond: u32,
+    /// timezone offset in seconds if provided, must be >-24h and <24h
+    // This range is to match python,
+    // Note: [Stack Overflow suggests](https://stackoverflow.com/a/8131056/949890) larger offsets can happen
+    pub tz_offset: Option<i32>,
 }
 
 impl fmt::Display for Time {
@@ -44,13 +44,87 @@ impl fmt::Display for Time {
             crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
             crate::display_num_buf(2, 6, self.second as u32, &mut buf);
             crate::display_num_buf(6, 9, self.microsecond, &mut buf);
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches('0'))
+            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches('0'))?
         } else {
             let mut buf: [u8; 8] = *b"00:00:00";
             crate::display_num_buf(2, 0, self.hour as u32, &mut buf);
             crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
             crate::display_num_buf(2, 6, self.second as u32, &mut buf);
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap())
+            f.write_str(std::str::from_utf8(&buf[..]).unwrap())?
+        }
+        if let Some(tz_offset) = self.tz_offset {
+            if tz_offset == 0 {
+                write!(f, "Z")?;
+            } else {
+                let mins = tz_offset / 60;
+                let mut min = mins / 60;
+                let sec = (mins % 60).abs();
+                let mut buf: [u8; 6] = *b"+00:00";
+                if min < 0 {
+                    buf[0] = b'-';
+                    min = min.abs();
+                }
+                crate::display_num_buf(2, 1, min as u32, &mut buf);
+                crate::display_num_buf(2, 4, sec as u32, &mut buf);
+                f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl PartialOrd for Time {
+    /// Compare two times by inequality.
+    ///
+    /// `Time` supports equality (`==`, `!=`) and inequality comparisons (`>`, `<`, `>=` & `<=`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let t1 = Time::parse_str("04:05:06.07").unwrap();
+    /// let t2 = Time::parse_str("04:05:06.08").unwrap();
+    ///
+    /// assert!(t1 < t2);
+    /// ```
+    ///
+    ///  # Comparison with Timezones
+    ///
+    /// When comparing two times, we want "less than" or "greater than" refer to "earlier" or "later"
+    /// in the absolute course of time. We therefore need to be careful when comparing times with different
+    /// timezones. (If it wasn't for timezones, we could omit all this extra logic and thinking and just compare
+    /// struct members directly as we do with [crate::Date] and [crate::Duration]).
+    ///
+    /// See [crate::DateTime::partial_cmp] for more information about comparisons with timezones.
+    ///
+    /// ## Timezone Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let t1 = Time::parse_str("15:00:00Z").unwrap();
+    /// let t2 = Time::parse_str("15:00:00+01:00").unwrap();
+    ///
+    /// assert!(t1 > t2);
+    ///
+    /// let t3 = Time::parse_str("15:00:00-01:00").unwrap();
+    /// let t4 = Time::parse_str("15:00:00+01:00").unwrap();
+    ///
+    /// assert!(t3 > t4);
+    /// ```
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self.tz_offset, other.tz_offset) {
+            (Some(tz_offset), Some(other_tz_offset)) => match (self.total_seconds() as i64 - tz_offset as i64)
+                .partial_cmp(&(other.total_seconds() as i64 - other_tz_offset as i64))
+            {
+                Some(Ordering::Equal) => self.microsecond.partial_cmp(&other.microsecond),
+                otherwise => otherwise,
+            },
+            _ => match self.total_seconds().partial_cmp(&other.total_seconds()) {
+                Some(Ordering::Equal) => self.microsecond.partial_cmp(&other.microsecond),
+                otherwise => otherwise,
+            },
         }
     }
 }
@@ -75,6 +149,7 @@ impl Time {
     ///         minute: 13,
     ///         second: 14,
     ///         microsecond: 123456,
+    ///         tz_offset: None,
     ///     }
     /// );
     /// assert_eq!(d.to_string(), "12:13:14.123456");
@@ -103,19 +178,14 @@ impl Time {
     ///         minute: 13,
     ///         second: 14,
     ///         microsecond: 123456,
+    ///         tz_offset: None,
     ///     }
     /// );
     /// assert_eq!(d.to_string(), "12:13:14.123456");
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        let (t, length) = Self::parse_bytes_partial(bytes, 0)?;
-
-        if bytes.len() > length {
-            return Err(ParseError::ExtraCharacters);
-        }
-
-        Ok(t)
+        Self::parse_bytes_offset(bytes, 0)
     }
 
     /// Create a time from seconds and microseconds.
@@ -152,12 +222,12 @@ impl Time {
             minute: ((second % 3600) / 60) as u8,
             second: (second % 60) as u8,
             microsecond,
+            tz_offset: None,
         })
     }
 
-    /// Parse a time from bytes with a starting index, no check is performed for extract characters at
-    /// the end of the string
-    pub(crate) fn parse_bytes_partial(bytes: &[u8], offset: usize) -> Result<(Self, usize), ParseError> {
+    /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
+    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
         if bytes.len() - offset < 5 {
             return Err(ParseError::TooShort);
         }
@@ -228,13 +298,77 @@ impl Time {
             }
             _ => (0, 0),
         };
-        let t = Self {
+
+        // Parse the offset
+        let mut tz_offset: Option<i32> = None;
+        let mut position = offset + length;
+
+        if let Some(next_char) = bytes.get(position).copied() {
+            position += 1;
+            if next_char == b'Z' || next_char == b'z' {
+                tz_offset = Some(0);
+            } else {
+                let sign = match next_char {
+                    b'+' => 1,
+                    b'-' => -1,
+                    226 => {
+                        // U+2212 MINUS "−" is allowed under ISO 8601 for negative timezones
+                        // > python -c 'print([c for c in "−".encode()])'
+                        // its raw byte values are [226, 136, 146]
+                        if bytes.get(position).copied() != Some(136) {
+                            return Err(ParseError::InvalidCharTzSign);
+                        }
+                        if bytes.get(position + 1).copied() != Some(146) {
+                            return Err(ParseError::InvalidCharTzSign);
+                        }
+                        position += 2;
+                        -1
+                    }
+                    _ => return Err(ParseError::InvalidCharTzSign),
+                };
+
+                let h1 = get_digit!(bytes, position, InvalidCharTzHour) as i32;
+                let h2 = get_digit!(bytes, position + 1, InvalidCharTzHour) as i32;
+
+                let m1 = match bytes.get(position + 2) {
+                    Some(b':') => {
+                        position += 3;
+                        get_digit!(bytes, position, InvalidCharTzMinute) as i32
+                    }
+                    Some(c) if c.is_ascii_digit() => {
+                        position += 2;
+                        (c - b'0') as i32
+                    }
+                    _ => return Err(ParseError::InvalidCharTzMinute),
+                };
+                let m2 = get_digit!(bytes, position + 1, InvalidCharTzMinute) as i32;
+
+                let minute_seconds = m1 * 600 + m2 * 60;
+                if minute_seconds >= 3600 {
+                    return Err(ParseError::OutOfRangeTzMinute);
+                }
+
+                let offset_val = sign * (h1 * 36000 + h2 * 3600 + minute_seconds);
+                // TZ must be less than 24 hours to match python
+                if offset_val.abs() >= 24 * 3600 {
+                    return Err(ParseError::OutOfRangeTz);
+                }
+                tz_offset = Some(offset_val);
+                position += 2;
+            }
+        }
+
+        if bytes.len() > position {
+            return Err(ParseError::ExtraCharacters);
+        }
+
+        Ok(Self {
             hour,
             minute,
             second,
             microsecond,
-        };
-        Ok((t, length))
+            tz_offset,
+        })
     }
 
     /// Get the total seconds of the time
@@ -254,5 +388,71 @@ impl Time {
         total_seconds += self.minute as u32 * 60;
         total_seconds += self.second as u32;
         total_seconds
+    }
+
+    /// Clone the time and set a new timezone offset.
+    ///
+    /// The returned time will represent a different point in time since the timezone offset is changed without
+    /// modifying the time. See [Time::in_timezone] for alternative behaviour.
+    ///
+    /// # Arguments
+    ///
+    /// * `tz_offset` - optional timezone offset in seconds.
+    ///
+    /// This method will return `Err(ParseError::OutOfRangeTz)` if `abs(tz_offset)` is not less than
+    /// 24 hours - `86_400` seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let t1 = Time::parse_str("12:13:14Z").unwrap();
+    ///
+    /// let t2 = t1.with_timezone_offset(Some(-8 * 3600)).unwrap();
+    /// assert_eq!(t2.to_string(), "12:13:14-08:00");
+    /// ```
+    pub fn with_timezone_offset(&self, tz_offset: Option<i32>) -> Result<Self, ParseError> {
+        if let Some(offset_val) = tz_offset {
+            if offset_val.abs() >= 24 * 3600 {
+                return Err(ParseError::OutOfRangeTz);
+            }
+        }
+        let mut time = self.clone();
+        time.tz_offset = tz_offset;
+        Ok(time)
+    }
+
+    /// Create a new time in a different timezone.
+    /// See [Time::with_timezone_offset] for alternative behaviour.
+    ///
+    /// The time must have an offset, otherwise a `ParseError::TzRequired` error is returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `tz_offset` - new timezone offset in seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let t1 = Time::parse_str("15:00:00Z").unwrap();
+    ///
+    /// let t2 = t1.in_timezone(7200).unwrap();
+    // / assert_eq!(t2.to_string(), "17:00:00+02:00");
+    /// ```
+    pub fn in_timezone(&self, tz_offset: i32) -> Result<Self, ParseError> {
+        if tz_offset.abs() >= 24 * 3600 {
+            Err(ParseError::OutOfRangeTz)
+        } else if let Some(current_offset) = self.tz_offset {
+            let offset = tz_offset - current_offset;
+            let seconds = self.total_seconds().saturating_add_signed(offset);
+            let mut time = Self::from_timestamp(seconds, self.microsecond)?;
+            time.tz_offset = Some(offset);
+            Ok(time)
+        } else {
+            Err(ParseError::TzRequired)
+        }
     }
 }

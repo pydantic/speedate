@@ -221,6 +221,7 @@ fn format_time(bench: &mut Bencher) {
         minute: 11,
         second: 12,
         microsecond: 11,
+        tz_offset: None,
     });
     bench.iter(|| {
         black_box(time.to_string());
@@ -240,8 +241,8 @@ fn format_date_time(bench: &mut Bencher) {
             minute: 0,
             second: 0,
             microsecond: 0,
+            tz_offset: Some(60),
         },
-        offset: Some(60),
     });
     bench.iter(|| {
         black_box(date.to_string());

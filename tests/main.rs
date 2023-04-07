@@ -295,6 +295,7 @@ macro_rules! time_from_timestamp {
                     minute: $minute,
                     second: $second,
                     microsecond: $microsecond,
+                    tz_offset: None,
                 },
                 "timestamp: {} => {}:{}:{}.{}",
                 $ts_secs,
@@ -349,8 +350,8 @@ fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
                 minute: chrono_dt.minute() as u8,
                 second: chrono_dt.second() as u8,
                 microsecond: chrono_dt.nanosecond() as u32 / 1_000,
+                tz_offset: None,
             },
-            offset: None,
         },
         "timestamp: {} => {}",
         ts,
@@ -499,12 +500,13 @@ fn time() {
             minute: 13,
             second: 14,
             microsecond: 123456,
+            tz_offset: None,
         }
     );
     assert_eq!(t.to_string(), "12:13:14.123456");
     assert_eq!(
         format!("{:?}", t),
-        "Time { hour: 12, minute: 13, second: 14, microsecond: 123456 }"
+        "Time { hour: 12, minute: 13, second: 14, microsecond: 123456, tz_offset: None }"
     );
 }
 
@@ -528,13 +530,81 @@ fn time_comparison() {
 }
 
 #[test]
+fn time_comparison_timezone() {
+    let t1 = Time::parse_str("12:10:00+00:00").unwrap();
+    let t2 = Time::parse_str("12:10:00+01:00").unwrap();
 
+    assert!(t1 > t2);
+    assert!(t1 >= t2);
+    assert!(t1 >= t1.clone());
+    assert!(t2 < t1);
+    assert!(t2 <= t1);
+    assert!(t2 <= t2.clone());
+    assert!(t1.eq(&t1.clone()));
+    assert!(!t1.eq(&t2.clone()));
+
+    let t3 = Time::parse_str("12:13:13.999+00:00").unwrap();
+    let t4 = Time::parse_str("12:13:13.123+00:00").unwrap();
+    assert!(t3 > t4);
+
+    let t5 = Time::parse_str("12:13:13-20:00").unwrap();
+    let t6 = Time::parse_str("12:13:13+00:00").unwrap();
+    assert!(t5 > t6);
+}
+
+#[test]
 fn time_total_seconds() {
     let t = Time::parse_str("01:02:03.04").unwrap();
     assert_eq!(t.total_seconds(), 1 * 3600 + 2 * 60 + 3);
 
     let t = Time::parse_str("12:13:14.999999").unwrap();
     assert_eq!(t.total_seconds(), 12 * 3600 + 13 * 60 + 14);
+}
+
+#[test]
+fn time_with_tz_offset() {
+    let t_z = Time::parse_str("12:13:14.567+00:00").unwrap();
+
+    let t_m8 = t_z.with_timezone_offset(Some(-8 * 3600)).unwrap();
+    assert_eq!(t_m8.to_string(), "12:13:14.567-08:00");
+
+    let t_naive = t_z.with_timezone_offset(None).unwrap();
+    assert_eq!(t_naive.to_string(), "12:13:14.567");
+
+    let t_naive = Time::parse_str("00:00:00").unwrap();
+
+    let t_p16 = t_naive.with_timezone_offset(Some(16 * 3600)).unwrap();
+    assert_eq!(t_p16.to_string(), "00:00:00+16:00");
+
+    let error = match t_naive.with_timezone_offset(Some(86_400)) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::OutOfRangeTz);
+}
+
+#[test]
+fn time_in_timezone() {
+    let t_z = Time::parse_str("15:00:00.567Z").unwrap();
+
+    let t_p1 = t_z.in_timezone(3_600).unwrap();
+    assert_eq!(t_p1.to_string(), "16:00:00.567+01:00");
+
+    let t_m2 = t_z.in_timezone(-7_200).unwrap();
+    assert_eq!(t_m2.to_string(), "13:00:00.567-02:00");
+
+    let t_naive = Time::parse_str("10:00:00").unwrap();
+    let error = match t_naive.in_timezone(3_600) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::TzRequired);
+
+    let error = match t_z.in_timezone(86_400) {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::OutOfRangeTz);
 }
 
 param_tests! {
@@ -548,15 +618,15 @@ param_tests! {
     time: err => "xx:12", InvalidCharHour;
     time_sep_hour: err => "12x12", InvalidCharTimeSep;
     time: err => "12:x0", InvalidCharMinute;
-    time_sep_min: err => "12:13x", ExtraCharacters;
+    time_sep_min: err => "12:13x", InvalidCharTzSign;
     time: err => "12:13:x", InvalidCharSecond;
     time: err => "12:13:12.", SecondFractionMissing;
     time: err => "12:13:12.1234567", SecondFractionTooLong;
     time: err => "24:00:00", OutOfRangeHour;
     time: err => "23:60:00", OutOfRangeMinute;
     time: err => "23:59:60", OutOfRangeSecond;
-    time_extra_x: err => "23:59:59xxx", ExtraCharacters;
-    time_extra_space: err => "23:59:59 ", ExtraCharacters;
+    time_extra_x: err => "23:59:59xxx", InvalidCharTzSign;
+    time_extra_space: err => "23:59:59 ", InvalidCharTzSign;
 }
 
 #[test]
@@ -575,14 +645,14 @@ fn datetime_naive() {
                 minute: 13,
                 second: 14,
                 microsecond: 123456,
+                tz_offset: None,
             },
-            offset: None,
         }
     );
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123456");
     assert_eq!(
         format!("{:?}", dt),
-        "DateTime { date: Date { year: 2020, month: 1, day: 1 }, time: Time { hour: 12, minute: 13, second: 14, microsecond: 123456 }, offset: None }"
+        "DateTime { date: Date { year: 2020, month: 1, day: 1 }, time: Time { hour: 12, minute: 13, second: 14, microsecond: 123456, tz_offset: None } }"
     );
 }
 
@@ -602,8 +672,8 @@ fn datetime_tz_z() {
                 minute: 13,
                 second: 14,
                 microsecond: 0,
+                tz_offset: Some(0),
             },
-            offset: Some(0),
         }
     );
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14Z");
@@ -631,8 +701,8 @@ fn datetime_tz_2hours() {
                 minute: 13,
                 second: 14,
                 microsecond: 0,
+                tz_offset: Some(7_200),
             },
-            offset: Some(7_200),
         }
     );
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14+02:00");
@@ -642,7 +712,7 @@ fn datetime_tz_2hours() {
 fn datetime_tz_negative_2212() {
     // using U+2212 for negative timezones
     let dt = DateTime::parse_str("2020-01-01T12:13:14−02:15").unwrap();
-    assert_eq!(dt.offset, Some(-8100));
+    assert_eq!(dt.time.tz_offset, Some(-8100));
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14-02:15");
 }
 
@@ -987,7 +1057,7 @@ param_tests! {
     duration_time_1m: ok => "00:01", "PT60S";
     duration_time_1h_2m_3s: ok => "01:02:03", "PT3723S";
     duration_time_fraction: ok => "00:01:03.123", "PT63.123S";
-    duration_time_extra: err => "00:01:03.123x", ExtraCharacters;
+    duration_time_extra: err => "00:01:03.123x", InvalidCharTzSign;
     duration_days_1day1: ok => "1 day", "P1D";
     duration_days_1day2: ok => "1day", "P1D";
     duration_days_1day3: ok => "1 day,", "P1D";
@@ -1011,7 +1081,7 @@ param_tests! {
     duration_exceeds_day: ok => "PT86500S", "P1DT100S";
     duration_days_time_too_shoert: err => "1 day 00:", TooShort;
     duration_days_time_wrong: err => "1 day 00:xx", InvalidCharMinute;
-    duration_days_time_extra: err => "1 day 00:00:00.123 ", ExtraCharacters;
+    duration_days_time_extra: err => "1 day 00:00:00.123 ", InvalidCharTzSign;
     duration_overflow: err => "18446744073709551616 day 12:00", DurationValueTooLarge;
     duration_fuzz1: err => "P18446744073709551611DT8031M1M1M1M", DurationValueTooLarge;
     duration_fuzz2: err => "P18446744073709550PT9970442H6R15D1D", DurationValueTooLarge;

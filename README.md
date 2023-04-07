@@ -57,8 +57,8 @@ fn main() {
                 minute: 13,
                 second: 14,
                 microsecond: 0,
+                tz_offset: Some(0),
             },
-            offset: Some(0),
         }
     );
     assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
