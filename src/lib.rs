@@ -72,6 +72,8 @@ pub enum ParseError {
     InvalidCharDateTimeSep,
     /// invalid date separator, expected `-`
     InvalidCharDateSep,
+    /// Timestamp is not an exact date
+    DateNotExact,
     /// invalid character in year
     InvalidCharYear,
     /// invalid character in month

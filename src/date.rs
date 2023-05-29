@@ -160,7 +160,7 @@ impl Date {
         match Self::parse_bytes_rfc3339(bytes) {
             Ok(d) => Ok(d),
             Err(e) => match int_parse_bytes(bytes) {
-                Some(int) => Self::from_timestamp(int),
+                Some(int) => Self::from_timestamp(int, true),
                 None => Err(e),
             },
         }
@@ -183,18 +183,26 @@ impl Date {
     /// # Arguments
     ///
     /// * `timestamp` - timestamp in either seconds or milliseconds
+    /// * `require_exact` - if true, then the timestamp must be exactly at midnight, otherwise it will be rounded down
     ///
     /// # Examples
     ///
     /// ```
     /// use speedate::Date;
     ///
-    /// let d = Date::from_timestamp(1_654_560_000).unwrap();
+    /// let d = Date::from_timestamp(1_654_560_000, true).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
-    pub fn from_timestamp(timestamp: i64) -> Result<Self, ParseError> {
+    pub fn from_timestamp(timestamp: i64, require_exact: bool) -> Result<Self, ParseError> {
         let (timestamp_second, _) = Self::timestamp_watershed(timestamp)?;
-        Self::from_timestamp_calc(timestamp_second)
+        let d = Self::from_timestamp_calc(timestamp_second)?;
+        if require_exact {
+            let time_second = timestamp_second.rem_euclid(86_400);
+            if time_second != 0 {
+                return Err(ParseError::DateNotExact);
+            }
+        }
+        Ok(d)
     }
 
     /// Unix timestamp in seconds (number of seconds between self and 1970-01-01)
