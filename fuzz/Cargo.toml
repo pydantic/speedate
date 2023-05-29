@@ -34,3 +34,15 @@ name = "duration_parse_bytes"
 path = "fuzz_targets/duration_parse_bytes.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "parse_float"
+path = "fuzz_targets/parse_float.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parse_int"
+path = "fuzz_targets/parse_int.rs"
+test = false
+doc = false

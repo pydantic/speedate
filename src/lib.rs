@@ -7,12 +7,15 @@ use strum::{Display, EnumMessage};
 mod date;
 mod datetime;
 mod duration;
+mod numbers;
 mod time;
 
 pub use date::Date;
 pub use datetime::DateTime;
 pub use duration::Duration;
 pub use time::Time;
+
+pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
 
 /// Parsing datetime, date, time & duration values
 

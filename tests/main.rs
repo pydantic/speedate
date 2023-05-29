@@ -4,7 +4,7 @@ use std::io::Read;
 use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTime, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
-use speedate::{Date, DateTime, Duration, ParseError, Time};
+use speedate::{float_parse_str, int_parse_str, Date, DateTime, Duration, ParseError, Time};
 
 /// macro for expected values
 macro_rules! expect_ok_or_error {
@@ -59,12 +59,12 @@ fn date_bytes_err() {
     // https://github.com/python/cpython/blob/5849af7a80166e9e82040e082f22772bd7cf3061/Lib/test/datetimetester.py#L3237
     // bytes of '\ud800'
     let bytes: Vec<u8> = vec![92, 117, 100, 56, 48, 48];
-    match Date::parse_bytes(&bytes) {
+    match Date::parse_bytes_rfc3339(&bytes) {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::TooShort),
     }
     let bytes: Vec<u8> = vec!['2' as u8, '0' as u8, '0' as u8, '0' as u8, 92, 117, 100, 56, 48, 48];
-    match Date::parse_bytes(&bytes) {
+    match Date::parse_bytes_rfc3339(&bytes) {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::InvalidCharDateSep),
     }
@@ -72,7 +72,7 @@ fn date_bytes_err() {
 
 #[test]
 fn error_str() {
-    let error = match Date::parse_str("123") {
+    let error = match Date::parse_str_rfc3339("123") {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => e,
     };
@@ -83,7 +83,7 @@ fn error_str() {
 
 param_tests! {
     Date,
-    date_short_3: err => "123", TooShort;
+    // date_short_3: err => "123", TooShort;
     date_short_9: err => "2000:12:1", TooShort;
     date: err => "xxxx:12:31", InvalidCharYear;
     date_year_sep: err => "2020x12:13", InvalidCharDateSep;
@@ -99,6 +99,9 @@ param_tests! {
     date_normal_leap_year: ok => "2004-02-29", "2004-02-29";
     date_special_100_not_leap: err => "1900-02-29", OutOfRangeDay;
     date_special_400_leap: ok => "2000-02-29", "2000-02-29";
+    date_unix_before_watershed: ok => "20000000000", "2603-10-11";
+    date_unix_after_watershed: ok => "20000000001", "1970-08-20";
+    date_unix_too_low: err => "-20000000000", DateTooSmall;
 }
 
 #[test]
@@ -886,7 +889,7 @@ fn test_err_values_txt() {
         if line.starts_with("#") || line.is_empty() {
             continue;
         }
-        match DateTime::parse_str(line.trim()) {
+        match DateTime::parse_str_rfc3339(line.trim()) {
             Ok(_) => panic!("unexpected valid line {}: {:?}", line_no, line),
             Err(_) => (),
         }
@@ -1115,4 +1118,92 @@ fn duration_limit() {
         Ok(t) => panic!("unexpectedly valid -> {:?}", t),
         Err(e) => assert_eq!(e, ParseError::DurationDaysTooLarge),
     }
+}
+
+macro_rules! int_ok_tests {
+    ($($name:ident: $input:literal, $expected:expr;)*) => {
+        $(
+            paste::item! {
+                #[test]
+                fn [< parse_int_ok_ $name >]() {
+                    let v = int_parse_str($input).unwrap();
+                    assert_eq!(v, $expected);
+                }
+            }
+        )*
+    }
+}
+
+int_ok_tests! {
+    zero: "0", 0;
+    one: "1", 1;
+    small: "123", 123;
+    small_neg: "-123", -123;
+    small_plus: "+123", 123;
+    large: "1585201087123789", 1585201087123789;
+    // big_neg: "-09223372036854775808", -09223372036854775808;
+}
+
+macro_rules! int_err_tests {
+    ($($name:ident: $input:literal;)*) => {
+        $(
+            paste::item! {
+                #[test]
+                fn [< parse_int_err_ $name >]() {
+                    assert!(int_parse_str($input).is_none())
+                }
+            }
+        )*
+    }
+}
+
+int_err_tests! {
+    text: "xxx";
+    double_neg: "--1";
+    empty: "";
+    too_big: "092233720368547758089";
+    too_big_neg: "-092233720368547758089";
+}
+
+macro_rules! float_ok_tests {
+    ($($name:ident: $input:literal, $expected:expr;)*) => {
+        $(
+            paste::item! {
+                #[test]
+                fn [< parse_float_ok_ $name >]() {
+                    let v = format!("{:?}", float_parse_str($input));
+                    assert_eq!(v, $expected);
+                }
+            }
+        )*
+    }
+}
+
+float_ok_tests! {
+    zero: "0", "Int(0)";
+    one: "1", "Int(1)";
+    decimal: "1.5", "Float(1.5)";
+    decimal_zero: "1.0", "Float(1.0)";
+}
+
+macro_rules! float_err_tests {
+    ($($name:ident: $input:literal;)*) => {
+        $(
+            paste::item! {
+                #[test]
+                fn [< parse_float_err_ $name >]() {
+                    assert!(float_parse_str($input).is_err())
+                }
+            }
+        )*
+    }
+}
+
+float_err_tests! {
+    text: "xxx";
+    double_neg: "--1";
+    empty: "";
+    i64_minus_1: "9223372036854775809";
+    too_big: "092233720368547758089";
+    too_big_neg: "-092233720368547758089";
 }
