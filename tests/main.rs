@@ -1190,6 +1190,9 @@ float_ok_tests! {
     decimal: "1.5", "Float(1.5)";
     neg_decimal: "-1.5", "Float(-1.5)";
     decimal_zero: "1.0", "Float(1.0)";
+    big_int: "1585201087123789", "Int(1585201087123789)";
+    big_int_ones: "1111111111111111", "Int(1111111111111111)";
+    big_float: "111111111.11111", "Float(111111111.11111)";
 }
 
 macro_rules! float_err_tests {
