@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::numbers::int_parse_bytes;
 use crate::{get_digit_unchecked, DateTime, ParseError};
 
 /// A Date
@@ -50,7 +51,37 @@ const UNIX_1600: i64 = -11_676_096_000;
 const UNIX_9999: i64 = 253_402_300_799;
 
 impl Date {
-    /// Parse a date from a string
+    /// Parse a date from a string using RFC 3339 format
+    ///
+    /// # Arguments
+    ///
+    /// * `str` - The string to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Date;
+    ///
+    /// let d = Date::parse_str_rfc3339("2020-01-01").unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Date {
+    ///         year: 2020,
+    ///         month: 1,
+    ///         day: 1
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "2020-01-01");
+    /// ```
+    #[inline]
+    pub fn parse_str_rfc3339(str: &str) -> Result<Self, ParseError> {
+        Self::parse_bytes_rfc3339(str.as_bytes())
+    }
+
+    /// Parse a date from a string using RFC 3339 format, or a unix timestamp.
+    ///
+    /// In the input is purely numeric, then the number is interpreted as a unix timestamp,
+    /// using [`Date::from_timestamp`].
     ///
     /// # Arguments
     ///
@@ -62,6 +93,27 @@ impl Date {
     /// use speedate::Date;
     ///
     /// let d = Date::parse_str("2020-01-01").unwrap();
+    /// assert_eq!(d.to_string(), "2020-01-01");
+    /// let d = Date::parse_str("1577836800").unwrap();
+    /// assert_eq!(d.to_string(), "2020-01-01");
+    /// ```
+    #[inline]
+    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
+        Self::parse_bytes(str.as_bytes())
+    }
+
+    /// Parse a date from bytes using RFC 3339 format
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Date;
+    ///
+    /// let d = Date::parse_bytes_rfc3339(b"2020-01-01").unwrap();
     /// assert_eq!(
     ///     d,
     ///     Date {
@@ -73,11 +125,20 @@ impl Date {
     /// assert_eq!(d.to_string(), "2020-01-01");
     /// ```
     #[inline]
-    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
-        Self::parse_bytes(str.as_bytes())
+    pub fn parse_bytes_rfc3339(bytes: &[u8]) -> Result<Self, ParseError> {
+        let d = Self::parse_bytes_partial(bytes)?;
+
+        if bytes.len() > 10 {
+            return Err(ParseError::ExtraCharacters);
+        }
+
+        Ok(d)
     }
 
-    /// Parse a date from bytes
+    /// Parse a date from bytes using RFC 3339 format, or a unix timestamp.
+    ///
+    /// In the input is purely numeric, then the number is interpreted as a unix timestamp,
+    /// using [`Date::from_timestamp`].
     ///
     /// # Arguments
     ///
@@ -89,25 +150,20 @@ impl Date {
     /// use speedate::Date;
     ///
     /// let d = Date::parse_bytes(b"2020-01-01").unwrap();
-    /// assert_eq!(
-    ///     d,
-    ///     Date {
-    ///         year: 2020,
-    ///         month: 1,
-    ///         day: 1
-    ///     }
-    /// );
+    /// assert_eq!(d.to_string(), "2020-01-01");
+    ///
+    /// let d = Date::parse_bytes(b"1577836800").unwrap();
     /// assert_eq!(d.to_string(), "2020-01-01");
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        let d = Self::parse_bytes_partial(bytes)?;
-
-        if bytes.len() > 10 {
-            return Err(ParseError::ExtraCharacters);
+        match Self::parse_bytes_rfc3339(bytes) {
+            Ok(d) => Ok(d),
+            Err(e) => match int_parse_bytes(bytes) {
+                Some(int) => Self::from_timestamp(int),
+                None => Err(e),
+            },
         }
-
-        Ok(d)
     }
 
     /// Create a date from a Unix Timestamp in seconds or milliseconds

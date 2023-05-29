@@ -1,3 +1,4 @@
+use crate::numbers::{float_parse_bytes, IntFloat};
 use crate::{Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
@@ -157,7 +158,7 @@ impl DateTime {
     /// ```
     /// use speedate::{DateTime, Date, Time};
     ///
-    /// let dt = DateTime::parse_str("2000-02-29 12:13:14-0830").unwrap();
+    /// let dt = DateTime::parse_str_rfc3339("2000-02-29 12:13:14-0830").unwrap();
     /// assert_eq!(
     ///     dt,
     ///     DateTime {
@@ -179,11 +180,32 @@ impl DateTime {
     /// ```
     /// (note: the string representation is still canonical ISO8601)
     #[inline]
+    pub fn parse_str_rfc3339(str: &str) -> Result<Self, ParseError> {
+        Self::parse_bytes_rfc3339(str.as_bytes())
+    }
+
+    /// As with [Datetime::parse_str] but also supports unix timestamps.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::DateTime;
+    ///
+    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
+    ///
+    /// let dt = DateTime::parse_str("1641039194").unwrap();
+    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14");
+    /// ```
     pub fn parse_str(str: &str) -> Result<Self, ParseError> {
         Self::parse_bytes(str.as_bytes())
     }
 
-    /// Parse a datetime from bytes
+    /// Parse a datetime from bytes using RFC 3339 format
     ///
     /// # Arguments
     ///
@@ -194,7 +216,7 @@ impl DateTime {
     /// ```
     /// use speedate::{DateTime, Date, Time};
     ///
-    /// let dt = DateTime::parse_bytes(b"2022-01-01T12:13:14Z").unwrap();
+    /// let dt = DateTime::parse_bytes_rfc3339(b"2022-01-01T12:13:14Z").unwrap();
     /// assert_eq!(
     ///     dt,
     ///     DateTime {
@@ -214,7 +236,7 @@ impl DateTime {
     /// );
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     /// ```
-    pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+    pub fn parse_bytes_rfc3339(bytes: &[u8]) -> Result<Self, ParseError> {
         // First up, parse the full date if we can
         let date = Date::parse_bytes_partial(bytes)?;
 
@@ -228,6 +250,37 @@ impl DateTime {
         let time = Time::parse_bytes_offset(bytes, 11)?;
 
         Ok(Self { date, time })
+    }
+
+    /// As with [Datetime::parse_bytes_rfc3339] but also supports unix timestamps.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{DateTime, Date, Time};
+    ///
+    /// let dt = DateTime::parse_bytes(b"2022-01-01T12:13:14Z").unwrap();
+    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
+    ///
+    /// let dt = DateTime::parse_bytes(b"1641039194").unwrap();
+    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14");
+    /// ```
+    pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+        match Self::parse_bytes_rfc3339(bytes) {
+            Ok(d) => Ok(d),
+            Err(e) => match float_parse_bytes(bytes) {
+                IntFloat::Int(int) => Self::from_timestamp(int, 0),
+                IntFloat::Float(float) => {
+                    let micro = (float.fract() * 1_000_000_f64).round() as u32;
+                    Self::from_timestamp(float.floor() as i64, micro)
+                }
+                IntFloat::Err => Err(e),
+            },
+        }
     }
 
     /// Create a datetime from a Unix Timestamp in seconds or milliseconds
@@ -250,7 +303,7 @@ impl DateTime {
     /// * `timestamp` - timestamp in either seconds or milliseconds
     /// * `timestamp_microsecond` - microseconds fraction of a second timestamp
     ///
-    /// Where `timestamp` is interrupted  as milliseconds and is not a whole second, the remainder is added to
+    /// Where `timestamp` is interrupted as milliseconds and is not a whole second, the remainder is added to
     /// `timestamp_microsecond`.
     ///
     /// # Examples
