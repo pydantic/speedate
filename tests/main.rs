@@ -1185,7 +1185,10 @@ macro_rules! float_ok_tests {
 float_ok_tests! {
     zero: "0", "Int(0)";
     one: "1", "Int(1)";
+    neg_one: "-1", "Int(-1)";
+    one_point: "1.", "Float(1.0)";
     decimal: "1.5", "Float(1.5)";
+    neg_decimal: "-1.5", "Float(-1.5)";
     decimal_zero: "1.0", "Float(1.0)";
 }
 
@@ -1205,8 +1208,10 @@ macro_rules! float_err_tests {
 float_err_tests! {
     text: "xxx";
     double_neg: "--1";
+    text_in_fraction: "123.XX";
     empty: "";
     i64_minus_1: "9223372036854775809";
     too_big: "092233720368547758089";
     too_big_neg: "-092233720368547758089";
+    too_big_neg2: "9223372036854775808";
 }
