@@ -7,7 +7,7 @@ pub fn int_parse_str(s: &str) -> Option<i64> {
 
 /// Parse bytes as an int.
 pub fn int_parse_bytes(s: &[u8]) -> Option<i64> {
-    fast_parse_int(s.iter().map(|&c| c))
+    fast_parse_int(s.iter().copied())
 }
 
 pub fn fast_parse_int<I: Iterator>(mut bytes: I) -> Option<i64>
@@ -18,7 +18,7 @@ where
     let neg = match bytes.next() {
         Some(b'-') => true,
         Some(b'+') => false,
-        Some(c) if (b'0'..=b'9').contains(&c) => {
+        Some(c) if c.is_ascii_digit() => {
             result = (c & 0x0f) as i64;
             false
         }
@@ -63,7 +63,7 @@ pub fn float_parse_str(s: &str) -> IntFloat {
 
 /// Parse bytes as an float.
 pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
-    fast_parse_float(s.iter().map(|&c| c))
+    fast_parse_float(s.iter().copied())
 }
 
 pub fn fast_parse_float<I: Iterator>(mut bytes: I) -> IntFloat
@@ -73,7 +73,7 @@ where
     let mut int_part: i64 = 0;
     let neg = match bytes.next() {
         Some(b'-') => true,
-        Some(c) if (b'0'..=b'9').contains(&c) => {
+        Some(c) if c.is_ascii_digit() => {
             int_part = (c & 0x0f) as i64;
             false
         }
@@ -82,11 +82,7 @@ where
 
     let mut found_dot = false;
 
-    loop {
-        let digit = match bytes.next() {
-            Some(c) => c,
-            None => break,
-        };
+    for digit in bytes.by_ref() {
         match digit {
             b'0'..=b'9' => {
                 int_part = match int_part.checked_mul(10) {

@@ -72,6 +72,6 @@ jobs:
     - run: rustup component add rustfmt clippy
 
     - run: cargo fmt -- --check
-    - run: cargo clippy
+    - run: cargo clippy -- -D warnings -A incomplete_features -W clippy::dbg_macro -W clippy::print_stdout
 
     - run: cargo doc
