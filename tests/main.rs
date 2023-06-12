@@ -1068,7 +1068,13 @@ param_tests! {
     duration_time_1m: ok => "00:01", "PT60S";
     duration_time_1h_2m_3s: ok => "01:02:03", "PT3723S";
     duration_time_fraction: ok => "00:01:03.123", "PT63.123S";
-    duration_time_extra: err => "00:01:03.123x", InvalidCharTzSign;
+    duration_time_extra: err => "00:01:03.123x", ExtraCharacters;
+    duration_time_timezone: err => "00:01:03x", ExtraCharacters;
+    duration_time_invalid_hour: err => "24:01:03", OutOfRangeHour;
+    duration_time_invalid_minute: err => "00:60:03", OutOfRangeMinute;
+    duration_time_invalid_second: err => "00:00:60", OutOfRangeSecond;
+    duration_time_fraction_too_long: err => "00:00:00.1234567", SecondFractionTooLong;
+    duration_time_fraction_missing: err => "00:00:00.", SecondFractionMissing;
     duration_days_1day1: ok => "1 day", "P1D";
     duration_days_1day2: ok => "1day", "P1D";
     duration_days_1day3: ok => "1 day,", "P1D";

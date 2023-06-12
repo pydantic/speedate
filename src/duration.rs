@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use crate::{ParseError, Time};
+use crate::{get_digit, get_digit_unchecked, ParseError, Time};
 
 /// A Duration
 ///
@@ -436,13 +436,86 @@ impl Duration {
     }
 
     fn parse_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let t = Time::parse_bytes_offset(bytes, offset)?;
+        if bytes.len() - offset < 5 {
+            return Err(ParseError::TooShort);
+        }
+        let hour: u8;
+        let minute: u8;
+        unsafe {
+            let h1 = get_digit_unchecked!(bytes, offset, InvalidCharHour);
+            let h2 = get_digit_unchecked!(bytes, offset + 1, InvalidCharHour);
+            hour = h1 * 10 + h2;
+
+            match bytes.get_unchecked(offset + 2) {
+                b':' => (),
+                _ => return Err(ParseError::InvalidCharTimeSep),
+            }
+            let m1 = get_digit_unchecked!(bytes, offset + 3, InvalidCharMinute);
+            let m2 = get_digit_unchecked!(bytes, offset + 4, InvalidCharMinute);
+            minute = m1 * 10 + m2;
+        }
+
+        if hour > 23 {
+            return Err(ParseError::OutOfRangeHour);
+        }
+
+        if minute > 59 {
+            return Err(ParseError::OutOfRangeMinute);
+        }
+        let mut length: usize = 5;
+
+        let (second, microsecond) = match bytes.get(offset + 5) {
+            Some(b':') => {
+                let s1 = get_digit!(bytes, offset + 6, InvalidCharSecond);
+                let s2 = get_digit!(bytes, offset + 7, InvalidCharSecond);
+                let second = s1 * 10 + s2;
+                if second > 59 {
+                    return Err(ParseError::OutOfRangeSecond);
+                }
+                length = 8;
+
+                let mut microsecond = 0;
+                let frac_sep = bytes.get(offset + 8).copied();
+                if frac_sep == Some(b'.') || frac_sep == Some(b',') {
+                    length = 9;
+                    let mut i: usize = 0;
+                    loop {
+                        match bytes.get(offset + length + i) {
+                            Some(c) if c.is_ascii_digit() => {
+                                microsecond *= 10;
+                                microsecond += (c - b'0') as u32;
+                            }
+                            _ => {
+                                break;
+                            }
+                        }
+                        i += 1;
+                        if i > 6 {
+                            return Err(ParseError::SecondFractionTooLong);
+                        }
+                    }
+                    if i == 0 {
+                        return Err(ParseError::SecondFractionMissing);
+                    }
+                    if i < 6 {
+                        microsecond *= 10_u32.pow(6 - i as u32);
+                    }
+                    length += i;
+                }
+                (second, microsecond)
+            }
+            _ => (0, 0),
+        };
+
+        if bytes.len() > offset + length {
+            return Err(ParseError::ExtraCharacters);
+        }
 
         Ok(Self {
             positive: false, // is set above
             day: 0,
-            second: t.hour as u32 * 3_600 + t.minute as u32 * 60 + t.second as u32,
-            microsecond: t.microsecond,
+            second: hour as u32 * 3_600 + minute as u32 * 60 + second as u32,
+            microsecond,
         })
     }
 
