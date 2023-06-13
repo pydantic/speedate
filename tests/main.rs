@@ -1096,7 +1096,7 @@ param_tests! {
     duration_days_time: ok => "1 day 00:00:42", "P1DT42S";
     duration_days_time_neg: ok => "-1 day 00:00:42", "-P1DT42S";
     duration_exceeds_day: ok => "PT86500S", "P1DT100S";
-    duration_days_time_too_shoert: err => "1 day 00:", TooShort;
+    duration_days_time_too_short: err => "1 day 00:", TooShort;
     duration_days_time_wrong: err => "1 day 00:xx", InvalidCharMinute;
     duration_days_time_extra: err => "1 day 00:00:00.123 ", InvalidCharTzSign;
     duration_overflow: err => "18446744073709551616 day 12:00", DurationValueTooLarge;

@@ -228,34 +228,12 @@ impl Time {
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
     pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        if bytes.len() - offset < 5 {
-            return Err(ParseError::TooShort);
-        }
-        let hour: u8;
-        let minute: u8;
-        unsafe {
-            let h1 = get_digit_unchecked!(bytes, offset, InvalidCharHour);
-            let h2 = get_digit_unchecked!(bytes, offset + 1, InvalidCharHour);
-            hour = h1 * 10 + h2;
+        let (hour, minute) = match Time::parse_hm(bytes, offset) {
+            Ok((hour, minute)) => (hour, minute),
+            Err(e) => return Err(e),
+        };
 
-            match bytes.get_unchecked(offset + 2) {
-                b':' => (),
-                _ => return Err(ParseError::InvalidCharTimeSep),
-            }
-            let m1 = get_digit_unchecked!(bytes, offset + 3, InvalidCharMinute);
-            let m2 = get_digit_unchecked!(bytes, offset + 4, InvalidCharMinute);
-            minute = m1 * 10 + m2;
-        }
-
-        if hour > 23 {
-            return Err(ParseError::OutOfRangeHour);
-        }
-
-        if minute > 59 {
-            return Err(ParseError::OutOfRangeMinute);
-        }
         let mut length: usize = 5;
-
         let (second, microsecond) = match bytes.get(offset + 5) {
             Some(b':') => {
                 let s1 = get_digit!(bytes, offset + 6, InvalidCharSecond);
@@ -369,6 +347,37 @@ impl Time {
             microsecond,
             tz_offset,
         })
+    }
+
+    pub(crate) fn parse_hm(bytes: &[u8], offset: usize) -> Result<(u8, u8), ParseError> {
+        if bytes.len() - offset < 5 {
+            return Err(ParseError::TooShort);
+        }
+        let hour: u8;
+        let minute: u8;
+        unsafe {
+            let h1 = get_digit_unchecked!(bytes, offset, InvalidCharHour);
+            let h2 = get_digit_unchecked!(bytes, offset + 1, InvalidCharHour);
+            hour = h1 * 10 + h2;
+
+            match bytes.get_unchecked(offset + 2) {
+                b':' => (),
+                _ => return Err(ParseError::InvalidCharTimeSep),
+            }
+            let m1 = get_digit_unchecked!(bytes, offset + 3, InvalidCharMinute);
+            let m2 = get_digit_unchecked!(bytes, offset + 4, InvalidCharMinute);
+            minute = m1 * 10 + m2;
+        }
+
+        if hour > 23 {
+            return Err(ParseError::OutOfRangeHour);
+        }
+
+        if minute > 59 {
+            return Err(ParseError::OutOfRangeMinute);
+        }
+
+        Ok((hour, minute))
     }
 
     /// Get the total seconds of the time
