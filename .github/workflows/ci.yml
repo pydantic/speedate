@@ -21,7 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: dtolnay/rust-toolchain@${{ matrix.rust-version }}
+    - uses: 'dtolnay/rust-toolchain@${{ matrix.rust-version }}'
 
     - id: cache-rust
       uses: Swatinem/rust-cache@v2
