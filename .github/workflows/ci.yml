@@ -16,8 +16,7 @@ jobs:
       matrix:
         rust-version: [stable, beta, nightly]
 
-    env:
-      RUST: ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -42,8 +41,6 @@ jobs:
     - run: cargo test --doc
 
     - uses: codecov/codecov-action@v2
-      with:
-        env_vars: RUST
 
   bench:
     runs-on: ubuntu-latest
