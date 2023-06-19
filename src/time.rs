@@ -228,58 +228,11 @@ impl Time {
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
     pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let (hour, minute) = match Time::parse_hm(bytes, offset) {
-            Ok((hour, minute)) => (hour, minute),
-            Err(e) => return Err(e),
-        };
+        let partial_time = PureTime::parse(bytes, offset)?;
 
-        let mut length: usize = 5;
-        let (second, microsecond) = match bytes.get(offset + 5) {
-            Some(b':') => {
-                let s1 = get_digit!(bytes, offset + 6, InvalidCharSecond);
-                let s2 = get_digit!(bytes, offset + 7, InvalidCharSecond);
-                let second = s1 * 10 + s2;
-                if second > 59 {
-                    return Err(ParseError::OutOfRangeSecond);
-                }
-                length = 8;
-
-                let mut microsecond = 0;
-                let frac_sep = bytes.get(offset + 8).copied();
-                if frac_sep == Some(b'.') || frac_sep == Some(b',') {
-                    length = 9;
-                    let mut i: usize = 0;
-                    loop {
-                        match bytes.get(offset + length + i) {
-                            Some(c) if c.is_ascii_digit() => {
-                                microsecond *= 10;
-                                microsecond += (c - b'0') as u32;
-                            }
-                            _ => {
-                                break;
-                            }
-                        }
-                        i += 1;
-                        if i > 6 {
-                            return Err(ParseError::SecondFractionTooLong);
-                        }
-                    }
-                    if i == 0 {
-                        return Err(ParseError::SecondFractionMissing);
-                    }
-                    if i < 6 {
-                        microsecond *= 10_u32.pow(6 - i as u32);
-                    }
-                    length += i;
-                }
-                (second, microsecond)
-            }
-            _ => (0, 0),
-        };
-
-        // Parse the offset
+        // Parse the timezone offset
         let mut tz_offset: Option<i32> = None;
-        let mut position = offset + length;
+        let mut position = partial_time.position;
 
         if let Some(next_char) = bytes.get(position).copied() {
             position += 1;
@@ -341,43 +294,12 @@ impl Time {
         }
 
         Ok(Self {
-            hour,
-            minute,
-            second,
-            microsecond,
+            hour: partial_time.hour,
+            minute: partial_time.minute,
+            second: partial_time.second,
+            microsecond: partial_time.microsecond,
             tz_offset,
         })
-    }
-
-    pub(crate) fn parse_hm(bytes: &[u8], offset: usize) -> Result<(u8, u8), ParseError> {
-        if bytes.len() - offset < 5 {
-            return Err(ParseError::TooShort);
-        }
-        let hour: u8;
-        let minute: u8;
-        unsafe {
-            let h1 = get_digit_unchecked!(bytes, offset, InvalidCharHour);
-            let h2 = get_digit_unchecked!(bytes, offset + 1, InvalidCharHour);
-            hour = h1 * 10 + h2;
-
-            match bytes.get_unchecked(offset + 2) {
-                b':' => (),
-                _ => return Err(ParseError::InvalidCharTimeSep),
-            }
-            let m1 = get_digit_unchecked!(bytes, offset + 3, InvalidCharMinute);
-            let m2 = get_digit_unchecked!(bytes, offset + 4, InvalidCharMinute);
-            minute = m1 * 10 + m2;
-        }
-
-        if hour > 23 {
-            return Err(ParseError::OutOfRangeHour);
-        }
-
-        if minute > 59 {
-            return Err(ParseError::OutOfRangeMinute);
-        }
-
-        Ok((hour, minute))
     }
 
     /// Get the total seconds of the time
@@ -463,5 +385,106 @@ impl Time {
         } else {
             Err(ParseError::TzRequired)
         }
+    }
+}
+
+/// Used internally for parsing both times and durations from time format
+pub(crate) struct PureTime {
+    /// Hour: 0 to 23
+    hour: u8,
+    /// Minute: 0 to 59
+    minute: u8,
+    /// Second: 0 to 59
+    second: u8,
+    /// microseconds: 0 to 999999
+    pub microsecond: u32,
+    /// position of the cursor after parsing
+    pub position: usize,
+}
+
+impl PureTime {
+    pub fn parse(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+        if bytes.len() - offset < 5 {
+            return Err(ParseError::TooShort);
+        }
+        let hour: u8;
+        let minute: u8;
+        unsafe {
+            let h1 = get_digit_unchecked!(bytes, offset, InvalidCharHour);
+            let h2 = get_digit_unchecked!(bytes, offset + 1, InvalidCharHour);
+            hour = h1 * 10 + h2;
+
+            match bytes.get_unchecked(offset + 2) {
+                b':' => (),
+                _ => return Err(ParseError::InvalidCharTimeSep),
+            }
+            let m1 = get_digit_unchecked!(bytes, offset + 3, InvalidCharMinute);
+            let m2 = get_digit_unchecked!(bytes, offset + 4, InvalidCharMinute);
+            minute = m1 * 10 + m2;
+        }
+
+        if hour > 23 {
+            return Err(ParseError::OutOfRangeHour);
+        }
+
+        if minute > 59 {
+            return Err(ParseError::OutOfRangeMinute);
+        }
+
+        let mut length: usize = 5;
+        let (second, microsecond) = match bytes.get(offset + 5) {
+            Some(b':') => {
+                let s1 = get_digit!(bytes, offset + 6, InvalidCharSecond);
+                let s2 = get_digit!(bytes, offset + 7, InvalidCharSecond);
+                let second = s1 * 10 + s2;
+                if second > 59 {
+                    return Err(ParseError::OutOfRangeSecond);
+                }
+                length = 8;
+
+                let mut microsecond = 0;
+                let frac_sep = bytes.get(offset + 8).copied();
+                if frac_sep == Some(b'.') || frac_sep == Some(b',') {
+                    length = 9;
+                    let mut i: usize = 0;
+                    loop {
+                        match bytes.get(offset + length + i) {
+                            Some(c) if c.is_ascii_digit() => {
+                                microsecond *= 10;
+                                microsecond += (c - b'0') as u32;
+                            }
+                            _ => {
+                                break;
+                            }
+                        }
+                        i += 1;
+                        if i > 6 {
+                            return Err(ParseError::SecondFractionTooLong);
+                        }
+                    }
+                    if i == 0 {
+                        return Err(ParseError::SecondFractionMissing);
+                    }
+                    if i < 6 {
+                        microsecond *= 10_u32.pow(6 - i as u32);
+                    }
+                    length += i;
+                }
+                (second, microsecond)
+            }
+            _ => (0, 0),
+        };
+
+        Ok(Self {
+            hour,
+            minute,
+            second,
+            microsecond,
+            position: offset + length,
+        })
+    }
+
+    pub fn total_seconds(&self) -> u32 {
+        self.hour as u32 * 3_600 + self.minute as u32 * 60 + self.second as u32
     }
 }

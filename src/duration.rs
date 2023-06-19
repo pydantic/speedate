@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use crate::{get_digit, ParseError, Time};
+use crate::{ParseError, Time};
 
 /// A Duration
 ///
@@ -436,64 +436,17 @@ impl Duration {
     }
 
     fn parse_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let (hour, minute) = match Time::parse_hm(bytes, offset) {
-            Ok((hour, minute)) => (hour, minute),
-            Err(e) => return Err(e),
-        };
+        let partial_time = crate::time::PureTime::parse(bytes, offset)?;
 
-        let mut length: usize = 5;
-        let (second, microsecond) = match bytes.get(offset + 5) {
-            Some(b':') => {
-                let s1 = get_digit!(bytes, offset + 6, InvalidCharSecond);
-                let s2 = get_digit!(bytes, offset + 7, InvalidCharSecond);
-                let second = s1 * 10 + s2;
-                if second > 59 {
-                    return Err(ParseError::OutOfRangeSecond);
-                }
-                length = 8;
-
-                let mut microsecond = 0;
-                let frac_sep = bytes.get(offset + 8).copied();
-                if frac_sep == Some(b'.') || frac_sep == Some(b',') {
-                    length = 9;
-                    let mut i: usize = 0;
-                    loop {
-                        match bytes.get(offset + length + i) {
-                            Some(c) if c.is_ascii_digit() => {
-                                microsecond *= 10;
-                                microsecond += (c - b'0') as u32;
-                            }
-                            _ => {
-                                break;
-                            }
-                        }
-                        i += 1;
-                        if i > 6 {
-                            return Err(ParseError::SecondFractionTooLong);
-                        }
-                    }
-                    if i == 0 {
-                        return Err(ParseError::SecondFractionMissing);
-                    }
-                    if i < 6 {
-                        microsecond *= 10_u32.pow(6 - i as u32);
-                    }
-                    length += i;
-                }
-                (second, microsecond)
-            }
-            _ => (0, 0),
-        };
-
-        if bytes.len() > offset + length {
+        if bytes.len() > partial_time.position {
             return Err(ParseError::ExtraCharacters);
         }
 
         Ok(Self {
             positive: false, // is set above
             day: 0,
-            second: hour as u32 * 3_600 + minute as u32 * 60 + second as u32,
-            microsecond,
+            second: partial_time.total_seconds(),
+            microsecond: partial_time.microsecond,
         })
     }
 
