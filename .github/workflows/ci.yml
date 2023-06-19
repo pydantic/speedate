@@ -14,14 +14,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust-version: [stable, nightly]
+        rust-version: [stable, beta, nightly]
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
 
-    - uses: dtolnay/rust-toolchain@${{ matrix.rust-version }}
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust-version }}
 
     - id: cache-rust
       uses: Swatinem/rust-cache@v2
