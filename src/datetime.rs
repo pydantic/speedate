@@ -184,7 +184,7 @@ impl DateTime {
         Self::parse_bytes_rfc3339(str.as_bytes())
     }
 
-    /// As with [Datetime::parse_str] but also supports unix timestamps.
+    /// As with [DateTime::parse_str] but also supports unix timestamps.
     ///
     /// # Arguments
     ///
@@ -252,7 +252,7 @@ impl DateTime {
         Ok(Self { date, time })
     }
 
-    /// As with [Datetime::parse_bytes_rfc3339] but also supports unix timestamps.
+    /// As with [DateTime::parse_bytes_rfc3339] but also supports unix timestamps.
     ///
     /// # Arguments
     ///
