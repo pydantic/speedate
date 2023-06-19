@@ -51,7 +51,7 @@ fn date() {
         }
     );
     assert_eq!(d.to_string(), "2020-01-01");
-    assert_eq!(format!("{:?}", d), "Date { year: 2020, month: 1, day: 1 }");
+    assert_eq!(format!("{d:?}"), "Date { year: 2020, month: 1, day: 1 }");
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn date_bytes_err() {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::TooShort),
     }
-    let bytes: Vec<u8> = vec!['2' as u8, '0' as u8, '0' as u8, '0' as u8, 92, 117, 100, 56, 48, 48];
+    let bytes: Vec<u8> = vec![b'2', b'0', b'0', b'0', 92, 117, 100, 56, 48, 48];
     match Date::parse_bytes_rfc3339(&bytes) {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::InvalidCharDateSep),
@@ -107,15 +107,15 @@ param_tests! {
 #[test]
 fn date_from_timestamp_extremes() {
     match Date::from_timestamp(i64::MIN, false) {
-        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
     match Date::from_timestamp(i64::MAX, false) {
-        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooLarge),
     }
     match Date::from_timestamp(-30_610_224_000_000, false) {
-        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
     let d = Date::from_timestamp(-11_676_096_000 + 1000, false).unwrap();
@@ -125,7 +125,7 @@ fn date_from_timestamp_extremes() {
     let d = Date::from_timestamp(253_402_300_799_000, false).unwrap();
     assert_eq!(d.to_string(), "9999-12-31");
     match Date::from_timestamp(253_402_300_800_000, false) {
-        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooLarge),
     }
 }
@@ -137,7 +137,7 @@ fn date_watershed() {
     let dt = Date::from_timestamp(20_000_000_001, false).unwrap();
     assert_eq!(dt.to_string(), "1970-08-20");
     match Date::from_timestamp(-20_000_000_000, false) {
-        Ok(d) => panic!("unexpectedly valid, {}", d),
+        Ok(d) => panic!("unexpectedly valid, {d}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
     let dt = Date::from_timestamp(-20_000_000_001, false).unwrap();
@@ -170,9 +170,7 @@ fn try_date_timestamp(ts: i64, check_timestamp: bool) {
             month: chrono_date.month() as u8,
             day: chrono_date.day() as u8,
         },
-        "timestamp: {} => {}",
-        ts,
-        chrono_date
+        "timestamp: {ts} => {chrono_date}"
     );
     if check_timestamp {
         assert_eq!(d.timestamp(), ts);
@@ -208,7 +206,7 @@ fn date_timestamp() {
     assert_eq!(d.timestamp(), 1_654_560_000);
 
     match Date::from_timestamp(1_654_560_001, true) {
-        Ok(d) => panic!("unexpectedly valid, {}", d),
+        Ok(d) => panic!("unexpectedly valid, {d}"),
         Err(e) => assert_eq!(e, ParseError::DateNotExact),
     }
 }
@@ -357,13 +355,11 @@ fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
                 hour: chrono_dt.hour() as u8,
                 minute: chrono_dt.minute() as u8,
                 second: chrono_dt.second() as u8,
-                microsecond: chrono_dt.nanosecond() as u32 / 1_000,
+                microsecond: chrono_dt.nanosecond() / 1_000,
                 tz_offset: None,
             },
         },
-        "timestamp: {} => {}",
-        ts,
-        chrono_dt
+        "timestamp: {ts} => {chrono_dt}"
     );
     assert_eq!(dt.timestamp(), ts);
 }
@@ -415,7 +411,7 @@ fn datetime_from_timestamp_specific() {
     let d = DateTime::from_timestamp(253_402_300_799_000, 999999).unwrap();
     assert_eq!(d.to_string(), "9999-12-31T23:59:59.999999");
     match Date::from_timestamp(253_402_300_800_000, false) {
-        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooLarge),
     }
 }
@@ -427,7 +423,7 @@ fn datetime_watershed() {
     let dt = DateTime::from_timestamp(20_000_000_001, 0).unwrap();
     assert_eq!(dt.to_string(), "1970-08-20T11:33:20.001");
     match DateTime::from_timestamp(-20_000_000_000, 0) {
-        Ok(dt) => panic!("unexpectedly valid, {}", dt),
+        Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
     let dt = DateTime::from_timestamp(-20_000_000_001, 0).unwrap();
@@ -513,7 +509,7 @@ fn time() {
     );
     assert_eq!(t.to_string(), "12:13:14.123456");
     assert_eq!(
-        format!("{:?}", t),
+        format!("{t:?}"),
         "Time { hour: 12, minute: 13, second: 14, microsecond: 123456, tz_offset: None }"
     );
 }
@@ -530,7 +526,7 @@ fn time_comparison() {
     assert!(t2 <= t1);
     assert!(t2 <= t2.clone());
     assert!(t1.eq(&t1.clone()));
-    assert!(!t1.eq(&t2.clone()));
+    assert!(!t1.eq(&t2));
 
     let t3 = Time::parse_str("12:13:14.123").unwrap();
     let t4 = Time::parse_str("12:13:13.999").unwrap();
@@ -549,7 +545,7 @@ fn time_comparison_timezone() {
     assert!(t2 <= t1);
     assert!(t2 <= t2.clone());
     assert!(t1.eq(&t1.clone()));
-    assert!(!t1.eq(&t2.clone()));
+    assert!(!t1.eq(&t2));
 
     let t3 = Time::parse_str("12:13:13.999+00:00").unwrap();
     let t4 = Time::parse_str("12:13:13.123+00:00").unwrap();
@@ -563,7 +559,7 @@ fn time_comparison_timezone() {
 #[test]
 fn time_total_seconds() {
     let t = Time::parse_str("01:02:03.04").unwrap();
-    assert_eq!(t.total_seconds(), 1 * 3600 + 2 * 60 + 3);
+    assert_eq!(t.total_seconds(), 3600 + 2 * 60 + 3);
 
     let t = Time::parse_str("12:13:14.999999").unwrap();
     assert_eq!(t.total_seconds(), 12 * 3600 + 13 * 60 + 14);
@@ -660,7 +656,7 @@ fn datetime_naive() {
     );
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14.123456");
     assert_eq!(
-        format!("{:?}", dt),
+        format!("{dt:?}"),
         "DateTime { date: Date { year: 2020, month: 1, day: 1 }, time: Time { hour: 12, minute: 13, second: 14, microsecond: 123456, tz_offset: None } }"
     );
 }
@@ -794,7 +790,7 @@ fn datetime_comparison_timezone() {
     let dt5 = DateTime::parse_str("1970-01-01T03:00:00Z").unwrap();
     assert_eq!(dt5.timestamp_tz(), 3 * 3600);
     assert!(dt5 > dt4);
-    assert_eq!(dt4 > dt4.clone(), false);
+    assert!(dt4 <= dt4.clone());
 
     // assert that microseconds are used for comparison here
     let dt6 = DateTime::parse_str("1970-01-01T04:00:00.333+02:00").unwrap();
@@ -856,34 +852,34 @@ fn test_ok_values_txt() {
     let mut contents = String::new();
     f.read_to_string(&mut contents).unwrap();
     let mut success = 0;
-    for (i, line) in contents.split("\n").enumerate() {
+    for (i, line) in contents.split('\n').enumerate() {
         let line_no = i + 1;
-        if line.starts_with("#") || line.is_empty() {
+        if line.starts_with('#') || line.is_empty() {
             continue;
         } else if line.starts_with("date:") {
             let (input, expected_str) = extract_values(line, "date:");
             let d = Date::parse_str(&input)
-                .map_err(|e| panic!("error on line {} {:?}: {:?}", line_no, line, e))
+                .map_err(|e| panic!("error on line {line_no} {line:?}: {e:?}"))
                 .unwrap();
-            assert_eq!(d.to_string(), expected_str, "error on line {}", line_no);
+            assert_eq!(d.to_string(), expected_str, "error on line {line_no}");
         } else if line.starts_with("time:") {
             let (input, expected_str) = extract_values(line, "time:");
             let t = Time::parse_str(&input)
-                .map_err(|e| panic!("error on line {} {:?}: {:?}", line_no, line, e))
+                .map_err(|e| panic!("error on line {line_no} {line:?}: {e:?}"))
                 .unwrap();
-            assert_eq!(t.to_string(), expected_str, "error on line {}", line_no);
+            assert_eq!(t.to_string(), expected_str, "error on line {line_no}");
         } else if line.starts_with("dt:") {
             let (input, expected_str) = extract_values(line, "dt:");
             let dt = DateTime::parse_str(&input)
-                .map_err(|e| panic!("error on line {} {:?}: {:?}", line_no, line, e))
+                .map_err(|e| panic!("error on line {line_no} {line:?}: {e:?}"))
                 .unwrap();
-            assert_eq!(dt.to_string(), expected_str, "error on line {}", line_no);
+            assert_eq!(dt.to_string(), expected_str, "error on line {line_no}");
         } else {
-            panic!("unexpected line: {:?}", line);
+            panic!("unexpected line: {line:?}");
         }
         success += 1;
     }
-    println!("{} formats successfully parsed", success);
+    println!("{success} formats successfully parsed");
 }
 
 #[test]
@@ -892,18 +888,17 @@ fn test_err_values_txt() {
     let mut contents = String::new();
     f.read_to_string(&mut contents).unwrap();
     let mut success = 0;
-    for (i, line) in contents.split("\n").enumerate() {
+    for (i, line) in contents.split('\n').enumerate() {
         let line_no = i + 1;
-        if line.starts_with("#") || line.is_empty() {
+        if line.starts_with('#') || line.is_empty() {
             continue;
         }
-        match DateTime::parse_str_rfc3339(line.trim()) {
-            Ok(_) => panic!("unexpected valid line {}: {:?}", line_no, line),
-            Err(_) => (),
+        if let Ok(_) = DateTime::parse_str_rfc3339(line.trim()) {
+            panic!("unexpected valid line {line_no}: {line:?}")
         }
         success += 1;
     }
-    println!("{} correctly invalid", success);
+    println!("{success} correctly invalid");
 }
 
 #[test]
@@ -1029,12 +1024,12 @@ fn duration_comparison() {
 fn duration_new_err() {
     let d = Duration::new(true, u32::MAX, 4294967295, 905969663);
     match d {
-        Ok(t) => panic!("unexpectedly valid: {:?}", t),
+        Ok(t) => panic!("unexpectedly valid: {t:?}"),
         Err(e) => assert_eq!(e, ParseError::DurationValueTooLarge),
     }
     let d = Duration::new(true, u32::MAX, 0, 0);
     match d {
-        Ok(t) => panic!("unexpectedly valid: {:?}", t),
+        Ok(t) => panic!("unexpectedly valid: {t:?}"),
         Err(e) => assert_eq!(e, ParseError::DurationDaysTooLarge),
     }
 }
@@ -1111,7 +1106,7 @@ fn duration_large() {
 
     let input = format!("{}1 day 00:00", u64::MAX);
     match Duration::parse_str(&input) {
-        Ok(t) => panic!("unexpectedly valid: {:?} -> {:?}", input, t),
+        Ok(t) => panic!("unexpectedly valid: {input:?} -> {t:?}"),
         Err(e) => assert_eq!(e, ParseError::DurationValueTooLarge),
     }
 }
@@ -1122,14 +1117,14 @@ fn duration_limit() {
     assert_eq!(d.to_string(), "P2739726Y9DT86399.999999S");
 
     match Duration::new(true, 999_999_999, 86399, 999_999 + 1) {
-        Ok(t) => panic!("unexpectedly valid -> {:?}", t),
+        Ok(t) => panic!("unexpectedly valid -> {t:?}"),
         Err(e) => assert_eq!(e, ParseError::DurationDaysTooLarge),
     }
     let d = Duration::new(false, 999_999_999, 86399, 999_999).unwrap();
     assert_eq!(d.to_string(), "-P2739726Y9DT86399.999999S");
 
     match Duration::new(false, 999_999_999, 86399, 999_999 + 1) {
-        Ok(t) => panic!("unexpectedly valid -> {:?}", t),
+        Ok(t) => panic!("unexpectedly valid -> {t:?}"),
         Err(e) => assert_eq!(e, ParseError::DurationDaysTooLarge),
     }
 }

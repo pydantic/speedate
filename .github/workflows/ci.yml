@@ -67,8 +67,12 @@ jobs:
 
     - uses: Swatinem/rust-cache@v2
 
-    - run: cargo fmt -- --check
-    - run: cargo clippy -- -D warnings -A incomplete_features -W clippy::dbg_macro -W clippy::print_stdout
+    - uses: pre-commit/action@v3.0.0
+      with:
+        extra_args: --all-files --verbose
+      env:
+        PRE_COMMIT_COLOR: always
+        SKIP: test
 
     - run: cargo doc
 
