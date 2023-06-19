@@ -436,17 +436,17 @@ impl Duration {
     }
 
     fn parse_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let partial_time = crate::time::PureTime::parse(bytes, offset)?;
+        let t = crate::time::PureTime::parse(bytes, offset)?;
 
-        if bytes.len() > partial_time.position {
+        if bytes.len() > t.position {
             return Err(ParseError::ExtraCharacters);
         }
 
         Ok(Self {
             positive: false, // is set above
             day: 0,
-            second: partial_time.total_seconds(),
-            microsecond: partial_time.microsecond,
+            second: t.total_seconds(),
+            microsecond: t.microsecond,
         })
     }
 

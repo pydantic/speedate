@@ -228,11 +228,11 @@ impl Time {
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
     pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let partial_time = PureTime::parse(bytes, offset)?;
+        let pure_time = PureTime::parse(bytes, offset)?;
 
         // Parse the timezone offset
         let mut tz_offset: Option<i32> = None;
-        let mut position = partial_time.position;
+        let mut position = pure_time.position;
 
         if let Some(next_char) = bytes.get(position).copied() {
             position += 1;
@@ -294,10 +294,10 @@ impl Time {
         }
 
         Ok(Self {
-            hour: partial_time.hour,
-            minute: partial_time.minute,
-            second: partial_time.second,
-            microsecond: partial_time.microsecond,
+            hour: pure_time.hour,
+            minute: pure_time.minute,
+            second: pure_time.second,
+            microsecond: pure_time.microsecond,
             tz_offset,
         })
     }
