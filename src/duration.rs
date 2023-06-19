@@ -62,11 +62,11 @@ impl fmt::Display for Duration {
         if self.day != 0 {
             let year = self.day / 365;
             if year != 0 {
-                write!(f, "{}Y", year)?;
+                write!(f, "{year}Y")?;
             }
             let day = self.day % 365;
             if day != 0 {
-                write!(f, "{}D", day)?;
+                write!(f, "{day}D")?;
             }
         }
         if self.second != 0 || self.microsecond != 0 {

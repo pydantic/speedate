@@ -10,25 +10,23 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: test rust-${{ matrix.rust-version }}
     strategy:
       fail-fast: false
       matrix:
         rust-version: [stable, beta, nightly]
 
-    env:
-      RUST: ${{ matrix.rust-version }}
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
 
-    - run: rustup update ${{ matrix.rust-version }}
-    - run: rustup default ${{ matrix.rust-version }}
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust-version }}
 
     - id: cache-rust
-      uses: Swatinem/rust-cache@v1
-      with:
-        key: v2
+      uses: Swatinem/rust-cache@v2
 
     - run: cargo install rustfilt coverage-prepare
       if: steps.cache-rust.outputs.cache-hit != 'true'
@@ -45,18 +43,14 @@ jobs:
     - run: cargo test --doc
 
     - uses: codecov/codecov-action@v2
-      with:
-        env_vars: RUST
-
 
   bench:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
-    - run: rustup update nightly
-    - run: rustup default nightly
-    - uses: Swatinem/rust-cache@v1
+    - uses: dtolnay/rust-toolchain@nightly
+    - uses: Swatinem/rust-cache@v2
 
     - run: cargo bench
 
@@ -65,13 +59,29 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - run: rustup update stable
-    - run: rustup default stable
-    - uses: Swatinem/rust-cache@v1
+    - name: install rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
 
-    - run: rustup component add rustfmt clippy
+    - uses: Swatinem/rust-cache@v2
 
-    - run: cargo fmt -- --check
-    - run: cargo clippy -- -D warnings -A incomplete_features -W clippy::dbg_macro -W clippy::print_stdout
+    - uses: pre-commit/action@v3.0.0
+      with:
+        extra_args: --all-files --verbose
+      env:
+        PRE_COMMIT_COLOR: always
+        SKIP: test
 
     - run: cargo doc
+
+  # https://github.com/marketplace/actions/alls-green#why used for branch protection checks
+  check:
+    if: always()
+    needs: [test, bench, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
