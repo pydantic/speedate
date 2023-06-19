@@ -815,6 +815,7 @@ param_tests! {
     dt_underscore: ok => "2020-01-01_12:13:14,123z", "2020-01-01T12:13:14.123Z";
     dt_unix1: ok => "1654646400", "2022-06-08T00:00:00";
     dt_unix2: ok => "1654646404", "2022-06-08T00:00:04";
+    dt_unix_float: ok => "1654646404.5", "2022-06-08T00:00:04.5";
     dt_short_date: err => "xxx", TooShort;
     dt_short_time: err => "2020-01-01T12:0", TooShort;
     dt: err => "202x-01-01", InvalidCharYear;
@@ -1223,4 +1224,6 @@ float_err_tests! {
     too_big: "092233720368547758089";
     too_big_neg: "-092233720368547758089";
     too_big_neg2: "9223372036854775808";
+    error_in_decimal: "123.XX";
+    error_in_decimal_spaces: "123.12 ";
 }
