@@ -918,6 +918,21 @@ fn duration_simple() {
 }
 
 #[test]
+fn duration_zero() {
+    let d = Duration::parse_str("PT0S").unwrap();
+    assert_eq!(
+        d,
+        Duration {
+            positive: true,
+            day: 0,
+            second: 0,
+            microsecond: 0
+        }
+    );
+    assert_eq!(d.to_string(), "PT0S");
+}
+
+#[test]
 fn duration_total_seconds() {
     let d = Duration::parse_str("P1MT1.5S").unwrap();
     assert_eq!(

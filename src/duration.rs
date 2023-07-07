@@ -77,6 +77,9 @@ impl fmt::Display for Duration {
             }
             write!(f, "S")?;
         }
+        if self.second == 0 && self.microsecond == 0 && self.day == 0 {
+            write!(f, "T0S")?;
+        }
         Ok(())
     }
 }
