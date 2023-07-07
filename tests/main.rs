@@ -917,7 +917,6 @@ fn duration_simple() {
     assert_eq!(d.to_string(), "P1Y");
 }
 
-
 #[test]
 fn duration_zero() {
     let d = Duration::parse_str("PT0S").unwrap();
@@ -932,7 +931,6 @@ fn duration_zero() {
     );
     assert_eq!(d.to_string(), "PT0S");
 }
-
 
 #[test]
 fn duration_total_seconds() {
