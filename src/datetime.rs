@@ -204,7 +204,6 @@ impl DateTime {
     pub fn parse_str(str: &str) -> Result<Self, ParseError> {
         Self::parse_bytes(str.as_bytes())
     }
-
     /// Parse a datetime from bytes using RFC 3339 format
     ///
     /// # Arguments
@@ -237,6 +236,42 @@ impl DateTime {
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     /// ```
     pub fn parse_bytes_rfc3339(bytes: &[u8]) -> Result<Self, ParseError> {
+        DateTime::parse_bytes_rfc3339_with_config(bytes, TimeConfig::default())
+    }
+
+    /// Same as `parse_bytes_rfc3339` with with a `TimeConfig` parameter.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    /// * `config` - The `TimeConfig` to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{DateTime, Date, Time, TimeConfig};
+    ///
+    /// let dt = DateTime::parse_bytes_rfc3339_with_config(b"2022-01-01T12:13:14Z", TimeConfig::default()).unwrap();
+    /// assert_eq!(
+    ///     dt,
+    ///     DateTime {
+    ///         date: Date {
+    ///             year: 2022,
+    ///             month: 1,
+    ///             day: 1,
+    ///         },
+    ///         time: Time {
+    ///             hour: 12,
+    ///             minute: 13,
+    ///             second: 14,
+    ///             microsecond: 0,
+    ///             tz_offset: Some(0),
+    ///         },
+    ///     }
+    /// );
+    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
+    /// ```
+    pub fn parse_bytes_rfc3339_with_config(bytes: &[u8], config: TimeConfig) -> Result<Self, ParseError> {
         // First up, parse the full date if we can
         let date = Date::parse_bytes_partial(bytes)?;
 
@@ -247,7 +282,7 @@ impl DateTime {
         }
 
         // Next try to parse the time
-        let time = Time::parse_bytes_offset(bytes, 11, TimeConfig::default())?;
+        let time = Time::parse_bytes_offset(bytes, 11, config)?;
 
         Ok(Self { date, time })
     }
@@ -288,8 +323,8 @@ impl DateTime {
     /// let dt = DateTime::parse_bytes_with_config(b"2022-01-01T12:13:14Z", TimeConfig::default()).unwrap();
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     /// ```
-    pub fn parse_bytes_with_config(bytes: &[u8], _config: TimeConfig) -> Result<Self, ParseError> {
-        match Self::parse_bytes_rfc3339(bytes) {
+    pub fn parse_bytes_with_config(bytes: &[u8], config: TimeConfig) -> Result<Self, ParseError> {
+        match Self::parse_bytes_rfc3339_with_config(bytes, config) {
             Ok(d) => Ok(d),
             Err(e) => match float_parse_bytes(bytes) {
                 IntFloat::Int(int) => Self::from_timestamp(int, 0),

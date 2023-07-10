@@ -481,8 +481,10 @@ impl PureTime {
                     loop {
                         match bytes.get(offset + length + i) {
                             Some(c) if c.is_ascii_digit() => {
-                                microsecond *= 10;
-                                microsecond += (c - b'0') as u32;
+                                if i < 6 {
+                                    microsecond *= 10;
+                                    microsecond += (c - b'0') as u32;
+                                }
                             }
                             _ => {
                                 break;
@@ -491,7 +493,7 @@ impl PureTime {
                         i += 1;
                         if i > 6 {
                             match config.seconds_precision_overflow_behavior {
-                                SecondsPrecisionOverflowBehavior::Truncate => break,
+                                SecondsPrecisionOverflowBehavior::Truncate => continue,
                                 SecondsPrecisionOverflowBehavior::Error => {
                                     return Err(ParseError::SecondFractionTooLong)
                                 }

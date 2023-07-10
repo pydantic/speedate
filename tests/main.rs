@@ -1273,7 +1273,7 @@ fn test_datetime_parse_truncate_seconds() {
 #[test]
 fn test_duration_parse_truncate_seconds() {
     let time = Duration::parse_bytes_with_config(
-        "PT0.123456789S".as_bytes(),
+        "00:00:00.1234567".as_bytes(),
         TimeConfig {
             seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Truncate,
         },
