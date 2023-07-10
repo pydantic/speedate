@@ -13,7 +13,7 @@ mod time;
 pub use date::Date;
 pub use datetime::DateTime;
 pub use duration::Duration;
-pub use time::Time;
+pub use time::{SecondsPrecisionOverflowBehavior, Time, TimeConfig};
 
 pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
 

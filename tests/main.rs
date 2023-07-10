@@ -4,7 +4,10 @@ use std::io::Read;
 use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTime, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
-use speedate::{float_parse_str, int_parse_str, Date, DateTime, Duration, ParseError, Time};
+use speedate::{
+    float_parse_str, int_parse_str, Date, DateTime, Duration, ParseError, SecondsPrecisionOverflowBehavior, Time,
+    TimeConfig,
+};
 
 /// macro for expected values
 macro_rules! expect_ok_or_error {
@@ -894,7 +897,7 @@ fn test_err_values_txt() {
         if line.starts_with('#') || line.is_empty() {
             continue;
         }
-        if let Ok(_) = DateTime::parse_str_rfc3339(line.trim()) {
+        if DateTime::parse_str_rfc3339(line.trim()).is_ok() {
             panic!("unexpected valid line {line_no}: {line:?}")
         }
         success += 1;
@@ -1241,4 +1244,28 @@ float_err_tests! {
     too_big_neg2: "9223372036854775808";
     error_in_decimal: "123.XX";
     error_in_decimal_spaces: "123.12 ";
+}
+
+#[test]
+fn test_time_parse_truncate_seconds() {
+    let time = Time::parse_bytes_with_config(
+        "12:13:12.123456789".as_bytes(),
+        TimeConfig {
+            seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Truncate,
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "12:13:12.123456789");
+}
+
+#[test]
+fn test_datetime_parse_truncate_seconds() {
+    let time = DateTime::parse_bytes_with_config(
+        "2020-01-01T12:13:12.123456789".as_bytes(),
+        TimeConfig {
+            seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Truncate,
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "2020-01-01T12:13:12.123456789");
 }

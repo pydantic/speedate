@@ -185,7 +185,37 @@ impl Time {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        Self::parse_bytes_offset(bytes, 0)
+        Self::parse_bytes_offset(bytes, 0, TimeConfig::default())
+    }
+
+    /// Same as `Time::parse_bytes` but with a `TimeConfig`.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    /// * `config` - The `TimeConfig` to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{Time, TimeConfig};
+    ///
+    /// let d = Time::parse_bytes_with_config(b"12:13:14.123456", TimeConfig::default()).unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Time {
+    ///         hour: 12,
+    ///         minute: 13,
+    ///         second: 14,
+    ///         microsecond: 123456,
+    ///         tz_offset: None,
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "12:13:14.123456");
+    /// ```
+    #[inline]
+    pub fn parse_bytes_with_config(bytes: &[u8], config: TimeConfig) -> Result<Self, ParseError> {
+        Self::parse_bytes_offset(bytes, 0, config)
     }
 
     /// Create a time from seconds and microseconds.
@@ -227,8 +257,8 @@ impl Time {
     }
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
-    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let pure_time = PureTime::parse(bytes, offset)?;
+    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
+        let pure_time = PureTime::parse(bytes, offset, config)?;
 
         // Parse the timezone offset
         let mut tz_offset: Option<i32> = None;
@@ -403,7 +433,7 @@ pub(crate) struct PureTime {
 }
 
 impl PureTime {
-    pub fn parse(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+    pub fn parse(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
         if bytes.len() - offset < 5 {
             return Err(ParseError::TooShort);
         }
@@ -459,7 +489,12 @@ impl PureTime {
                         }
                         i += 1;
                         if i > 6 {
-                            return Err(ParseError::SecondFractionTooLong);
+                            match config.seconds_precision_overflow_behavior {
+                                SecondsPrecisionOverflowBehavior::Truncate => break,
+                                SecondsPrecisionOverflowBehavior::Error => {
+                                    return Err(ParseError::SecondFractionTooLong)
+                                }
+                            }
                         }
                     }
                     if i == 0 {
@@ -486,5 +521,24 @@ impl PureTime {
 
     pub fn total_seconds(&self) -> u32 {
         self.hour as u32 * 3_600 + self.minute as u32 * 60 + self.second as u32
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SecondsPrecisionOverflowBehavior {
+    Truncate,
+    Error,
+}
+
+#[derive(Debug, Clone)]
+pub struct TimeConfig {
+    pub seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior,
+}
+
+impl Default for TimeConfig {
+    fn default() -> Self {
+        TimeConfig {
+            seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Error,
+        }
     }
 }

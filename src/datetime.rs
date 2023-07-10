@@ -1,5 +1,5 @@
 use crate::numbers::{float_parse_bytes, IntFloat};
-use crate::{Date, ParseError, Time};
+use crate::{Date, ParseError, Time, TimeConfig};
 use std::cmp::Ordering;
 use std::fmt;
 use std::time::SystemTime;
@@ -247,7 +247,7 @@ impl DateTime {
         }
 
         // Next try to parse the time
-        let time = Time::parse_bytes_offset(bytes, 11)?;
+        let time = Time::parse_bytes_offset(bytes, 11, TimeConfig::default())?;
 
         Ok(Self { date, time })
     }
@@ -270,6 +270,25 @@ impl DateTime {
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14");
     /// ```
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+        DateTime::parse_bytes_with_config(bytes, TimeConfig::default())
+    }
+
+    /// Same as `DateTime::parse_bytes` but supporting TimeConfig
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    /// * `config` - The TimeConfig to use when parsing the time portion
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{DateTime, Date, Time, TimeConfig};
+    ///
+    /// let dt = DateTime::parse_bytes_with_config(b"2022-01-01T12:13:14Z", TimeConfig::default()).unwrap();
+    /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
+    /// ```
+    pub fn parse_bytes_with_config(bytes: &[u8], _config: TimeConfig) -> Result<Self, ParseError> {
         match Self::parse_bytes_rfc3339(bytes) {
             Ok(d) => Ok(d),
             Err(e) => match float_parse_bytes(bytes) {

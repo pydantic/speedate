@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use crate::{ParseError, Time};
+use crate::{ParseError, Time, TimeConfig};
 
 /// A Duration
 ///
@@ -425,7 +425,7 @@ impl Duration {
 
         match bytes.get(position).copied() {
             Some(_) => {
-                let t = Time::parse_bytes_offset(bytes, position)?;
+                let t = Time::parse_bytes_offset(bytes, position, TimeConfig::default())?;
 
                 Ok(Self {
                     positive: false, // is set above
@@ -439,7 +439,7 @@ impl Duration {
     }
 
     fn parse_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let t = crate::time::PureTime::parse(bytes, offset)?;
+        let t = crate::time::PureTime::parse(bytes, offset, TimeConfig::default())?;
 
         if bytes.len() > t.position {
             return Err(ParseError::ExtraCharacters);
