@@ -527,16 +527,11 @@ impl PureTime {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum SecondsPrecisionOverflowBehavior {
     Truncate,
+    #[default]
     Error,
-}
-
-impl Default for SecondsPrecisionOverflowBehavior {
-    fn default() -> Self {
-        SecondsPrecisionOverflowBehavior::Error
-    }
 }
 
 impl TryFrom<&str> for SecondsPrecisionOverflowBehavior {
