@@ -142,6 +142,11 @@ pub enum ParseError {
     TimeTooLarge,
 }
 
+pub enum ConfigError {
+    // SecondsPrecisionOverflowBehavior string representation, must be one of "error" or "truncate"
+    UnknownSecondsPrecisionOverflowBehaviorString,
+}
+
 /// Used internally to write numbers to a buffer for `Display` of speedate types
 fn display_num_buf(num: usize, start: usize, value: u32, buf: &mut [u8]) {
     for i in 0..num {

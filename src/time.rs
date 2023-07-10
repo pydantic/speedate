@@ -1,7 +1,8 @@
 use std::cmp::Ordering;
+use std::default::Default;
 use std::fmt;
 
-use crate::{get_digit, get_digit_unchecked, ParseError};
+use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError};
 
 /// A Time
 ///
@@ -530,15 +531,24 @@ pub enum SecondsPrecisionOverflowBehavior {
     Error,
 }
 
-#[derive(Debug, Clone)]
-pub struct TimeConfig {
-    pub seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior,
+impl Default for SecondsPrecisionOverflowBehavior {
+    fn default() -> Self {
+        SecondsPrecisionOverflowBehavior::Error
+    }
 }
 
-impl Default for TimeConfig {
-    fn default() -> Self {
-        TimeConfig {
-            seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Error,
+impl TryFrom<&str> for SecondsPrecisionOverflowBehavior {
+    type Error = ConfigError;
+    fn try_from(value: &str) -> Result<Self, ConfigError> {
+        match value.to_lowercase().as_str() {
+            "truncate" => Ok(Self::Truncate),
+            "error" => Ok(Self::Error),
+            _ => Err(ConfigError::UnknownSecondsPrecisionOverflowBehaviorString),
         }
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TimeConfig {
+    pub seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior,
 }
