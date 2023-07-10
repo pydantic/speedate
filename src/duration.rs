@@ -231,6 +231,35 @@ impl Duration {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+        Duration::parse_bytes_with_config(bytes, TimeConfig::default())
+    }
+
+    /// Same as `Duration::parse_bytes` but with a TimeConfig component.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    /// * `config` - The `TimeConfig` to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{Duration, TimeConfig};
+    ///
+    /// let d = Duration::parse_bytes_with_config(b"P1Y", TimeConfig::default()).unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Duration {
+    ///         positive: true,
+    ///         day: 365,
+    ///         second: 0,
+    ///         microsecond: 0
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "P1Y");
+    /// ```
+    #[inline]
+    pub fn parse_bytes_with_config(bytes: &[u8], config: TimeConfig) -> Result<Self, ParseError> {
         let (positive, offset) = match bytes.first().copied() {
             Some(b'+') => (true, 1),
             Some(b'-') => (false, 1),
@@ -240,7 +269,7 @@ impl Duration {
         let mut d = match bytes.get(offset).copied() {
             Some(b'P') => Self::parse_iso_duration(bytes, offset + 1),
             _ => match bytes.get(offset + 2).copied() {
-                Some(b':') => Self::parse_time(bytes, offset),
+                Some(b':') => Self::parse_time(bytes, offset, config),
                 _ => Self::parse_days_time(bytes, offset),
             },
         }?;
@@ -438,8 +467,8 @@ impl Duration {
         }
     }
 
-    fn parse_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let t = crate::time::PureTime::parse(bytes, offset, TimeConfig::default())?;
+    fn parse_time(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
+        let t = crate::time::PureTime::parse(bytes, offset, config)?;
 
         if bytes.len() > t.position {
             return Err(ParseError::ExtraCharacters);

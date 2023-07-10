@@ -1255,7 +1255,7 @@ fn test_time_parse_truncate_seconds() {
         },
     )
     .unwrap();
-    assert_eq!(time.to_string(), "12:13:12.123456789");
+    assert_eq!(time.to_string(), "12:13:12.123456");
 }
 
 #[test]
@@ -1267,5 +1267,17 @@ fn test_datetime_parse_truncate_seconds() {
         },
     )
     .unwrap();
-    assert_eq!(time.to_string(), "2020-01-01T12:13:12.123456789");
+    assert_eq!(time.to_string(), "2020-01-01T12:13:12.123456");
+}
+
+#[test]
+fn test_duration_parse_truncate_seconds() {
+    let time = Duration::parse_bytes_with_config(
+        "PT0.123456789S".as_bytes(),
+        TimeConfig {
+            seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Truncate,
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "PT0.123456S");
 }
