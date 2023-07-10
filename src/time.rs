@@ -481,8 +481,8 @@ impl PureTime {
                     loop {
                         match bytes.get(offset + length + i) {
                             Some(c) if c.is_ascii_digit() => {
-                               // If we've passed `i=6` then we are "truncating" the extra precision
-                               // The easiest way to do this is to simply no-op and continue the loop
+                                // If we've passed `i=6` then we are "truncating" the extra precision
+                                // The easiest way to do this is to simply no-op and continue the loop
                                 if i < 6 {
                                     microsecond *= 10;
                                     microsecond += (c - b'0') as u32;
