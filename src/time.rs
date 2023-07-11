@@ -237,6 +237,32 @@ impl Time {
     /// assert_eq!(d.to_string(), "01:02:20.000123");
     /// ```
     pub fn from_timestamp(timestamp_second: u32, timestamp_microsecond: u32) -> Result<Self, ParseError> {
+        Time::from_timestamp_with_config(timestamp_second, timestamp_microsecond, &TimeConfig::default())
+    }
+
+    /// Like `from_timestamp` but with a `TimeConfig`
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp_second` - timestamp in seconds
+    /// * `timestamp_microsecond` - microseconds fraction of a second timestamp
+    /// * `config` - the `TimeConfig` to use
+    ///
+    /// If `seconds + timestamp_microsecond` exceeds 86400, an error is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{Time, TimeConfig};
+    ///
+    /// let d = Time::from_timestamp_with_config(3740, 123, &TimeConfig::default()).unwrap();
+    /// assert_eq!(d.to_string(), "01:02:20.000123");
+    /// ```
+    pub fn from_timestamp_with_config(
+        timestamp_second: u32,
+        timestamp_microsecond: u32,
+        config: &TimeConfig,
+    ) -> Result<Self, ParseError> {
         let mut second = timestamp_second;
         let mut microsecond = timestamp_microsecond;
         if microsecond >= 1_000_000 {
@@ -253,7 +279,10 @@ impl Time {
             minute: ((second % 3600) / 60) as u8,
             second: (second % 60) as u8,
             microsecond,
-            tz_offset: None,
+            tz_offset: match config.default_time_offset {
+                DefaultTimeOffset::Naive => None,
+                DefaultTimeOffset::Utc => Some(0),
+            },
         })
     }
 
