@@ -5,7 +5,7 @@ use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTim
 use strum::EnumMessage;
 
 use speedate::{
-    float_parse_str, int_parse_str, Date, DateTime, Duration, ParseError, MicrosecondsPrecisionOverflowBehavior, Time,
+    float_parse_str, int_parse_str, Date, DateTime, Duration, MicrosecondsPrecisionOverflowBehavior, ParseError, Time,
     TimeConfig,
 };
 
