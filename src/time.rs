@@ -494,9 +494,9 @@ impl PureTime {
                         }
                         i += 1;
                         if i > 6 {
-                            match config.seconds_precision_overflow_behavior {
-                                SecondsPrecisionOverflowBehavior::Truncate => continue,
-                                SecondsPrecisionOverflowBehavior::Error => {
+                            match config.microseconds_precision_overflow_behavior {
+                                MicrosecondsPrecisionOverflowBehavior::Truncate => continue,
+                                MicrosecondsPrecisionOverflowBehavior::Error => {
                                     return Err(ParseError::SecondFractionTooLong)
                                 }
                             }
@@ -529,14 +529,14 @@ impl PureTime {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub enum SecondsPrecisionOverflowBehavior {
+#[derive(Debug, Clone, Default, Copy)]
+pub enum MicrosecondsPrecisionOverflowBehavior {
     Truncate,
     #[default]
     Error,
 }
 
-impl TryFrom<&str> for SecondsPrecisionOverflowBehavior {
+impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
     type Error = ConfigError;
     fn try_from(value: &str) -> Result<Self, ConfigError> {
         match value.to_lowercase().as_str() {
@@ -549,5 +549,5 @@ impl TryFrom<&str> for SecondsPrecisionOverflowBehavior {
 
 #[derive(Debug, Clone, Default)]
 pub struct TimeConfig {
-    pub seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior,
+    pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
 }

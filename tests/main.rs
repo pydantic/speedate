@@ -5,7 +5,7 @@ use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTim
 use strum::EnumMessage;
 
 use speedate::{
-    float_parse_str, int_parse_str, Date, DateTime, Duration, ParseError, SecondsPrecisionOverflowBehavior, Time,
+    float_parse_str, int_parse_str, Date, DateTime, Duration, ParseError, MicrosecondsPrecisionOverflowBehavior, Time,
     TimeConfig,
 };
 
@@ -1251,7 +1251,7 @@ fn test_time_parse_truncate_seconds() {
     let time = Time::parse_bytes_with_config(
         "12:13:12.123456789".as_bytes(),
         TimeConfig {
-            seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Truncate,
+            microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Truncate,
         },
     )
     .unwrap();
@@ -1263,7 +1263,7 @@ fn test_datetime_parse_truncate_seconds() {
     let time = DateTime::parse_bytes_with_config(
         "2020-01-01T12:13:12.123456789".as_bytes(),
         TimeConfig {
-            seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Truncate,
+            microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Truncate,
         },
     )
     .unwrap();
@@ -1275,7 +1275,7 @@ fn test_duration_parse_truncate_seconds() {
     let time = Duration::parse_bytes_with_config(
         "00:00:00.1234567".as_bytes(),
         TimeConfig {
-            seconds_precision_overflow_behavior: SecondsPrecisionOverflowBehavior::Truncate,
+            microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Truncate,
         },
     )
     .unwrap();
