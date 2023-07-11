@@ -216,7 +216,7 @@ impl Time {
     /// ```
     #[inline]
     pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
-        Self::parse_bytes_offset(bytes, 0, &config)
+        Self::parse_bytes_offset(bytes, 0, config)
     }
 
     /// Create a time from seconds and microseconds.
