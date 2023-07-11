@@ -1,7 +1,8 @@
 use std::cmp::Ordering;
+use std::default::Default;
 use std::fmt;
 
-use crate::{get_digit, get_digit_unchecked, ParseError};
+use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError};
 
 /// A Time
 ///
@@ -185,7 +186,37 @@ impl Time {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        Self::parse_bytes_offset(bytes, 0)
+        Self::parse_bytes_offset(bytes, 0, TimeConfig::default())
+    }
+
+    /// Same as `Time::parse_bytes` but with a `TimeConfig`.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The bytes to parse
+    /// * `config` - The `TimeConfig` to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{Time, TimeConfig};
+    ///
+    /// let d = Time::parse_bytes_with_config(b"12:13:14.123456", TimeConfig::default()).unwrap();
+    /// assert_eq!(
+    ///     d,
+    ///     Time {
+    ///         hour: 12,
+    ///         minute: 13,
+    ///         second: 14,
+    ///         microsecond: 123456,
+    ///         tz_offset: None,
+    ///     }
+    /// );
+    /// assert_eq!(d.to_string(), "12:13:14.123456");
+    /// ```
+    #[inline]
+    pub fn parse_bytes_with_config(bytes: &[u8], config: TimeConfig) -> Result<Self, ParseError> {
+        Self::parse_bytes_offset(bytes, 0, config)
     }
 
     /// Create a time from seconds and microseconds.
@@ -227,8 +258,8 @@ impl Time {
     }
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
-    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let pure_time = PureTime::parse(bytes, offset)?;
+    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
+        let pure_time = PureTime::parse(bytes, offset, config)?;
 
         // Parse the timezone offset
         let mut tz_offset: Option<i32> = None;
@@ -403,7 +434,7 @@ pub(crate) struct PureTime {
 }
 
 impl PureTime {
-    pub fn parse(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+    pub fn parse(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
         if bytes.len() - offset < 5 {
             return Err(ParseError::TooShort);
         }
@@ -450,8 +481,12 @@ impl PureTime {
                     loop {
                         match bytes.get(offset + length + i) {
                             Some(c) if c.is_ascii_digit() => {
-                                microsecond *= 10;
-                                microsecond += (c - b'0') as u32;
+                                // If we've passed `i=6` then we are "truncating" the extra precision
+                                // The easiest way to do this is to simply no-op and continue the loop
+                                if i < 6 {
+                                    microsecond *= 10;
+                                    microsecond += (c - b'0') as u32;
+                                }
                             }
                             _ => {
                                 break;
@@ -459,7 +494,12 @@ impl PureTime {
                         }
                         i += 1;
                         if i > 6 {
-                            return Err(ParseError::SecondFractionTooLong);
+                            match config.microseconds_precision_overflow_behavior {
+                                MicrosecondsPrecisionOverflowBehavior::Truncate => continue,
+                                MicrosecondsPrecisionOverflowBehavior::Error => {
+                                    return Err(ParseError::SecondFractionTooLong)
+                                }
+                            }
                         }
                     }
                     if i == 0 {
@@ -487,4 +527,27 @@ impl PureTime {
     pub fn total_seconds(&self) -> u32 {
         self.hour as u32 * 3_600 + self.minute as u32 * 60 + self.second as u32
     }
+}
+
+#[derive(Debug, Clone, Default, Copy)]
+pub enum MicrosecondsPrecisionOverflowBehavior {
+    Truncate,
+    #[default]
+    Error,
+}
+
+impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
+    type Error = ConfigError;
+    fn try_from(value: &str) -> Result<Self, ConfigError> {
+        match value.to_lowercase().as_str() {
+            "truncate" => Ok(Self::Truncate),
+            "error" => Ok(Self::Error),
+            _ => Err(ConfigError::UnknownSecondsPrecisionOverflowBehaviorString),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TimeConfig {
+    pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
 }
