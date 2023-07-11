@@ -15,7 +15,7 @@ are compliant with [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601).
 The following formats are supported:
 * Date: `YYYY-MM-DD`
 * Time: `HH:MM:SS`
-* Time: `HH:MM:SS.FFFFFF` 1 to 6 digits are allowed
+* Time: `HH:MM:SS.FFFFFF` 1 to 6 digits are reflected in the `time.microsecond`, extra digits are ignored
 * Time: `HH:MM`
 * Date time: `YYYY-MM-DDTHH:MM:SS` - all the above time formats are allowed for the time part
 * Date time: `YYYY-MM-DD HH:MM:SS` - `T`, `t`, ` ` and `_` are allowed as separators
