@@ -246,7 +246,7 @@ impl Duration {
     /// ```
     /// use speedate::{Duration, TimeConfig};
     ///
-    /// let d = Duration::parse_bytes_with_config(b"P1Y", TimeConfig::default()).unwrap();
+    /// let d = Duration::parse_bytes_with_config(b"P1Y", &TimeConfig::default()).unwrap();
     /// assert_eq!(
     ///     d,
     ///     Duration {

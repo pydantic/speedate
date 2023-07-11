@@ -251,7 +251,7 @@ impl DateTime {
     /// ```
     /// use speedate::{DateTime, Date, Time, TimeConfig};
     ///
-    /// let dt = DateTime::parse_bytes_rfc3339_with_config(b"2022-01-01T12:13:14Z", TimeConfig::default()).unwrap();
+    /// let dt = DateTime::parse_bytes_rfc3339_with_config(b"2022-01-01T12:13:14Z", &TimeConfig::default()).unwrap();
     /// assert_eq!(
     ///     dt,
     ///     DateTime {
@@ -320,7 +320,7 @@ impl DateTime {
     /// ```
     /// use speedate::{DateTime, Date, Time, TimeConfig};
     ///
-    /// let dt = DateTime::parse_bytes_with_config(b"2022-01-01T12:13:14Z", TimeConfig::default()).unwrap();
+    /// let dt = DateTime::parse_bytes_with_config(b"2022-01-01T12:13:14Z", &TimeConfig::default()).unwrap();
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     /// ```
     pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
