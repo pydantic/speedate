@@ -186,7 +186,7 @@ impl Time {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        Self::parse_bytes_offset(bytes, 0, TimeConfig::default())
+        Self::parse_bytes_offset(bytes, 0, &TimeConfig::default())
     }
 
     /// Same as `Time::parse_bytes` but with a `TimeConfig`.
@@ -215,7 +215,7 @@ impl Time {
     /// assert_eq!(d.to_string(), "12:13:14.123456");
     /// ```
     #[inline]
-    pub fn parse_bytes_with_config(bytes: &[u8], config: TimeConfig) -> Result<Self, ParseError> {
+    pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
         Self::parse_bytes_offset(bytes, 0, config)
     }
 
@@ -258,7 +258,7 @@ impl Time {
     }
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
-    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
+    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
         let pure_time = PureTime::parse(bytes, offset, config)?;
 
         // Parse the timezone offset
@@ -319,6 +319,11 @@ impl Time {
                 position += 2;
             }
         }
+
+        let tz_offset = match (tz_offset, config.default_time_offset) {
+            (None, DefaultTimeOffset::Utc) => Some(0),
+            _ => tz_offset,
+        };
 
         if bytes.len() > position {
             return Err(ParseError::ExtraCharacters);
@@ -434,7 +439,7 @@ pub(crate) struct PureTime {
 }
 
 impl PureTime {
-    pub fn parse(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
+    pub fn parse(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
         if bytes.len() - offset < 5 {
             return Err(ParseError::TooShort);
         }
@@ -542,7 +547,25 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
         match value.to_lowercase().as_str() {
             "truncate" => Ok(Self::Truncate),
             "error" => Ok(Self::Error),
-            _ => Err(ConfigError::UnknownSecondsPrecisionOverflowBehaviorString),
+            _ => Err(ConfigError::UnknownMicrosecondsPrecisionOverflowBehaviorString),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Copy)]
+pub enum DefaultTimeOffset {
+    #[default]
+    Naive,
+    Utc,
+}
+
+impl TryFrom<&str> for DefaultTimeOffset {
+    type Error = ConfigError;
+    fn try_from(value: &str) -> Result<Self, ConfigError> {
+        match value.to_lowercase().as_str() {
+            "naive" => Ok(Self::Naive),
+            "utc" => Ok(Self::Utc),
+            _ => Err(ConfigError::UnknownTimestampDefaultOffsetString),
         }
     }
 }
@@ -550,4 +573,5 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
 #[derive(Debug, Clone, Default)]
 pub struct TimeConfig {
     pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
+    pub default_time_offset: DefaultTimeOffset,
 }
