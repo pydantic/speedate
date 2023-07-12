@@ -1312,7 +1312,7 @@ fn test_datetime_parse_bytes_does_not_add_offset_for_rfc3339() {
 }
 
 #[test]
-fn test_datetime_pare_unix_timestamp_from_bytes_with_utc_offset() {
+fn test_datetime_parse_unix_timestamp_from_bytes_with_utc_offset() {
     let time = DateTime::parse_bytes_with_config(
         "1689102037.5586429".as_bytes(),
         &TimeConfig {
@@ -1325,7 +1325,7 @@ fn test_datetime_pare_unix_timestamp_from_bytes_with_utc_offset() {
 }
 
 #[test]
-fn test_datetime_pare_unix_timestamp_from_bytes_as_naive() {
+fn test_datetime_parse_unix_timestamp_from_bytes_as_naive() {
     let time = DateTime::parse_bytes_with_config(
         "1689102037.5586429".as_bytes(),
         &TimeConfig {
