@@ -147,8 +147,6 @@ pub enum ParseError {
 pub enum ConfigError {
     // SecondsPrecisionOverflowBehavior string representation, must be one of "error" or "truncate"
     UnknownMicrosecondsPrecisionOverflowBehaviorString,
-    // UnknownTimestampDefaultOffset string representation, must be one of "naive" or "utc"
-    UnknownTimestampDefaultOffsetString,
 }
 
 /// Used internally to write numbers to a buffer for `Display` of speedate types
