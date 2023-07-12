@@ -279,16 +279,17 @@ impl Time {
             minute: ((second % 3600) / 60) as u8,
             second: (second % 60) as u8,
             microsecond,
-            tz_offset: match config.default_time_offset {
-                DefaultTimeOffset::Naive => None,
-                DefaultTimeOffset::Utc => Some(0),
-            },
+            tz_offset: config.unix_timestamp_offset,
         })
     }
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
     pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
-        let pure_time = PureTime::parse(bytes, offset, config)?;
+        let config = TimeConfig {
+            unix_timestamp_offset: None,
+            ..config.clone()
+        };
+        let pure_time = PureTime::parse(bytes, offset, &config)?;
 
         // Parse the timezone offset
         let mut tz_offset: Option<i32> = None;
@@ -348,11 +349,6 @@ impl Time {
                 position += 2;
             }
         }
-
-        let tz_offset = match (tz_offset, config.default_time_offset) {
-            (None, DefaultTimeOffset::Utc) => Some(0),
-            _ => tz_offset,
-        };
 
         if bytes.len() > position {
             return Err(ParseError::ExtraCharacters);
@@ -581,26 +577,8 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
     }
 }
 
-#[derive(Debug, Clone, Default, Copy)]
-pub enum DefaultTimeOffset {
-    #[default]
-    Naive,
-    Utc,
-}
-
-impl TryFrom<&str> for DefaultTimeOffset {
-    type Error = ConfigError;
-    fn try_from(value: &str) -> Result<Self, ConfigError> {
-        match value.to_lowercase().as_str() {
-            "naive" => Ok(Self::Naive),
-            "utc" => Ok(Self::Utc),
-            _ => Err(ConfigError::UnknownTimestampDefaultOffsetString),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct TimeConfig {
     pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
-    pub default_time_offset: DefaultTimeOffset,
+    pub unix_timestamp_offset: Option<i32>,
 }
