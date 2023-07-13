@@ -142,9 +142,11 @@ pub enum ParseError {
     TimeTooLarge,
 }
 
+#[derive(Debug, Display, EnumMessage, PartialEq, Eq, Clone)]
+#[strum(serialize_all = "snake_case")]
 pub enum ConfigError {
     // SecondsPrecisionOverflowBehavior string representation, must be one of "error" or "truncate"
-    UnknownSecondsPrecisionOverflowBehaviorString,
+    UnknownMicrosecondsPrecisionOverflowBehaviorString,
 }
 
 /// Used internally to write numbers to a buffer for `Display` of speedate types

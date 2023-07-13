@@ -1250,8 +1250,9 @@ float_err_tests! {
 fn test_time_parse_truncate_seconds() {
     let time = Time::parse_bytes_with_config(
         "12:13:12.123456789".as_bytes(),
-        TimeConfig {
+        &TimeConfig {
             microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Truncate,
+            ..Default::default()
         },
     )
     .unwrap();
@@ -1262,8 +1263,9 @@ fn test_time_parse_truncate_seconds() {
 fn test_datetime_parse_truncate_seconds() {
     let time = DateTime::parse_bytes_with_config(
         "2020-01-01T12:13:12.123456789".as_bytes(),
-        TimeConfig {
+        &TimeConfig {
             microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Truncate,
+            ..Default::default()
         },
     )
     .unwrap();
@@ -1274,10 +1276,91 @@ fn test_datetime_parse_truncate_seconds() {
 fn test_duration_parse_truncate_seconds() {
     let time = Duration::parse_bytes_with_config(
         "00:00:00.1234567".as_bytes(),
-        TimeConfig {
+        &TimeConfig {
             microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Truncate,
+            ..Default::default()
         },
     )
     .unwrap();
     assert_eq!(time.to_string(), "PT0.123456S");
+}
+
+#[test]
+fn test_time_parse_bytes_does_not_add_offset_for_rfc3339() {
+    let time = Time::parse_bytes_with_config(
+        "12:13:12".as_bytes(),
+        &TimeConfig {
+            unix_timestamp_offset: Some(0),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "12:13:12");
+}
+
+#[test]
+fn test_datetime_parse_bytes_does_not_add_offset_for_rfc3339() {
+    let time = DateTime::parse_bytes_with_config(
+        "2020-01-01T12:13:12".as_bytes(),
+        &TimeConfig {
+            unix_timestamp_offset: Some(0),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "2020-01-01T12:13:12");
+}
+
+#[test]
+fn test_datetime_parse_unix_timestamp_from_bytes_with_utc_offset() {
+    let time = DateTime::parse_bytes_with_config(
+        "1689102037.5586429".as_bytes(),
+        &TimeConfig {
+            unix_timestamp_offset: Some(0),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "2023-07-11T19:00:37.558643Z");
+}
+
+#[test]
+fn test_datetime_parse_unix_timestamp_from_bytes_as_naive() {
+    let time = DateTime::parse_bytes_with_config(
+        "1689102037.5586429".as_bytes(),
+        &TimeConfig {
+            unix_timestamp_offset: None,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "2023-07-11T19:00:37.558643");
+}
+
+#[test]
+fn test_time_parse_unix_timestamp_from_bytes_with_utc_offset() {
+    let time = Time::from_timestamp_with_config(
+        1,
+        2,
+        &TimeConfig {
+            unix_timestamp_offset: Some(0),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "00:00:01.000002Z");
+}
+
+#[test]
+fn test_time_parse_unix_timestamp_from_bytes_as_naive() {
+    let time = Time::from_timestamp_with_config(
+        1,
+        2,
+        &TimeConfig {
+            unix_timestamp_offset: None,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(time.to_string(), "00:00:01.000002");
 }

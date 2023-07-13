@@ -231,7 +231,7 @@ impl Duration {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        Duration::parse_bytes_with_config(bytes, TimeConfig::default())
+        Duration::parse_bytes_with_config(bytes, &TimeConfig::default())
     }
 
     /// Same as `Duration::parse_bytes` but with a TimeConfig component.
@@ -246,7 +246,7 @@ impl Duration {
     /// ```
     /// use speedate::{Duration, TimeConfig};
     ///
-    /// let d = Duration::parse_bytes_with_config(b"P1Y", TimeConfig::default()).unwrap();
+    /// let d = Duration::parse_bytes_with_config(b"P1Y", &TimeConfig::default()).unwrap();
     /// assert_eq!(
     ///     d,
     ///     Duration {
@@ -259,7 +259,7 @@ impl Duration {
     /// assert_eq!(d.to_string(), "P1Y");
     /// ```
     #[inline]
-    pub fn parse_bytes_with_config(bytes: &[u8], config: TimeConfig) -> Result<Self, ParseError> {
+    pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
         let (positive, offset) = match bytes.first().copied() {
             Some(b'+') => (true, 1),
             Some(b'-') => (false, 1),
@@ -454,7 +454,7 @@ impl Duration {
 
         match bytes.get(position).copied() {
             Some(_) => {
-                let t = Time::parse_bytes_offset(bytes, position, TimeConfig::default())?;
+                let t = Time::parse_bytes_offset(bytes, position, &TimeConfig::default())?;
 
                 Ok(Self {
                     positive: false, // is set above
@@ -467,7 +467,7 @@ impl Duration {
         }
     }
 
-    fn parse_time(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
+    fn parse_time(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
         let t = crate::time::PureTime::parse(bytes, offset, config)?;
 
         if bytes.len() > t.position {

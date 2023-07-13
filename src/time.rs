@@ -186,7 +186,7 @@ impl Time {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        Self::parse_bytes_offset(bytes, 0, TimeConfig::default())
+        Self::parse_bytes_offset(bytes, 0, &TimeConfig::default())
     }
 
     /// Same as `Time::parse_bytes` but with a `TimeConfig`.
@@ -201,7 +201,7 @@ impl Time {
     /// ```
     /// use speedate::{Time, TimeConfig};
     ///
-    /// let d = Time::parse_bytes_with_config(b"12:13:14.123456", TimeConfig::default()).unwrap();
+    /// let d = Time::parse_bytes_with_config(b"12:13:14.123456", &TimeConfig::default()).unwrap();
     /// assert_eq!(
     ///     d,
     ///     Time {
@@ -215,7 +215,7 @@ impl Time {
     /// assert_eq!(d.to_string(), "12:13:14.123456");
     /// ```
     #[inline]
-    pub fn parse_bytes_with_config(bytes: &[u8], config: TimeConfig) -> Result<Self, ParseError> {
+    pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
         Self::parse_bytes_offset(bytes, 0, config)
     }
 
@@ -237,6 +237,32 @@ impl Time {
     /// assert_eq!(d.to_string(), "01:02:20.000123");
     /// ```
     pub fn from_timestamp(timestamp_second: u32, timestamp_microsecond: u32) -> Result<Self, ParseError> {
+        Time::from_timestamp_with_config(timestamp_second, timestamp_microsecond, &TimeConfig::default())
+    }
+
+    /// Like `from_timestamp` but with a `TimeConfig`
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp_second` - timestamp in seconds
+    /// * `timestamp_microsecond` - microseconds fraction of a second timestamp
+    /// * `config` - the `TimeConfig` to use
+    ///
+    /// If `seconds + timestamp_microsecond` exceeds 86400, an error is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{Time, TimeConfig};
+    ///
+    /// let d = Time::from_timestamp_with_config(3740, 123, &TimeConfig::default()).unwrap();
+    /// assert_eq!(d.to_string(), "01:02:20.000123");
+    /// ```
+    pub fn from_timestamp_with_config(
+        timestamp_second: u32,
+        timestamp_microsecond: u32,
+        config: &TimeConfig,
+    ) -> Result<Self, ParseError> {
         let mut second = timestamp_second;
         let mut microsecond = timestamp_microsecond;
         if microsecond >= 1_000_000 {
@@ -253,12 +279,12 @@ impl Time {
             minute: ((second % 3600) / 60) as u8,
             second: (second % 60) as u8,
             microsecond,
-            tz_offset: None,
+            tz_offset: config.unix_timestamp_offset,
         })
     }
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
-    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
+    pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
         let pure_time = PureTime::parse(bytes, offset, config)?;
 
         // Parse the timezone offset
@@ -434,7 +460,7 @@ pub(crate) struct PureTime {
 }
 
 impl PureTime {
-    pub fn parse(bytes: &[u8], offset: usize, config: TimeConfig) -> Result<Self, ParseError> {
+    pub fn parse(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
         if bytes.len() - offset < 5 {
             return Err(ParseError::TooShort);
         }
@@ -542,7 +568,7 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
         match value.to_lowercase().as_str() {
             "truncate" => Ok(Self::Truncate),
             "error" => Ok(Self::Error),
-            _ => Err(ConfigError::UnknownSecondsPrecisionOverflowBehaviorString),
+            _ => Err(ConfigError::UnknownMicrosecondsPrecisionOverflowBehaviorString),
         }
     }
 }
@@ -550,4 +576,5 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
 #[derive(Debug, Clone, Default)]
 pub struct TimeConfig {
     pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
+    pub unix_timestamp_offset: Option<i32>,
 }
