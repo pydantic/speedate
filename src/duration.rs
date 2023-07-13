@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use crate::{ParseError, Time, TimeConfig};
+use crate::{ParseError, Time, time::TimeConfig, TimeConfigBuilder};
 
 /// A Duration
 ///
@@ -231,7 +231,7 @@ impl Duration {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        Duration::parse_bytes_with_config(bytes, &TimeConfig::default())
+        Duration::parse_bytes_with_config(bytes, &TimeConfigBuilder::new().build())
     }
 
     /// Same as `Duration::parse_bytes` but with a TimeConfig component.
@@ -244,9 +244,9 @@ impl Duration {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{Duration, TimeConfig};
+    /// use speedate::{Duration, TimeConfigBuilder};
     ///
-    /// let d = Duration::parse_bytes_with_config(b"P1Y", &TimeConfig::default()).unwrap();
+    /// let d = Duration::parse_bytes_with_config(b"P1Y", &TimeConfigBuilder::new().build()).unwrap();
     /// assert_eq!(
     ///     d,
     ///     Duration {
@@ -454,7 +454,7 @@ impl Duration {
 
         match bytes.get(position).copied() {
             Some(_) => {
-                let t = Time::parse_bytes_offset(bytes, position, &TimeConfig::default())?;
+                let t = Time::parse_bytes_offset(bytes, position, &TimeConfigBuilder::new().build())?;
 
                 Ok(Self {
                     positive: false, // is set above
