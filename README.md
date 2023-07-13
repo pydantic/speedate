@@ -72,7 +72,7 @@ use speedate::{DateTime, Date, Time, TimeConfig};
 
 fn main() {
     let dt = DateTime::parse_bytes_with_config(
-        "1689102037.5586429Z".as_bytes(),
+        "1689102037.5586429".as_bytes(),
         &TimeConfig::builder().unix_timestamp_offset(Some(0)).build(),
     ).unwrap();
     assert_eq!(
