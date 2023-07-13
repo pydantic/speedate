@@ -285,11 +285,7 @@ impl Time {
 
     /// Parse a time from bytes with a starting index, extra characters at the end of the string result in an error
     pub(crate) fn parse_bytes_offset(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
-        let config = TimeConfig {
-            unix_timestamp_offset: None,
-            ..config.clone()
-        };
-        let pure_time = PureTime::parse(bytes, offset, &config)?;
+        let pure_time = PureTime::parse(bytes, offset, config)?;
 
         // Parse the timezone offset
         let mut tz_offset: Option<i32> = None;
