@@ -65,6 +65,37 @@ fn main() {
 }
 ```
 
+To control the specifics of time parsing you can use provide a `TimeConfig`:
+
+```rust
+use speedate::{DateTime, Date, Time, TimeConfig};
+
+fn main() {
+    let dt = DateTime::parse_bytes_with_config(
+        "1689102037.5586429".as_bytes(),
+        &TimeConfig::builder().unix_timestamp_offset(Some(0)).build(),
+    ).unwrap();
+    assert_eq!(
+        dt,
+        DateTime {
+            date: Date {
+                year: 2023,
+                month: 7,
+                day: 11,
+            },
+            time: Time {
+                hour: 19,
+                minute: 0,
+                second: 37,
+                microsecond: 558643,
+                tz_offset: Some(0),
+            },
+        }
+    );
+    assert_eq!(dt.to_string(), "2023-07-11T19:00:37.558643Z");
+}
+```
+
 ## Performance
 
 **speedate** is significantly faster than

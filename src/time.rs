@@ -186,7 +186,7 @@ impl Time {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        Self::parse_bytes_offset(bytes, 0, &TimeConfig::default())
+        Self::parse_bytes_offset(bytes, 0, &TimeConfigBuilder::new().build())
     }
 
     /// Same as `Time::parse_bytes` but with a `TimeConfig`.
@@ -199,9 +199,9 @@ impl Time {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{Time, TimeConfig};
+    /// use speedate::{Time, TimeConfigBuilder};
     ///
-    /// let d = Time::parse_bytes_with_config(b"12:13:14.123456", &TimeConfig::default()).unwrap();
+    /// let d = Time::parse_bytes_with_config(b"12:13:14.123456", &TimeConfigBuilder::new().build()).unwrap();
     /// assert_eq!(
     ///     d,
     ///     Time {
@@ -237,7 +237,11 @@ impl Time {
     /// assert_eq!(d.to_string(), "01:02:20.000123");
     /// ```
     pub fn from_timestamp(timestamp_second: u32, timestamp_microsecond: u32) -> Result<Self, ParseError> {
-        Time::from_timestamp_with_config(timestamp_second, timestamp_microsecond, &TimeConfig::default())
+        Time::from_timestamp_with_config(
+            timestamp_second,
+            timestamp_microsecond,
+            &TimeConfigBuilder::new().build(),
+        )
     }
 
     /// Like `from_timestamp` but with a `TimeConfig`
@@ -253,9 +257,9 @@ impl Time {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{Time, TimeConfig};
+    /// use speedate::{Time, TimeConfigBuilder};
     ///
-    /// let d = Time::from_timestamp_with_config(3740, 123, &TimeConfig::default()).unwrap();
+    /// let d = Time::from_timestamp_with_config(3740, 123, &TimeConfigBuilder::new().build()).unwrap();
     /// assert_eq!(d.to_string(), "01:02:20.000123");
     /// ```
     pub fn from_timestamp_with_config(
@@ -555,7 +559,7 @@ impl PureTime {
     }
 }
 
-#[derive(Debug, Clone, Default, Copy)]
+#[derive(Debug, Clone, Default, Copy, PartialEq)]
 pub enum MicrosecondsPrecisionOverflowBehavior {
     Truncate,
     #[default]
@@ -573,8 +577,43 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TimeConfig {
     pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
     pub unix_timestamp_offset: Option<i32>,
+}
+
+impl TimeConfig {
+    pub fn builder() -> TimeConfigBuilder {
+        TimeConfigBuilder::new()
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TimeConfigBuilder {
+    microseconds_precision_overflow_behavior: Option<MicrosecondsPrecisionOverflowBehavior>,
+    unix_timestamp_offset: Option<i32>,
+}
+
+impl TimeConfigBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn microseconds_precision_overflow_behavior(
+        mut self,
+        microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
+    ) -> Self {
+        self.microseconds_precision_overflow_behavior = Some(microseconds_precision_overflow_behavior);
+        self
+    }
+    pub fn unix_timestamp_offset(mut self, unix_timestamp_offset: Option<i32>) -> Self {
+        self.unix_timestamp_offset = unix_timestamp_offset;
+        self
+    }
+    pub fn build(self) -> TimeConfig {
+        TimeConfig {
+            microseconds_precision_overflow_behavior: self.microseconds_precision_overflow_behavior.unwrap_or_default(),
+            unix_timestamp_offset: self.unix_timestamp_offset,
+        }
+    }
 }

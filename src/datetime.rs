@@ -1,5 +1,6 @@
 use crate::numbers::{float_parse_bytes, IntFloat};
-use crate::{Date, ParseError, Time, TimeConfig};
+use crate::TimeConfigBuilder;
+use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
 use std::time::SystemTime;
@@ -236,7 +237,7 @@ impl DateTime {
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     /// ```
     pub fn parse_bytes_rfc3339(bytes: &[u8]) -> Result<Self, ParseError> {
-        DateTime::parse_bytes_rfc3339_with_config(bytes, &TimeConfig::default())
+        DateTime::parse_bytes_rfc3339_with_config(bytes, &TimeConfigBuilder::new().build())
     }
 
     /// Same as `parse_bytes_rfc3339` with with a `TimeConfig` parameter.
@@ -249,9 +250,9 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{DateTime, Date, Time, TimeConfig};
+    /// use speedate::{DateTime, Date, Time, TimeConfigBuilder};
     ///
-    /// let dt = DateTime::parse_bytes_rfc3339_with_config(b"2022-01-01T12:13:14Z", &TimeConfig::default()).unwrap();
+    /// let dt = DateTime::parse_bytes_rfc3339_with_config(b"2022-01-01T12:13:14Z", &TimeConfigBuilder::new().build()).unwrap();
     /// assert_eq!(
     ///     dt,
     ///     DateTime {
@@ -305,7 +306,7 @@ impl DateTime {
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14");
     /// ```
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        DateTime::parse_bytes_with_config(bytes, &TimeConfig::default())
+        DateTime::parse_bytes_with_config(bytes, &TimeConfigBuilder::new().build())
     }
 
     /// Same as `DateTime::parse_bytes` but supporting TimeConfig
@@ -318,9 +319,9 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{DateTime, Date, Time, TimeConfig};
+    /// use speedate::{DateTime, Date, Time, TimeConfigBuilder};
     ///
-    /// let dt = DateTime::parse_bytes_with_config(b"2022-01-01T12:13:14Z", &TimeConfig::default()).unwrap();
+    /// let dt = DateTime::parse_bytes_with_config(b"2022-01-01T12:13:14Z", &TimeConfigBuilder::new().build()).unwrap();
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     /// ```
     pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
@@ -364,12 +365,12 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{DateTime, TimeConfig};
+    /// use speedate::{DateTime, TimeConfigBuilder};
     ///
-    /// let d = DateTime::from_timestamp_with_config(1_654_619_320, 123, &TimeConfig::default()).unwrap();
+    /// let d = DateTime::from_timestamp_with_config(1_654_619_320, 123, &TimeConfigBuilder::new().build()).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
     ///
-    /// let d = DateTime::from_timestamp_with_config(1_654_619_320_123, 123_000, &TimeConfig::default()).unwrap();
+    /// let d = DateTime::from_timestamp_with_config(1_654_619_320_123, 123_000, &TimeConfigBuilder::new().build()).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246");
     /// ```
     pub fn from_timestamp_with_config(
@@ -431,7 +432,7 @@ impl DateTime {
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246");
     /// ```
     pub fn from_timestamp(timestamp: i64, timestamp_microsecond: u32) -> Result<Self, ParseError> {
-        Self::from_timestamp_with_config(timestamp, timestamp_microsecond, &TimeConfig::default())
+        Self::from_timestamp_with_config(timestamp, timestamp_microsecond, &TimeConfigBuilder::new().build())
     }
 
     /// Create a datetime from the system time. This method uses [std::time::SystemTime] to get
