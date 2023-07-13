@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use crate::{ParseError, Time, time::TimeConfig, TimeConfigBuilder};
+use crate::{time::TimeConfig, ParseError, Time, TimeConfigBuilder};
 
 /// A Duration
 ///

@@ -237,7 +237,11 @@ impl Time {
     /// assert_eq!(d.to_string(), "01:02:20.000123");
     /// ```
     pub fn from_timestamp(timestamp_second: u32, timestamp_microsecond: u32) -> Result<Self, ParseError> {
-        Time::from_timestamp_with_config(timestamp_second, timestamp_microsecond, &TimeConfigBuilder::new().build())
+        Time::from_timestamp_with_config(
+            timestamp_second,
+            timestamp_microsecond,
+            &TimeConfigBuilder::new().build(),
+        )
     }
 
     /// Like `from_timestamp` but with a `TimeConfig`

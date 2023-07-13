@@ -1,6 +1,6 @@
-use crate::TimeConfigBuilder;
 use crate::numbers::{float_parse_bytes, IntFloat};
-use crate::{Date, ParseError, Time, time::TimeConfig};
+use crate::TimeConfigBuilder;
+use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
 use std::time::SystemTime;
