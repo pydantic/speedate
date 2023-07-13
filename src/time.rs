@@ -559,7 +559,7 @@ impl PureTime {
     }
 }
 
-#[derive(Debug, Clone, Default, Copy)]
+#[derive(Debug, Clone, Default, Copy, PartialEq)]
 pub enum MicrosecondsPrecisionOverflowBehavior {
     Truncate,
     #[default]
@@ -577,7 +577,7 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TimeConfig {
     pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
     pub unix_timestamp_offset: Option<i32>,

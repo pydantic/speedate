@@ -6,7 +6,7 @@ use strum::EnumMessage;
 
 use speedate::{
     float_parse_str, int_parse_str, Date, DateTime, Duration, MicrosecondsPrecisionOverflowBehavior, ParseError, Time,
-    TimeConfigBuilder,
+    TimeConfig, TimeConfigBuilder,
 };
 
 /// macro for expected values
@@ -1335,4 +1335,16 @@ fn test_time_parse_unix_timestamp_from_bytes_as_naive() {
     let time = Time::from_timestamp_with_config(1, 2, &(TimeConfigBuilder::new().unix_timestamp_offset(None).build()))
         .unwrap();
     assert_eq!(time.to_string(), "00:00:01.000002");
+}
+
+#[test]
+fn test_time_config_builder() {
+    assert_eq!(
+        TimeConfigBuilder::new().build(),
+        TimeConfig {
+            microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Error,
+            unix_timestamp_offset: None,
+        }
+    );
+    assert_eq!(TimeConfigBuilder::new().build(), TimeConfig::builder().build());
 }
