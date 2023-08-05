@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 use crate::numbers::int_parse_bytes;
 use crate::{get_digit_unchecked, DateTime, ParseError};
@@ -39,6 +40,17 @@ impl fmt::Display for Date {
         crate::display_num_buf(2, 5, self.month as u32, &mut buf);
         crate::display_num_buf(2, 8, self.day as u32, &mut buf);
         f.write_str(std::str::from_utf8(&buf[..]).unwrap())
+    }
+}
+
+impl FromStr for Date {
+    type Err = ParseError;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Delegate to parse_str, which is more permissive - users can call parse_str_rfc3339 directly instead if they
+        // want to be stricter
+        Self::parse_str(s)
     }
 }
 
