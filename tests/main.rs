@@ -424,13 +424,13 @@ fn datetime_watershed() {
     let dt = DateTime::from_timestamp(20_000_000_000, 0).unwrap();
     assert_eq!(dt.to_string(), "2603-10-11T11:33:20");
     let dt = DateTime::from_timestamp(20_000_000_001, 0).unwrap();
-    assert_eq!(dt.to_string(), "1970-08-20T11:33:20.001");
+    assert_eq!(dt.to_string(), "1970-08-20T11:33:20.001000");
     match DateTime::from_timestamp(-20_000_000_000, 0) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
     let dt = DateTime::from_timestamp(-20_000_000_001, 0).unwrap();
-    assert_eq!(dt.to_string(), "1969-05-14T12:26:39.999");
+    assert_eq!(dt.to_string(), "1969-05-14T12:26:39.999000");
 }
 
 #[test]
@@ -456,10 +456,10 @@ fn datetime_with_tz_offset() {
     let dt_z = DateTime::parse_str("2022-01-01T12:13:14.567+00:00").unwrap();
 
     let dt_m8 = dt_z.with_timezone_offset(Some(-8 * 3600)).unwrap();
-    assert_eq!(dt_m8.to_string(), "2022-01-01T12:13:14.567-08:00");
+    assert_eq!(dt_m8.to_string(), "2022-01-01T12:13:14.567000-08:00");
 
     let dt_naive = dt_z.with_timezone_offset(None).unwrap();
-    assert_eq!(dt_naive.to_string(), "2022-01-01T12:13:14.567");
+    assert_eq!(dt_naive.to_string(), "2022-01-01T12:13:14.567000");
 
     let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
 
@@ -475,13 +475,13 @@ fn datetime_with_tz_offset() {
 
 #[test]
 fn datetime_in_timezone() {
-    let dt_z = DateTime::parse_str("2000-01-01T15:00:00.567Z").unwrap();
+    let dt_z = DateTime::parse_str("2000-01-01T15:00:00.567000Z").unwrap();
 
     let dt_p1 = dt_z.in_timezone(3_600).unwrap();
-    assert_eq!(dt_p1.to_string(), "2000-01-01T16:00:00.567+01:00");
+    assert_eq!(dt_p1.to_string(), "2000-01-01T16:00:00.567000+01:00");
 
     let dt_m2 = dt_z.in_timezone(-7_200).unwrap();
-    assert_eq!(dt_m2.to_string(), "2000-01-01T13:00:00.567-02:00");
+    assert_eq!(dt_m2.to_string(), "2000-01-01T13:00:00.567000-02:00");
 
     let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
     let error = match dt_naive.in_timezone(3_600) {
@@ -573,10 +573,10 @@ fn time_with_tz_offset() {
     let t_z = Time::parse_str("12:13:14.567+00:00").unwrap();
 
     let t_m8 = t_z.with_timezone_offset(Some(-8 * 3600)).unwrap();
-    assert_eq!(t_m8.to_string(), "12:13:14.567-08:00");
+    assert_eq!(t_m8.to_string(), "12:13:14.567000-08:00");
 
     let t_naive = t_z.with_timezone_offset(None).unwrap();
-    assert_eq!(t_naive.to_string(), "12:13:14.567");
+    assert_eq!(t_naive.to_string(), "12:13:14.567000");
 
     let t_naive = Time::parse_str("00:00:00").unwrap();
 
@@ -595,10 +595,10 @@ fn time_in_timezone() {
     let t_z = Time::parse_str("15:00:00.567Z").unwrap();
 
     let t_p1 = t_z.in_timezone(3_600).unwrap();
-    assert_eq!(t_p1.to_string(), "16:00:00.567+01:00");
+    assert_eq!(t_p1.to_string(), "16:00:00.567000+01:00");
 
     let t_m2 = t_z.in_timezone(-7_200).unwrap();
-    assert_eq!(t_m2.to_string(), "13:00:00.567-02:00");
+    assert_eq!(t_m2.to_string(), "13:00:00.567000-02:00");
 
     let t_naive = Time::parse_str("10:00:00").unwrap();
     let error = match t_naive.in_timezone(3_600) {
@@ -619,7 +619,7 @@ param_tests! {
     time_min: ok => "00:00:00.000000", "00:00:00";
     time_max: ok => "23:59:59.999999", "23:59:59.999999";
     time_no_fraction: ok => "12:13:14", "12:13:14";
-    time_fraction_small: ok => "12:13:14.123", "12:13:14.123";
+    time_fraction_small: ok => "12:13:14.123", "12:13:14.123000";
     time_no_sec: ok => "12:13", "12:13:00";
     time_tz: ok => "12:13:14z", "12:13:14Z";
     time: err => "xxx", TooShort;
@@ -813,12 +813,12 @@ param_tests! {
     dt_tz_negative: ok => "2020-01-01T12:13:14-02:15", "2020-01-01T12:13:14-02:15";
     dt_tz_negative_10: ok => "2020-01-01T12:13:14-11:30", "2020-01-01T12:13:14-11:30";
     dt_tz_no_colon: ok => "2020-01-01T12:13:14+1234", "2020-01-01T12:13:14+12:34";
-    dt_seconds_fraction_break: ok => "2020-01-01 12:13:14.123z", "2020-01-01T12:13:14.123Z";
-    dt_seconds_fraction_comma: ok => "2020-01-01 12:13:14,123z", "2020-01-01T12:13:14.123Z";
-    dt_underscore: ok => "2020-01-01_12:13:14,123z", "2020-01-01T12:13:14.123Z";
+    dt_seconds_fraction_break: ok => "2020-01-01 12:13:14.123z", "2020-01-01T12:13:14.123000Z";
+    dt_seconds_fraction_comma: ok => "2020-01-01 12:13:14,123z", "2020-01-01T12:13:14.123000Z";
+    dt_underscore: ok => "2020-01-01_12:13:14,123z", "2020-01-01T12:13:14.123000Z";
     dt_unix1: ok => "1654646400", "2022-06-08T00:00:00";
     dt_unix2: ok => "1654646404", "2022-06-08T00:00:04";
-    dt_unix_float: ok => "1654646404.5", "2022-06-08T00:00:04.5";
+    dt_unix_float: ok => "1654646404.5", "2022-06-08T00:00:04.500000";
     dt_short_date: err => "xxx", TooShort;
     dt_short_time: err => "2020-01-01T12:0", TooShort;
     dt: err => "202x-01-01", InvalidCharYear;

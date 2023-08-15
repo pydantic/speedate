@@ -45,7 +45,7 @@ impl fmt::Display for Time {
             crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
             crate::display_num_buf(2, 6, self.second as u32, &mut buf);
             crate::display_num_buf(6, 9, self.microsecond, &mut buf);
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap().trim_end_matches('0'))?
+            f.write_str(std::str::from_utf8(&buf[..]).unwrap())?
         } else {
             let mut buf: [u8; 8] = *b"00:00:00";
             crate::display_num_buf(2, 0, self.hour as u32, &mut buf);
