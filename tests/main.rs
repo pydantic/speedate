@@ -858,7 +858,7 @@ fn test_ok_values_txt() {
     let mut success = 0;
     for (i, line) in contents.split('\n').enumerate() {
         let line_no = i + 1;
-        if line.starts_with('#') || line.is_empty() {
+        if line.starts_with('#') || line.is_empty() || line == "\r" {
             continue;
         } else if line.starts_with("date:") {
             let (input, expected_str) = extract_values(line, "date:");
@@ -1053,6 +1053,40 @@ fn duration_new_err() {
     }
 }
 
+#[test]
+fn duration_hours() {
+    let d = Duration::parse_str("PT5H45M").unwrap();
+    assert_eq!(
+        d,
+        Duration {
+            positive: true,
+            day: 0,
+            second: 20700,
+            microsecond: 0
+        }
+    );
+    assert_eq!(d.to_string(), "PT5H45M");
+    assert_eq!(d.signed_total_seconds(), (5 * 60 * 60) + (45 * 60));
+    assert_eq!(d.signed_microseconds(), 0);
+}
+
+#[test]
+fn duration_minutes() {
+    let d = Duration::parse_str("PT30M").unwrap();
+    assert_eq!(
+        d,
+        Duration {
+            positive: true,
+            day: 0,
+            second: 1800,
+            microsecond: 0
+        }
+    );
+    assert_eq!(d.to_string(), "PT30M");
+    assert_eq!(d.signed_total_seconds(), 30 * 60);
+    assert_eq!(d.signed_microseconds(), 0);
+}
+
 param_tests! {
     Duration,
     duration_too_short1: err => "", TooShort;
@@ -1064,14 +1098,14 @@ param_tests! {
     duration_1m: ok => "P1M", "P30D";
     duration_1_5m: ok => "P1.5M", "P45D";
     duration_1w: ok => "P1W", "P7D";
-    duration_1_1w: ok => "P1.1W", "P7DT60480S";
-    duration_1_123w: ok => "P1.123W", "P7DT74390.4S";
+    duration_1_1w: ok => "P1.1W", "P7DT16H48M";
+    duration_1_123w: ok => "P1.123W", "P7DT20H39M50.4S";
     duration_simple_negative: ok => "-P1Y", "-P1Y";
     duration_simple_positive: ok => "+P1Y", "P1Y";
     duration_fraction1: ok => "PT0.555555S", "PT0.555555S";
-    duration_fraction2: ok => "P1Y1DT2H0.5S", "P1Y1DT7200.5S";
+    duration_fraction2: ok => "P1Y1DT2H0.5S", "P1Y1DT2H0.5S";
     duration_1: ok => "P1DT1S", "P1DT1S";
-    duration_all: ok => "P1Y2M3DT4H5M6S", "P1Y63DT14706S";
+    duration_all: ok => "P1Y2M3DT4H5M6S", "P1Y63DT4H5M6S";
     duration: err => "PD", DurationInvalidNumber;
     duration: err => "P1DT1MT1S", DurationTRepeated;
     duration: err => "P1DT1.1M1S", DurationInvalidFraction;
@@ -1079,9 +1113,9 @@ param_tests! {
     duration_invalid_day_unit1: err => "P1X", DurationInvalidDateUnit;
     duration_invalid_day_unit2: err => "P1", DurationInvalidDateUnit;
     duration_time_42s: ok => "00:00:42", "PT42S";
-    duration_time_1m: ok => "00:01", "PT60S";
-    duration_time_1h_2m_3s: ok => "01:02:03", "PT3723S";
-    duration_time_fraction: ok => "00:01:03.123", "PT63.123S";
+    duration_time_1m: ok => "00:01", "PT1M";
+    duration_time_1h_2m_3s: ok => "01:02:03", "PT1H2M3S";
+    duration_time_fraction: ok => "00:01:03.123", "PT1M3.123S";
     duration_time_extra: err => "00:01:03.123x", ExtraCharacters;
     duration_time_timezone: err => "00:01:03x", ExtraCharacters;
     duration_time_invalid_hour: err => "24:01:03", OutOfRangeHour;
@@ -1109,7 +1143,7 @@ param_tests! {
     duration_days_123days: ok => "123days", "P123D";
     duration_days_time: ok => "1 day 00:00:42", "P1DT42S";
     duration_days_time_neg: ok => "-1 day 00:00:42", "-P1DT42S";
-    duration_exceeds_day: ok => "PT86500S", "P1DT100S";
+    duration_exceeds_day: ok => "PT86500S", "P1DT1M40S";
     duration_days_time_too_short: err => "1 day 00:", TooShort;
     duration_days_time_wrong: err => "1 day 00:xx", InvalidCharMinute;
     duration_days_time_extra: err => "1 day 00:00:00.123 ", InvalidCharTzSign;
@@ -1133,14 +1167,14 @@ fn duration_large() {
 #[test]
 fn duration_limit() {
     let d = Duration::new(true, 999_999_999, 86399, 999_999).unwrap();
-    assert_eq!(d.to_string(), "P2739726Y9DT86399.999999S");
+    assert_eq!(d.to_string(), "P2739726Y9DT23H59M59.999999S");
 
     match Duration::new(true, 999_999_999, 86399, 999_999 + 1) {
         Ok(t) => panic!("unexpectedly valid -> {t:?}"),
         Err(e) => assert_eq!(e, ParseError::DurationDaysTooLarge),
     }
     let d = Duration::new(false, 999_999_999, 86399, 999_999).unwrap();
-    assert_eq!(d.to_string(), "-P2739726Y9DT86399.999999S");
+    assert_eq!(d.to_string(), "-P2739726Y9DT23H59M59.999999S");
 
     match Duration::new(false, 999_999_999, 86399, 999_999 + 1) {
         Ok(t) => panic!("unexpectedly valid -> {t:?}"),
