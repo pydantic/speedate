@@ -1348,3 +1348,14 @@ fn test_time_config_builder() {
     );
     assert_eq!(TimeConfigBuilder::new().build(), TimeConfig::builder().build());
 }
+
+#[test]
+fn date_dash_err() {
+    let error = match Date::parse_str("-") {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::TooShort);
+    assert_eq!(error.to_string(), "too_short");
+    assert_eq!(error.get_documentation(), Some("input is too short"));
+}

@@ -1,3 +1,17 @@
+use lexical_core::{format as lexical_format, parse_with_options, ParseIntegerOptions};
+
+// Parse bytes as an int with JSON semantics.
+pub fn parse_int_with_json_semantics(bytes: &[u8]) -> Option<i64> {
+    const JSON: u128 = lexical_format::JSON;
+    let int_options = ParseIntegerOptions::new();
+    let int_result: Result<i64, lexical_core::Error> = parse_with_options::<i64, JSON>(bytes, &int_options);
+
+    match int_result {
+        Ok(parsed_int) => Some(parsed_int),
+        Err(_) => None,
+    }
+}
+
 /// Parse a string as an int.
 ///
 /// This is around 2x faster than using `str::parse::<i64>()`

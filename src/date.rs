@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::numbers::int_parse_bytes;
+use crate::numbers::parse_int_with_json_semantics;
 use crate::{get_digit_unchecked, DateTime, ParseError};
 
 /// A Date
@@ -159,9 +159,9 @@ impl Date {
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
         match Self::parse_bytes_rfc3339(bytes) {
             Ok(d) => Ok(d),
-            Err(e) => match int_parse_bytes(bytes) {
-                Some(int) => Self::from_timestamp(int, true),
-                None => Err(e),
+            Err(e) => match parse_int_with_json_semantics(bytes) {
+                Some(int_or_float) => Self::from_timestamp(int_or_float, true),
+                _ => Err(e),
             },
         }
     }
