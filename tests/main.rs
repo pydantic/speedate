@@ -5,8 +5,8 @@ use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTim
 use strum::EnumMessage;
 
 use speedate::{
-    float_parse_str, int_parse_str, Date, DateTime, Duration, MicrosecondsPrecisionOverflowBehavior, ParseError, Time,
-    TimeConfig, TimeConfigBuilder,
+    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateTime, Duration, IntFloat,
+    MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder,
 };
 
 /// macro for expected values
@@ -1347,4 +1347,28 @@ fn test_time_config_builder() {
         }
     );
     assert_eq!(TimeConfigBuilder::new().build(), TimeConfig::builder().build());
+}
+
+#[test]
+fn date_dash_err() {
+    let error = match Date::parse_str("-") {
+        Ok(_) => panic!("unexpectedly valid"),
+        Err(e) => e,
+    };
+    assert_eq!(error, ParseError::TooShort);
+    assert_eq!(error.to_string(), "too_short");
+    assert_eq!(error.get_documentation(), Some("input is too short"));
+}
+
+#[test]
+fn number_dash_err() {
+    assert!(int_parse_str("-").is_none());
+    assert!(int_parse_str("+").is_none());
+    assert!(int_parse_bytes(b"-").is_none());
+    assert!(int_parse_bytes(b"+").is_none());
+
+    assert!(matches!(float_parse_str("-"), IntFloat::Err));
+    assert!(matches!(float_parse_str("+"), IntFloat::Err));
+    assert!(matches!(float_parse_bytes(b"-"), IntFloat::Err));
+    assert!(matches!(float_parse_bytes(b"+"), IntFloat::Err));
 }
