@@ -1,6 +1,6 @@
 use crate::numbers::{float_parse_bytes, IntFloat};
-use crate::TimeConfigBuilder;
 use crate::{time::TimeConfig, Date, ParseError, Time};
+use crate::{TimeConfigBuilder, TimestampUnit};
 use std::cmp::Ordering;
 use std::fmt;
 use std::time::SystemTime;
@@ -46,10 +46,10 @@ impl PartialOrd for DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::DateTime;
+    /// use speedate::{DateTime, TimestampUnit};
     ///
-    /// let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
-    /// let dt2 = DateTime::parse_str("2020-02-03T04:05:06.08").unwrap();
+    /// let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07", TimestampUnit::Infer).unwrap();
+    /// let dt2 = DateTime::parse_str("2020-02-03T04:05:06.08", TimestampUnit::Infer).unwrap();
     ///
     /// assert!(dt2 > dt1);
     /// ```
@@ -86,23 +86,23 @@ impl PartialOrd for DateTime {
     /// ## Timezone Examples
     ///
     /// ```
-    /// use speedate::DateTime;
+    /// use speedate::{DateTime, TimestampUnit};
     ///
-    /// let dt_uk_3pm = DateTime::parse_str("2000-01-01T15:00:00Z").unwrap();
-    /// let dt_france_4pm = DateTime::parse_str("2000-01-01T16:00:00+01:00").unwrap();
+    /// let dt_uk_3pm = DateTime::parse_str("2000-01-01T15:00:00Z", TimestampUnit::Infer).unwrap();
+    /// let dt_france_4pm = DateTime::parse_str("2000-01-01T16:00:00+01:00", TimestampUnit::Infer).unwrap();
     ///
     /// assert!(dt_uk_3pm >= dt_france_4pm);  // the two dts are actually the same instant
     /// assert!(dt_uk_3pm <= dt_france_4pm);  // the two dts are actually the same instant
     /// assert_ne!(dt_uk_3pm, dt_france_4pm);  // no equal because timezones much match for equality
     ///
-    /// let dt_uk_330pm = DateTime::parse_str("2000-01-01T15:30:00Z").unwrap();
+    /// let dt_uk_330pm = DateTime::parse_str("2000-01-01T15:30:00Z", TimestampUnit::Infer).unwrap();
     ///
     /// assert!(dt_uk_330pm > dt_uk_3pm);
     /// assert!(dt_uk_330pm > dt_france_4pm);
     ///
     /// // as described in point 1 above, naïve datetimes are assumed to
     /// // have the same timezone as the non-naïve
-    /// let dt_naive_330pm = DateTime::parse_str("2000-01-01T15:30:00").unwrap();
+    /// let dt_naive_330pm = DateTime::parse_str("2000-01-01T15:30:00", TimestampUnit::Infer).unwrap();
     /// assert!(dt_uk_3pm < dt_naive_330pm);
     /// assert!(dt_france_4pm > dt_naive_330pm);
     /// ```
@@ -130,9 +130,9 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{DateTime, Date, Time};
+    /// use speedate::{DateTime, Date, Time, TimestampUnit};
     ///
-    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z", TimestampUnit::Infer).unwrap();
     /// assert_eq!(
     ///     dt,
     ///     DateTime {
@@ -194,16 +194,16 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::DateTime;
+    /// use speedate::{DateTime, TimestampUnit};
     ///
-    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z", TimestampUnit::Infer).unwrap();
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     ///
-    /// let dt = DateTime::parse_str("1641039194").unwrap();
+    /// let dt = DateTime::parse_str("1641039194", TimestampUnit::Infer).unwrap();
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14");
     /// ```
-    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
-        Self::parse_bytes(str.as_bytes())
+    pub fn parse_str(str: &str, timestamp_unit: TimestampUnit) -> Result<Self, ParseError> {
+        Self::parse_bytes(str.as_bytes(), timestamp_unit)
     }
     /// Parse a datetime from bytes using RFC 3339 format
     ///
@@ -297,16 +297,16 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{DateTime, Date, Time};
+    /// use speedate::{DateTime, Date, Time, TimestampUnit};
     ///
-    /// let dt = DateTime::parse_bytes(b"2022-01-01T12:13:14Z").unwrap();
+    /// let dt = DateTime::parse_bytes(b"2022-01-01T12:13:14Z", TimestampUnit::Infer).unwrap();
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     ///
-    /// let dt = DateTime::parse_bytes(b"1641039194").unwrap();
+    /// let dt = DateTime::parse_bytes(b"1641039194", TimestampUnit::Infer).unwrap();
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14");
     /// ```
-    pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
-        DateTime::parse_bytes_with_config(bytes, &TimeConfigBuilder::new().build())
+    pub fn parse_bytes(bytes: &[u8], timestamp_unit: TimestampUnit) -> Result<Self, ParseError> {
+        DateTime::parse_bytes_with_config(bytes, &TimeConfigBuilder::new().timestamp_unit(timestamp_unit).build())
     }
 
     /// Same as `DateTime::parse_bytes` but supporting TimeConfig
@@ -378,7 +378,7 @@ impl DateTime {
         timestamp_microsecond: u32,
         config: &TimeConfig,
     ) -> Result<Self, ParseError> {
-        let (mut second, extra_microsecond) = Date::timestamp_watershed(timestamp)?;
+        let (mut second, extra_microsecond) = Date::timestamp_into_seconds(timestamp, config.timestamp_unit)?;
         let mut total_microsecond = timestamp_microsecond
             .checked_add(extra_microsecond)
             .ok_or(ParseError::TimeTooLarge)?;
@@ -477,9 +477,9 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::DateTime;
+    /// use speedate::{DateTime, TimestampUnit};
     ///
-    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+    /// let dt = DateTime::parse_str("2022-01-01T12:13:14Z", TimestampUnit::Infer).unwrap();
     ///
     /// let dt2 = dt.with_timezone_offset(Some(-8 * 3600)).unwrap();
     /// assert_eq!(dt2.to_string(), "2022-01-01T12:13:14-08:00");
@@ -503,9 +503,9 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::DateTime;
+    /// use speedate::{DateTime, TimestampUnit};
     ///
-    /// let dt_z = DateTime::parse_str("2000-01-01T15:00:00Z").unwrap();
+    /// let dt_z = DateTime::parse_str("2000-01-01T15:00:00Z", TimestampUnit::Infer).unwrap();
     ///
     /// let dt_utc_plus2 = dt_z.in_timezone(7200).unwrap();
     /// assert_eq!(dt_utc_plus2.to_string(), "2000-01-01T17:00:00+02:00");
@@ -529,13 +529,13 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::DateTime;
+    /// use speedate::{DateTime, TimestampUnit};
     ///
     /// let dt = DateTime::from_timestamp(1_654_619_320, 123).unwrap();
     /// assert_eq!(dt.to_string(), "2022-06-07T16:28:40.000123");
     /// assert_eq!(dt.timestamp(), 1_654_619_320);
     ///
-    /// let dt = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    /// let dt = DateTime::parse_str("1970-01-02T00:00", TimestampUnit::Infer).unwrap();
     /// assert_eq!(dt.timestamp(), 24 * 3600);
     /// ```
     pub fn timestamp(&self) -> i64 {
@@ -551,15 +551,15 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::DateTime;
+    /// use speedate::{DateTime, TimestampUnit};
     ///
-    /// let dt_naive = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    /// let dt_naive = DateTime::parse_str("1970-01-02T00:00", TimestampUnit::Infer).unwrap();
     /// assert_eq!(dt_naive.timestamp_tz(), 24 * 3600);
     ///
-    /// let dt_zulu = DateTime::parse_str("1970-01-02T00:00Z").unwrap();
+    /// let dt_zulu = DateTime::parse_str("1970-01-02T00:00Z", TimestampUnit::Infer).unwrap();
     /// assert_eq!(dt_zulu.timestamp_tz(), 24 * 3600);
     ///
-    /// let dt_plus_1 = DateTime::parse_str("1970-01-02T00:00+01:00").unwrap();
+    /// let dt_plus_1 = DateTime::parse_str("1970-01-02T00:00+01:00", TimestampUnit::Infer).unwrap();
     /// assert_eq!(dt_plus_1.timestamp_tz(), 23 * 3600);
     /// ```
     pub fn timestamp_tz(&self) -> i64 {

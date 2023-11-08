@@ -2,14 +2,14 @@
 
 extern crate test;
 
-use speedate::{Date, DateTime, Duration, Time};
+use speedate::{Date, DateTime, Duration, Time, TimestampUnit};
 use test::{black_box, Bencher};
 
 #[bench]
 fn compare_datetime_ok_speedate(bench: &mut Bencher) {
     let s = black_box("2000-01-01T00:02:03Z");
     bench.iter(|| {
-        let dt = DateTime::parse_str(s).unwrap();
+        let dt = DateTime::parse_str(s, TimestampUnit::Infer).unwrap();
         black_box((
             dt.date.year,
             dt.date.month,
@@ -78,7 +78,7 @@ macro_rules! expect_error {
 fn compare_datetime_error_speedate(bench: &mut Bencher) {
     let s = black_box("2000-01-01T25:02:03Z");
     bench.iter(|| {
-        let e = expect_error!(DateTime::parse_str(s));
+        let e = expect_error!(DateTime::parse_str(s, TimestampUnit::Infer));
         black_box(e);
     })
 }
@@ -140,7 +140,7 @@ fn compare_timestamp_ok_chrono(bench: &mut Bencher) {
 fn dt_custom_tz(bench: &mut Bencher) {
     let s = black_box("1997-09-09T09:09:09-09:09");
     bench.iter(|| {
-        black_box(DateTime::parse_str(s).unwrap());
+        black_box(DateTime::parse_str(s, TimestampUnit::Infer).unwrap());
     })
 }
 
@@ -148,7 +148,7 @@ fn dt_custom_tz(bench: &mut Bencher) {
 fn dt_naive(bench: &mut Bencher) {
     let s = black_box("1997-09-09T09:09:09");
     bench.iter(|| {
-        black_box(DateTime::parse_str(s).unwrap());
+        black_box(DateTime::parse_str(s, TimestampUnit::Infer).unwrap());
     })
 }
 
@@ -156,7 +156,7 @@ fn dt_naive(bench: &mut Bencher) {
 fn date(bench: &mut Bencher) {
     let s = black_box("1997-09-09");
     bench.iter(|| {
-        black_box(Date::parse_str(s).unwrap());
+        black_box(Date::parse_str(s, TimestampUnit::Infer).unwrap());
     })
 }
 
@@ -185,15 +185,15 @@ fn x_combined(bench: &mut Bencher) {
     let t3 = black_box("12:13:14.123");
     let t4 = black_box("12:13:14.123456");
     bench.iter(|| {
-        black_box(DateTime::parse_str(dt1).unwrap());
-        black_box(DateTime::parse_str(dt2).unwrap());
-        black_box(DateTime::parse_str(dt3).unwrap());
-        black_box(DateTime::parse_str(dt4).unwrap());
+        black_box(DateTime::parse_str(dt1, TimestampUnit::Infer).unwrap());
+        black_box(DateTime::parse_str(dt2, TimestampUnit::Infer).unwrap());
+        black_box(DateTime::parse_str(dt3, TimestampUnit::Infer).unwrap());
+        black_box(DateTime::parse_str(dt4, TimestampUnit::Infer).unwrap());
 
-        black_box(Date::parse_str(d1).unwrap());
-        black_box(Date::parse_str(d2).unwrap());
-        black_box(Date::parse_str(d3).unwrap());
-        black_box(Date::parse_str(d4).unwrap());
+        black_box(Date::parse_str(d1, TimestampUnit::Infer).unwrap());
+        black_box(Date::parse_str(d2, TimestampUnit::Infer).unwrap());
+        black_box(Date::parse_str(d3, TimestampUnit::Infer).unwrap());
+        black_box(Date::parse_str(d4, TimestampUnit::Infer).unwrap());
 
         black_box(Time::parse_str(t1).unwrap());
         black_box(Time::parse_str(t2).unwrap());

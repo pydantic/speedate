@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::default::Default;
 use std::fmt;
 
-use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError};
+use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError, TimestampUnit};
 
 /// A Time
 ///
@@ -581,6 +581,7 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
 pub struct TimeConfig {
     pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
     pub unix_timestamp_offset: Option<i32>,
+    pub timestamp_unit: TimestampUnit,
 }
 
 impl TimeConfig {
@@ -593,6 +594,7 @@ impl TimeConfig {
 pub struct TimeConfigBuilder {
     microseconds_precision_overflow_behavior: Option<MicrosecondsPrecisionOverflowBehavior>,
     unix_timestamp_offset: Option<i32>,
+    timestamp_unit: Option<TimestampUnit>,
 }
 
 impl TimeConfigBuilder {
@@ -610,10 +612,15 @@ impl TimeConfigBuilder {
         self.unix_timestamp_offset = unix_timestamp_offset;
         self
     }
+    pub fn timestamp_unit(mut self, unit: TimestampUnit) -> Self {
+        self.timestamp_unit = Some(unit);
+        self
+    }
     pub fn build(self) -> TimeConfig {
         TimeConfig {
             microseconds_precision_overflow_behavior: self.microseconds_precision_overflow_behavior.unwrap_or_default(),
             unix_timestamp_offset: self.unix_timestamp_offset,
+            timestamp_unit: self.timestamp_unit.unwrap_or_default(),
         }
     }
 }

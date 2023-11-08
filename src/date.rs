@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::numbers::int_parse_bytes;
-use crate::{get_digit_unchecked, DateTime, ParseError};
+use crate::{get_digit_unchecked, ConfigError, DateTime, ParseError};
 
 /// A Date
 ///
@@ -16,10 +16,10 @@ use crate::{get_digit_unchecked, DateTime, ParseError};
 /// `Date` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
 /// ```
-/// use speedate::Date;
+/// use speedate::{Date, TimestampUnit};
 ///
-/// let d1 = Date::parse_str("2022-01-01").unwrap();
-/// let d2 = Date::parse_str("2022-01-02").unwrap();
+/// let d1 = Date::parse_str("2022-01-01", TimestampUnit::Infer).unwrap();
+/// let d2 = Date::parse_str("2022-01-02", TimestampUnit::Infer).unwrap();
 /// assert!(d2 > d1);
 /// ```
 #[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
@@ -49,6 +49,26 @@ const MS_WATERSHED: i64 = 20_000_000_000;
 const UNIX_1600: i64 = -11_676_096_000;
 // 9999-12-31T23:59:59 as a unix timestamp, used as max allowed value below
 const UNIX_9999: i64 = 253_402_300_799;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub enum TimestampUnit {
+    Seconds,
+    Milliseconds,
+    #[default]
+    Infer,
+}
+
+impl TryFrom<&str> for TimestampUnit {
+    type Error = ConfigError;
+    fn try_from(value: &str) -> Result<Self, ConfigError> {
+        match value.to_lowercase().as_str() {
+            "s" => Ok(Self::Seconds),
+            "ms" => Ok(Self::Milliseconds),
+            "infer" => Ok(Self::Infer),
+            _ => Err(ConfigError::UnknownTimestampUnitString),
+        }
+    }
+}
 
 impl Date {
     /// Parse a date from a string using RFC 3339 format
@@ -90,16 +110,16 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// use speedate::Date;
+    /// use speedate::{Date, TimestampUnit};
     ///
-    /// let d = Date::parse_str("2020-01-01").unwrap();
+    /// let d = Date::parse_str("2020-01-01", TimestampUnit::Infer).unwrap();
     /// assert_eq!(d.to_string(), "2020-01-01");
-    /// let d = Date::parse_str("1577836800").unwrap();
+    /// let d = Date::parse_str("1577836800", TimestampUnit::Infer).unwrap();
     /// assert_eq!(d.to_string(), "2020-01-01");
     /// ```
     #[inline]
-    pub fn parse_str(str: &str) -> Result<Self, ParseError> {
-        Self::parse_bytes(str.as_bytes())
+    pub fn parse_str(str: &str, timestamp_unit: TimestampUnit) -> Result<Self, ParseError> {
+        Self::parse_bytes(str.as_bytes(), timestamp_unit)
     }
 
     /// Parse a date from bytes using RFC 3339 format
@@ -147,20 +167,20 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// use speedate::Date;
+    /// use speedate::{Date, TimestampUnit};
     ///
-    /// let d = Date::parse_bytes(b"2020-01-01").unwrap();
+    /// let d = Date::parse_bytes(b"2020-01-01", TimestampUnit::Infer).unwrap();
     /// assert_eq!(d.to_string(), "2020-01-01");
     ///
-    /// let d = Date::parse_bytes(b"1577836800").unwrap();
+    /// let d = Date::parse_bytes(b"1577836800", TimestampUnit::Infer).unwrap();
     /// assert_eq!(d.to_string(), "2020-01-01");
     /// ```
     #[inline]
-    pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+    pub fn parse_bytes(bytes: &[u8], timestamp_unit: TimestampUnit) -> Result<Self, ParseError> {
         match Self::parse_bytes_rfc3339(bytes) {
             Ok(d) => Ok(d),
             Err(e) => match int_parse_bytes(bytes) {
-                Some(int) => Self::from_timestamp(int, true),
+                Some(int) => Self::from_timestamp(int, true, timestamp_unit),
                 None => Err(e),
             },
         }
@@ -188,13 +208,13 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// use speedate::Date;
+    /// use speedate::{Date, TimestampUnit};
     ///
-    /// let d = Date::from_timestamp(1_654_560_000, true).unwrap();
+    /// let d = Date::from_timestamp(1_654_560_000, true, TimestampUnit::Infer).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
-    pub fn from_timestamp(timestamp: i64, require_exact: bool) -> Result<Self, ParseError> {
-        let (timestamp_second, _) = Self::timestamp_watershed(timestamp)?;
+    pub fn from_timestamp(timestamp: i64, require_exact: bool, unit: TimestampUnit) -> Result<Self, ParseError> {
+        let (timestamp_second, _) = Self::timestamp_into_seconds(timestamp, unit)?;
         let d = Self::from_timestamp_calc(timestamp_second)?;
         if require_exact {
             let time_second = timestamp_second.rem_euclid(86_400);
@@ -210,9 +230,9 @@ impl Date {
     /// # Example
     ///
     /// ```
-    /// use speedate::Date;
+    /// use speedate::{Date, TimestampUnit};
     ///
-    /// let d = Date::parse_str("2022-06-07").unwrap();
+    /// let d = Date::parse_str("2022-06-07", TimestampUnit::Infer).unwrap();
     /// assert_eq!(d.timestamp(), 1_654_560_000);
     /// ```
     pub fn timestamp(&self) -> i64 {
@@ -261,13 +281,14 @@ impl Date {
         }
     }
 
-    pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
+    pub(crate) fn timestamp_into_seconds(timestamp: i64, unit: TimestampUnit) -> Result<(i64, u32), ParseError> {
         let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
-        let (mut seconds, mut microseconds) = if ts_abs > MS_WATERSHED {
-            (timestamp / 1_000, timestamp % 1_000 * 1000)
-        } else {
-            (timestamp, 0)
-        };
+        let (mut seconds, mut microseconds) =
+            if unit == TimestampUnit::Milliseconds || (unit == TimestampUnit::Infer && ts_abs > MS_WATERSHED) {
+                (timestamp / 1_000, timestamp % 1_000 * 1000)
+            } else {
+                (timestamp, 0)
+            };
         if microseconds < 0 {
             seconds -= 1;
             microseconds += 1_000_000;

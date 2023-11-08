@@ -5,9 +5,38 @@ use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTim
 use strum::EnumMessage;
 
 use speedate::{
-    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateTime, Duration, IntFloat,
-    MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder,
+    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, ConfigError, Date, DateTime, Duration,
+    IntFloat, MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder, TimestampUnit,
 };
+
+/// ensures a uniform API for bulk tests
+trait ParsesFromStr: Sized {
+    fn parse_str_inferring_any_unit(s: &str) -> Result<Self, ParseError>;
+}
+
+impl ParsesFromStr for Date {
+    fn parse_str_inferring_any_unit(s: &str) -> Result<Self, ParseError> {
+        Date::parse_str(s, TimestampUnit::Infer)
+    }
+}
+
+impl ParsesFromStr for Time {
+    fn parse_str_inferring_any_unit(s: &str) -> Result<Self, ParseError> {
+        Time::parse_str(s)
+    }
+}
+
+impl ParsesFromStr for DateTime {
+    fn parse_str_inferring_any_unit(s: &str) -> Result<Self, ParseError> {
+        DateTime::parse_str(s, TimestampUnit::Infer)
+    }
+}
+
+impl ParsesFromStr for Duration {
+    fn parse_str_inferring_any_unit(s: &str) -> Result<Self, ParseError> {
+        Duration::parse_str(s)
+    }
+}
 
 /// macro for expected values
 macro_rules! expect_ok_or_error {
@@ -15,7 +44,7 @@ macro_rules! expect_ok_or_error {
         paste::item! {
             #[test]
             fn [< expect_ $name _ok >]() {
-                let v = <$type>::parse_str($input).unwrap();
+                let v = <$type>::parse_str_inferring_any_unit($input).unwrap();
                 assert_eq!(v.to_string(), $expected);
             }
         }
@@ -24,7 +53,7 @@ macro_rules! expect_ok_or_error {
         paste::item! {
             #[test]
             fn [< expect_ $name _ $error:snake _error >]() {
-                match <$type>::parse_str($input) {
+                match <$type>::parse_str_inferring_any_unit($input) {
                     Ok(t) => panic!("unexpectedly valid: {:?} -> {:?}", $input, t),
                     Err(e) => assert_eq!(e, ParseError::$error),
                 }
@@ -44,7 +73,7 @@ macro_rules! param_tests {
 
 #[test]
 fn date() {
-    let d = Date::parse_str("2020-01-01").unwrap();
+    let d = Date::parse_str("2020-01-01", TimestampUnit::Infer).unwrap();
     assert_eq!(
         d,
         Date {
@@ -109,25 +138,25 @@ param_tests! {
 
 #[test]
 fn date_from_timestamp_extremes() {
-    match Date::from_timestamp(i64::MIN, false) {
+    match Date::from_timestamp(i64::MIN, false, TimestampUnit::Infer) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
-    match Date::from_timestamp(i64::MAX, false) {
+    match Date::from_timestamp(i64::MAX, false, TimestampUnit::Infer) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooLarge),
     }
-    match Date::from_timestamp(-30_610_224_000_000, false) {
+    match Date::from_timestamp(-30_610_224_000_000, false, TimestampUnit::Infer) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
-    let d = Date::from_timestamp(-11_676_096_000 + 1000, false).unwrap();
+    let d = Date::from_timestamp(-11_676_096_000 + 1000, false, TimestampUnit::Infer).unwrap();
     assert_eq!(d.to_string(), "1600-01-01");
-    let d = Date::from_timestamp(-11_673_417_600, false).unwrap();
+    let d = Date::from_timestamp(-11_673_417_600, false, TimestampUnit::Infer).unwrap();
     assert_eq!(d.to_string(), "1600-02-01");
-    let d = Date::from_timestamp(253_402_300_799_000, false).unwrap();
+    let d = Date::from_timestamp(253_402_300_799_000, false, TimestampUnit::Infer).unwrap();
     assert_eq!(d.to_string(), "9999-12-31");
-    match Date::from_timestamp(253_402_300_800_000, false) {
+    match Date::from_timestamp(253_402_300_800_000, false, TimestampUnit::Infer) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooLarge),
     }
@@ -135,21 +164,21 @@ fn date_from_timestamp_extremes() {
 
 #[test]
 fn date_watershed() {
-    let dt = Date::from_timestamp(20_000_000_000, false).unwrap();
+    let dt = Date::from_timestamp(20_000_000_000, false, TimestampUnit::Infer).unwrap();
     assert_eq!(dt.to_string(), "2603-10-11");
-    let dt = Date::from_timestamp(20_000_000_001, false).unwrap();
+    let dt = Date::from_timestamp(20_000_000_001, false, TimestampUnit::Infer).unwrap();
     assert_eq!(dt.to_string(), "1970-08-20");
-    match Date::from_timestamp(-20_000_000_000, false) {
+    match Date::from_timestamp(-20_000_000_000, false, TimestampUnit::Infer) {
         Ok(d) => panic!("unexpectedly valid, {d}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
-    let dt = Date::from_timestamp(-20_000_000_001, false).unwrap();
+    let dt = Date::from_timestamp(-20_000_000_001, false, TimestampUnit::Infer).unwrap();
     assert_eq!(dt.to_string(), "1969-05-14");
 }
 
 #[test]
 fn date_from_timestamp_milliseconds() {
-    let d1 = Date::from_timestamp(1_654_472_524, false).unwrap();
+    let d1 = Date::from_timestamp(1_654_472_524, false, TimestampUnit::Infer).unwrap();
     assert_eq!(
         d1,
         Date {
@@ -158,13 +187,13 @@ fn date_from_timestamp_milliseconds() {
             day: 5
         }
     );
-    let d2 = Date::from_timestamp(1_654_472_524_000, false).unwrap();
+    let d2 = Date::from_timestamp(1_654_472_524_000, false, TimestampUnit::Infer).unwrap();
     assert_eq!(d2, d1);
 }
 
 fn try_date_timestamp(ts: i64, check_timestamp: bool) {
     let chrono_date = NaiveDateTime::from_timestamp_opt(ts, 0).unwrap().date();
-    let d = Date::from_timestamp(ts, false).unwrap();
+    let d = Date::from_timestamp(ts, false, TimestampUnit::Infer).unwrap();
     // println!("{} => {:?}", ts, d);
     assert_eq!(
         d,
@@ -192,8 +221,8 @@ fn date_from_timestamp_range() {
 
 #[test]
 fn date_comparison() {
-    let d1 = Date::parse_str("2020-02-03").unwrap();
-    let d2 = Date::parse_str("2021-01-02").unwrap();
+    let d1 = Date::parse_str("2020-02-03", TimestampUnit::Infer).unwrap();
+    let d2 = Date::parse_str("2021-01-02", TimestampUnit::Infer).unwrap();
     assert!(d1 < d2);
     assert!(d1 <= d2);
     assert!(d1 <= d1.clone());
@@ -204,11 +233,11 @@ fn date_comparison() {
 
 #[test]
 fn date_timestamp() {
-    let d = Date::from_timestamp(1_654_560_000, true).unwrap();
+    let d = Date::from_timestamp(1_654_560_000, true, TimestampUnit::Infer).unwrap();
     assert_eq!(d.to_string(), "2022-06-07");
     assert_eq!(d.timestamp(), 1_654_560_000);
 
-    match Date::from_timestamp(1_654_560_001, true) {
+    match Date::from_timestamp(1_654_560_001, true, TimestampUnit::Infer) {
         Ok(d) => panic!("unexpectedly valid, {d}"),
         Err(e) => assert_eq!(e, ParseError::DateNotExact),
     }
@@ -222,7 +251,7 @@ macro_rules! date_from_timestamp {
             fn [< date_from_timestamp_ $year _ $month _ $day >]() {
                 let chrono_date = NaiveDate::from_ymd_opt($year, $month, $day).unwrap();
                 let ts = chrono_date.and_hms_opt(0, 0, 0).unwrap().timestamp();
-                let d = Date::from_timestamp(ts, false).unwrap();
+                let d = Date::from_timestamp(ts, false, TimestampUnit::Infer).unwrap();
                 assert_eq!(
                     d,
                     Date {
@@ -413,7 +442,7 @@ fn datetime_from_timestamp_specific() {
 
     let d = DateTime::from_timestamp(253_402_300_799_000, 999999).unwrap();
     assert_eq!(d.to_string(), "9999-12-31T23:59:59.999999");
-    match Date::from_timestamp(253_402_300_800_000, false) {
+    match Date::from_timestamp(253_402_300_800_000, false, TimestampUnit::Infer) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooLarge),
     }
@@ -453,7 +482,7 @@ fn datetime_now_offset() {
 
 #[test]
 fn datetime_with_tz_offset() {
-    let dt_z = DateTime::parse_str("2022-01-01T12:13:14.567+00:00").unwrap();
+    let dt_z = DateTime::parse_str("2022-01-01T12:13:14.567+00:00", TimestampUnit::Infer).unwrap();
 
     let dt_m8 = dt_z.with_timezone_offset(Some(-8 * 3600)).unwrap();
     assert_eq!(dt_m8.to_string(), "2022-01-01T12:13:14.567000-08:00");
@@ -461,7 +490,7 @@ fn datetime_with_tz_offset() {
     let dt_naive = dt_z.with_timezone_offset(None).unwrap();
     assert_eq!(dt_naive.to_string(), "2022-01-01T12:13:14.567000");
 
-    let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+    let dt_naive = DateTime::parse_str("2000-01-01T00:00:00", TimestampUnit::Infer).unwrap();
 
     let dt_p16 = dt_naive.with_timezone_offset(Some(16 * 3600)).unwrap();
     assert_eq!(dt_p16.to_string(), "2000-01-01T00:00:00+16:00");
@@ -475,7 +504,7 @@ fn datetime_with_tz_offset() {
 
 #[test]
 fn datetime_in_timezone() {
-    let dt_z = DateTime::parse_str("2000-01-01T15:00:00.567000Z").unwrap();
+    let dt_z = DateTime::parse_str("2000-01-01T15:00:00.567000Z", TimestampUnit::Infer).unwrap();
 
     let dt_p1 = dt_z.in_timezone(3_600).unwrap();
     assert_eq!(dt_p1.to_string(), "2000-01-01T16:00:00.567000+01:00");
@@ -483,7 +512,7 @@ fn datetime_in_timezone() {
     let dt_m2 = dt_z.in_timezone(-7_200).unwrap();
     assert_eq!(dt_m2.to_string(), "2000-01-01T13:00:00.567000-02:00");
 
-    let dt_naive = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+    let dt_naive = DateTime::parse_str("2000-01-01T00:00:00", TimestampUnit::Infer).unwrap();
     let error = match dt_naive.in_timezone(3_600) {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => e,
@@ -639,7 +668,7 @@ param_tests! {
 
 #[test]
 fn datetime_naive() {
-    let dt = DateTime::parse_str("2020-01-01T12:13:14.123456").unwrap();
+    let dt = DateTime::parse_str("2020-01-01T12:13:14.123456", TimestampUnit::Infer).unwrap();
     assert_eq!(
         dt,
         DateTime {
@@ -666,7 +695,7 @@ fn datetime_naive() {
 
 #[test]
 fn datetime_tz_z() {
-    let dt = DateTime::parse_str("2020-01-01 12:13:14z").unwrap();
+    let dt = DateTime::parse_str("2020-01-01 12:13:14z", TimestampUnit::Infer).unwrap();
     assert_eq!(
         dt,
         DateTime {
@@ -689,13 +718,13 @@ fn datetime_tz_z() {
 
 #[test]
 fn datetime_bytes() {
-    let dt = DateTime::parse_bytes(b"2020-01-01 12:13:14z").unwrap();
+    let dt = DateTime::parse_bytes(b"2020-01-01 12:13:14z", TimestampUnit::Infer).unwrap();
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14Z");
 }
 
 #[test]
 fn datetime_tz_2hours() {
-    let dt = DateTime::parse_str("2020-01-01T12:13:14+02:00").unwrap();
+    let dt = DateTime::parse_str("2020-01-01T12:13:14+02:00", TimestampUnit::Infer).unwrap();
     assert_eq!(
         dt,
         DateTime {
@@ -719,7 +748,7 @@ fn datetime_tz_2hours() {
 #[test]
 fn datetime_tz_negative_2212() {
     // using U+2212 for negative timezones
-    let dt = DateTime::parse_str("2020-01-01T12:13:14−02:15").unwrap();
+    let dt = DateTime::parse_str("2020-01-01T12:13:14−02:15", TimestampUnit::Infer).unwrap();
     assert_eq!(dt.time.tz_offset, Some(-8100));
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14-02:15");
 }
@@ -736,29 +765,29 @@ fn datetime_timestamp() {
     assert_eq!(dt.timestamp(), 1_000_000_000);
     // using ms unix timestamp
 
-    let d_naive = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    let d_naive = DateTime::parse_str("1970-01-02T00:00", TimestampUnit::Infer).unwrap();
     assert_eq!(d_naive.timestamp(), 86400);
 }
 
 #[test]
 fn datetime_timestamp_tz() {
-    let t_naive = DateTime::parse_str("1970-01-02T00:00").unwrap();
+    let t_naive = DateTime::parse_str("1970-01-02T00:00", TimestampUnit::Infer).unwrap();
     assert_eq!(t_naive.timestamp(), 24 * 3600);
     assert_eq!(t_naive.timestamp_tz(), 24 * 3600);
 
-    let dt_zulu = DateTime::parse_str("1970-01-02T00:00Z").unwrap();
+    let dt_zulu = DateTime::parse_str("1970-01-02T00:00Z", TimestampUnit::Infer).unwrap();
     assert_eq!(dt_zulu.timestamp(), 24 * 3600);
     assert_eq!(dt_zulu.timestamp_tz(), 24 * 3600);
 
-    let dt_plus_1 = DateTime::parse_str("1970-01-02T00:00+01:00").unwrap();
+    let dt_plus_1 = DateTime::parse_str("1970-01-02T00:00+01:00", TimestampUnit::Infer).unwrap();
     assert_eq!(dt_plus_1.timestamp(), 24 * 3600);
     assert_eq!(dt_plus_1.timestamp_tz(), 23 * 3600);
 }
 
 #[test]
 fn datetime_comparison_naive() {
-    let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07").unwrap();
-    let dt2 = DateTime::parse_str("2021-01-02T03:04:05.06").unwrap();
+    let dt1 = DateTime::parse_str("2020-02-03T04:05:06.07", TimestampUnit::Infer).unwrap();
+    let dt2 = DateTime::parse_str("2021-01-02T03:04:05.06", TimestampUnit::Infer).unwrap();
 
     assert!(dt2 > dt1);
     assert!(dt2 >= dt1);
@@ -767,43 +796,43 @@ fn datetime_comparison_naive() {
     assert!(dt1 <= dt2);
     assert!(dt1 <= dt1.clone());
 
-    let dt3 = DateTime::parse_str("2020-02-03T04:05:06.123").unwrap();
-    let dt4 = DateTime::parse_str("2020-02-03T04:05:06.124").unwrap();
+    let dt3 = DateTime::parse_str("2020-02-03T04:05:06.123", TimestampUnit::Infer).unwrap();
+    let dt4 = DateTime::parse_str("2020-02-03T04:05:06.124", TimestampUnit::Infer).unwrap();
     assert!(dt4 > dt3);
     assert!(dt3 < dt4);
 }
 
 #[test]
 fn datetime_comparison_timezone() {
-    let dt1 = DateTime::parse_str("2000-01-01T00:00:00+01:00").unwrap();
-    let dt2 = DateTime::parse_str("2000-01-01T00:00:00+02:00").unwrap();
+    let dt1 = DateTime::parse_str("2000-01-01T00:00:00+01:00", TimestampUnit::Infer).unwrap();
+    let dt2 = DateTime::parse_str("2000-01-01T00:00:00+02:00", TimestampUnit::Infer).unwrap();
 
     assert!(dt1 > dt2);
     assert!(dt1 >= dt2);
     assert!(dt2 < dt1);
     assert!(dt2 <= dt1);
 
-    let dt3 = DateTime::parse_str("2000-01-01T00:00:00").unwrap();
+    let dt3 = DateTime::parse_str("2000-01-01T00:00:00", TimestampUnit::Infer).unwrap();
 
     assert!(dt1 >= dt3);
     assert!(dt3 <= dt1);
 
-    let dt4 = DateTime::parse_str("1970-01-01T04:00:00.222+02:00").unwrap();
+    let dt4 = DateTime::parse_str("1970-01-01T04:00:00.222+02:00", TimestampUnit::Infer).unwrap();
     assert_eq!(dt4.timestamp_tz(), 2 * 3600);
-    let dt5 = DateTime::parse_str("1970-01-01T03:00:00Z").unwrap();
+    let dt5 = DateTime::parse_str("1970-01-01T03:00:00Z", TimestampUnit::Infer).unwrap();
     assert_eq!(dt5.timestamp_tz(), 3 * 3600);
     assert!(dt5 > dt4);
     assert!(dt4 <= dt4.clone());
 
     // assert that microseconds are used for comparison here
-    let dt6 = DateTime::parse_str("1970-01-01T04:00:00.333+02:00").unwrap();
+    let dt6 = DateTime::parse_str("1970-01-01T04:00:00.333+02:00", TimestampUnit::Infer).unwrap();
     assert_eq!(dt6.timestamp_tz(), 2 * 3600);
     assert!(dt6 > dt4);
     assert_ne!(dt6, dt4);
 
     // even on different dates, tz has an effect
-    let dt7 = DateTime::parse_str("2022-01-01T23:00:00Z").unwrap();
-    let dt8 = DateTime::parse_str("2022-01-02T01:00:00+03:00").unwrap();
+    let dt7 = DateTime::parse_str("2022-01-01T23:00:00Z", TimestampUnit::Infer).unwrap();
+    let dt8 = DateTime::parse_str("2022-01-02T01:00:00+03:00", TimestampUnit::Infer).unwrap();
     assert!(dt7 > dt8);
 }
 
@@ -862,7 +891,7 @@ fn test_ok_values_txt() {
             continue;
         } else if line.starts_with("date:") {
             let (input, expected_str) = extract_values(line, "date:");
-            let d = Date::parse_str(&input)
+            let d = Date::parse_str(&input, TimestampUnit::Infer)
                 .map_err(|e| panic!("error on line {line_no} {line:?}: {e:?}"))
                 .unwrap();
             assert_eq!(d.to_string(), expected_str, "error on line {line_no}");
@@ -874,7 +903,7 @@ fn test_ok_values_txt() {
             assert_eq!(t.to_string(), expected_str, "error on line {line_no}");
         } else if line.starts_with("dt:") {
             let (input, expected_str) = extract_values(line, "dt:");
-            let dt = DateTime::parse_str(&input)
+            let dt = DateTime::parse_str(&input, TimestampUnit::Infer)
                 .map_err(|e| panic!("error on line {line_no} {line:?}: {e:?}"))
                 .unwrap();
             assert_eq!(dt.to_string(), expected_str, "error on line {line_no}");
@@ -1323,6 +1352,71 @@ fn test_datetime_parse_unix_timestamp_from_bytes_as_naive() {
 }
 
 #[test]
+fn test_timestamp_unit_try_from_str() {
+    assert_eq!(TimestampUnit::try_from("s").unwrap(), TimestampUnit::Seconds);
+    assert_eq!(TimestampUnit::try_from("ms").unwrap(), TimestampUnit::Milliseconds);
+    assert_eq!(TimestampUnit::try_from("infer").unwrap(), TimestampUnit::Infer);
+    assert_eq!(
+        TimestampUnit::try_from("foo").unwrap_err(),
+        ConfigError::UnknownTimestampUnitString
+    );
+}
+
+#[test]
+fn test_datetime_from_timestamp_explicitly_infer() {
+    let conf = TimeConfig {
+        timestamp_unit: TimestampUnit::Infer,
+        ..Default::default()
+    };
+    for ts in [800_000_000, 800_000_000_000] {
+        assert_eq!(
+            DateTime::from_timestamp_with_config(ts, 0, &conf).unwrap().to_string(),
+            "1995-05-09T06:13:20"
+        );
+    }
+}
+
+#[test]
+fn test_datetime_from_timestamp_explicitly_seconds() {
+    let conf = TimeConfig {
+        timestamp_unit: TimestampUnit::Seconds,
+        ..Default::default()
+    };
+    assert_eq!(
+        DateTime::from_timestamp_with_config(800_000_000, 0, &conf)
+            .unwrap()
+            .to_string(),
+        "1995-05-09T06:13:20"
+    );
+    assert_eq!(
+        DateTime::from_timestamp_with_config(20_000_100_000, 0, &conf)
+            .unwrap()
+            .to_string(),
+        "2603-10-12T15:20:00"
+    );
+}
+
+#[test]
+fn test_datetime_from_timestamp_explicitly_milliseconds() {
+    let conf = TimeConfig {
+        timestamp_unit: TimestampUnit::Milliseconds,
+        ..Default::default()
+    };
+    assert_eq!(
+        DateTime::from_timestamp_with_config(800_000_000, 0, &conf)
+            .unwrap()
+            .to_string(),
+        "1970-01-10T06:13:20"
+    );
+    assert_eq!(
+        DateTime::from_timestamp_with_config(20_000_100_000, 0, &conf)
+            .unwrap()
+            .to_string(),
+        "1970-08-20T11:35:00"
+    );
+}
+
+#[test]
 fn test_time_parse_unix_timestamp_from_bytes_with_utc_offset() {
     let time =
         Time::from_timestamp_with_config(1, 2, &(TimeConfigBuilder::new().unix_timestamp_offset(Some(0)).build()))
@@ -1344,6 +1438,7 @@ fn test_time_config_builder() {
         TimeConfig {
             microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Error,
             unix_timestamp_offset: None,
+            ..Default::default()
         }
     );
     assert_eq!(TimeConfigBuilder::new().build(), TimeConfig::builder().build());
@@ -1351,7 +1446,7 @@ fn test_time_config_builder() {
 
 #[test]
 fn date_dash_err() {
-    let error = Date::parse_str("-").unwrap_err();
+    let error = Date::parse_str("-", TimestampUnit::Infer).unwrap_err();
     assert_eq!(error, ParseError::TooShort);
     assert_eq!(error.to_string(), "too_short");
     assert_eq!(error.get_documentation(), Some("input is too short"));
