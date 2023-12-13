@@ -383,7 +383,7 @@ impl DateTime {
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
     ///
     /// let d = DateTime::from_timestamp_with_config(1_654_619_320_123, 123_000, &TimeConfigBuilder::new().build()).unwrap();
-    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246");
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246000");
     /// ```
     pub fn from_timestamp_with_config(
         timestamp: i64,
@@ -441,7 +441,7 @@ impl DateTime {
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
     ///
     /// let d = DateTime::from_timestamp(1_654_619_320_123, 123_000).unwrap();
-    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246");
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246000");
     /// ```
     pub fn from_timestamp(timestamp: i64, timestamp_microsecond: u32) -> Result<Self, ParseError> {
         Self::from_timestamp_with_config(timestamp, timestamp_microsecond, &TimeConfigBuilder::new().build())

@@ -71,12 +71,22 @@ impl fmt::Display for Duration {
             }
         }
         if self.second != 0 || self.microsecond != 0 {
-            write!(f, "T{}", self.second)?;
-            if self.microsecond != 0 {
-                let s = format!("{:06}", self.microsecond);
-                write!(f, ".{}", s.trim_end_matches('0'))?;
+            let (hour, minute, sec) = self.to_hms();
+            write!(f, "T")?;
+            if hour != 0 {
+                write!(f, "{hour}H")?;
             }
-            write!(f, "S")?;
+            if minute != 0 {
+                write!(f, "{minute}M")?;
+            }
+            if sec != 0 || self.microsecond != 0 {
+                write!(f, "{sec}")?;
+                if self.microsecond != 0 {
+                    let s = format!("{:06}", self.microsecond);
+                    write!(f, ".{}", s.trim_end_matches('0'))?;
+                }
+                write!(f, "S")?;
+            }
         }
         if self.second == 0 && self.microsecond == 0 && self.day == 0 {
             write!(f, "T0S")?;
@@ -91,6 +101,16 @@ impl FromStr for Duration {
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::parse_str(s)
+    }
+}
+
+impl Duration {
+    fn to_hms(&self) -> (u32, u32, u32) {
+        let hours = self.second / 3600;
+        let minutes = (self.second % 3600) / 60;
+        let remaining_seconds = self.second % 60;
+
+        (hours, minutes, remaining_seconds)
     }
 }
 
