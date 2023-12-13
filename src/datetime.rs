@@ -3,6 +3,7 @@ use crate::TimeConfigBuilder;
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
+use std::str::FromStr;
 use std::time::SystemTime;
 
 /// A DateTime
@@ -35,6 +36,17 @@ impl fmt::Display for DateTime {
         write!(f, "T")?;
         write!(f, "{}", self.time)?;
         Ok(())
+    }
+}
+
+impl FromStr for DateTime {
+    type Err = ParseError;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Delegate to parse_str, which is more permissive - users can call parse_str_rfc3339 directly instead if they
+        // want to be stricter
+        Self::parse_str(s)
     }
 }
 

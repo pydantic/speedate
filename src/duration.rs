@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt;
+use std::str::FromStr;
 
 use crate::{time::TimeConfig, ParseError, Time, TimeConfigBuilder};
 
@@ -91,6 +92,15 @@ impl fmt::Display for Duration {
             write!(f, "T0S")?;
         }
         Ok(())
+    }
+}
+
+impl FromStr for Duration {
+    type Err = ParseError;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse_str(s)
     }
 }
 

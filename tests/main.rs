@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Read;
+use std::str::FromStr;
 
 use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTime, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
@@ -33,11 +34,37 @@ macro_rules! expect_ok_or_error {
     };
 }
 
+/// macro for comparing a type's `from_str` and `parse_str` methods
+macro_rules! expect_fromstr_matches_parse_str {
+    ($type:ty, $name:ident, ok, $_expected:expr, $example:expr) => {
+        paste::item! {
+            #[test]
+            fn [< expect_ $name _fromstr_matches_parse_str_ok >]() {
+                expect_fromstr_matches_parse_str!(@body $type, $example);
+            }
+        }
+    };
+    ($type:ty, $name:ident, err, $error:expr, $example:expr) => {
+        paste::item! {
+            #[test]
+            fn [< expect_ $name _fromstr_matches_parse_str_ $error:snake _error >]() {
+                expect_fromstr_matches_parse_str!(@body $type, $example);
+            }
+        }
+    };
+    (@body $type:ty, $example:expr) => {{
+        let fromstr = <$type>::from_str($example);
+        let parse_str = <$type>::parse_str($example);
+        assert_eq!(fromstr, parse_str, "fromstr: {fromstr:?}, parse_str: {parse_str:?}");
+    }};
+}
+
 /// macro to define many tests for expected values
 macro_rules! param_tests {
     ($type:ty, $($name:ident: $ok_or_err:ident => $input:literal, $expected:expr;)*) => {
         $(
             expect_ok_or_error!($type, $name, $ok_or_err, $input, $expected);
+            expect_fromstr_matches_parse_str!($type, $name, $ok_or_err, $expected, $input);
         )*
     }
 }

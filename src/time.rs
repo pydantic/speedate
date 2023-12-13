@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::default::Default;
 use std::fmt;
+use std::str::FromStr;
 
 use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError};
 
@@ -71,6 +72,15 @@ impl fmt::Display for Time {
             }
         }
         Ok(())
+    }
+}
+
+impl FromStr for Time {
+    type Err = ParseError;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse_str(s)
     }
 }
 
