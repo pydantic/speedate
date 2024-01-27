@@ -140,6 +140,8 @@ pub enum ParseError {
     DateTooLarge,
     /// numeric times may not exceed 86,399 seconds
     TimeTooLarge,
+    /// years before 1600 are not supported
+    YearTooSmall,
 }
 
 #[derive(Debug, Display, EnumMessage, PartialEq, Eq, Clone)]
