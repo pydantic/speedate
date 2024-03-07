@@ -749,6 +749,14 @@ fn datetime_tz_negative_2212() {
     let dt = DateTime::parse_str("2020-01-01T12:13:14−02:15").unwrap();
     assert_eq!(dt.time.tz_offset, Some(-8100));
     assert_eq!(dt.to_string(), "2020-01-01T12:13:14-02:15");
+
+    let dt = DateTime::parse_str("2020-01-01T12:13:14−00:01").unwrap();
+    assert_eq!(dt.time.tz_offset, Some(-60));
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14-00:01");
+
+    let dt = DateTime::parse_str("2020-01-01T12:13:14−01:00").unwrap();
+    assert_eq!(dt.time.tz_offset, Some(-3600));
+    assert_eq!(dt.to_string(), "2020-01-01T12:13:14-01:00");
 }
 
 #[test]
