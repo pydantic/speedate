@@ -66,8 +66,8 @@ impl fmt::Display for Time {
                 if (minutes < 0) || (hours < 0) {
                     buf[0] = b'-';
                 }
-                crate::display_num_buf(2, 1, hours.abs() as u32, &mut buf);
-                crate::display_num_buf(2, 4, minutes.abs() as u32, &mut buf);
+                crate::display_num_buf(2, 1, hours.unsigned_abs(), &mut buf);
+                crate::display_num_buf(2, 4, minutes.unsigned_abs(), &mut buf);
                 f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
             }
         }
