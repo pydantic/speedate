@@ -63,7 +63,7 @@ impl fmt::Display for Time {
                 let hours = total_minutes / 60;
                 let minutes = total_minutes % 60;
                 let mut buf: [u8; 6] = *b"+00:00";
-                if (minutes < 0) || (hours < 0) {
+                if tz_offset < 0 {
                     buf[0] = b'-';
                 }
                 crate::display_num_buf(2, 1, hours.unsigned_abs(), &mut buf);
