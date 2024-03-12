@@ -58,16 +58,16 @@ impl fmt::Display for Time {
             if tz_offset == 0 {
                 write!(f, "Z")?;
             } else {
-                let mins = tz_offset / 60;
-                let mut min = mins / 60;
-                let sec = (mins % 60).abs();
+                // tz offset is given in seconds, so we do convertions from seconds -> mins -> hours
+                let total_minutes = tz_offset / 60;
+                let hours = total_minutes / 60;
+                let minutes = total_minutes % 60;
                 let mut buf: [u8; 6] = *b"+00:00";
-                if min < 0 {
+                if tz_offset < 0 {
                     buf[0] = b'-';
-                    min = min.abs();
                 }
-                crate::display_num_buf(2, 1, min as u32, &mut buf);
-                crate::display_num_buf(2, 4, sec as u32, &mut buf);
+                crate::display_num_buf(2, 1, hours.unsigned_abs(), &mut buf);
+                crate::display_num_buf(2, 4, minutes.unsigned_abs(), &mut buf);
                 f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
             }
         }
