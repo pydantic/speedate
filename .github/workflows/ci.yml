@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: dtolnay/rust-toolchain@master
       with:
@@ -42,12 +42,12 @@ jobs:
 
     - run: cargo test --doc
 
-    - uses: codecov/codecov-action@v2
+    - uses: codecov/codecov-action@v4
 
   bench:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: dtolnay/rust-toolchain@nightly
     - uses: Swatinem/rust-cache@v2
@@ -57,7 +57,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: install rust stable
       uses: dtolnay/rust-toolchain@stable
@@ -66,7 +66,7 @@ jobs:
 
     - uses: Swatinem/rust-cache@v2
 
-    - uses: pre-commit/action@v3.0.0
+    - uses: pre-commit/action@v3.0.1
       with:
         extra_args: --all-files --verbose
       env:
@@ -93,7 +93,7 @@ jobs:
     environment: release
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: install rust stable
       uses: dtolnay/rust-toolchain@stable
