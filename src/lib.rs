@@ -10,7 +10,7 @@ mod duration;
 mod numbers;
 mod time;
 
-pub use date::Date;
+pub use date::{Date, TimestampUnit};
 pub use datetime::DateTime;
 pub use duration::Duration;
 pub use time::{MicrosecondsPrecisionOverflowBehavior, Time, TimeConfig, TimeConfigBuilder};
@@ -50,9 +50,9 @@ pub(crate) use get_digit_unchecked;
 /// (Note: the `strum::EnumMessage` trait must be used to support `.get_documentation()`)
 /// ```
 /// use strum::EnumMessage;
-/// use speedate::{Date, ParseError};
+/// use speedate::{Date, ParseError, TimestampUnit};
 ///
-/// match Date::parse_str("invalid") {
+/// match Date::parse_str("invalid", TimestampUnit::Infer) {
 ///      Ok(_) => println!("Parsed successfully"),
 ///      Err(error) => {
 ///          assert_eq!(error, ParseError::TooShort);
@@ -147,6 +147,7 @@ pub enum ParseError {
 pub enum ConfigError {
     // SecondsPrecisionOverflowBehavior string representation, must be one of "error" or "truncate"
     UnknownMicrosecondsPrecisionOverflowBehaviorString,
+    UnknownTimestampUnitString,
 }
 
 /// Used internally to write numbers to a buffer for `Display` of speedate types

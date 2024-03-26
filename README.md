@@ -40,10 +40,10 @@ This will be the datetime parsing logic for [pydantic-core](https://github.com/p
 ## Usage
 
 ```rust
-use speedate::{DateTime, Date, Time};
+use speedate::{DateTime, Date, Time, TimestampUnit};
 
 fn main() {
-    let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+    let dt = DateTime::parse_str("2022-01-01T12:13:14Z", TimestampUnit::Infer).unwrap();
     assert_eq!(
         dt,
         DateTime {
