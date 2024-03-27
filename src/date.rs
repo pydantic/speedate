@@ -330,6 +330,10 @@ impl Date {
             let y4 = get_digit_unchecked!(bytes, 3, InvalidCharYear) as u16;
             year = y1 * 1000 + y2 * 100 + y3 * 10 + y4;
 
+            if year < 1600 {
+                return Err(ParseError::YearTooSmall);
+            }
+
             match bytes.get_unchecked(4) {
                 b'-' => (),
                 _ => return Err(ParseError::InvalidCharDateSep),

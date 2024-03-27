@@ -132,6 +132,7 @@ param_tests! {
     date_unix_before_watershed: ok => "19999872000", "2603-10-10";
     date_unix_after_watershed: ok => "20044800000", "1970-08-21";
     date_unix_too_low: err => "-20000000000", DateTooSmall;
+    date_year_too_low: err => "1500-01-01T00:00:00+00:00", YearTooSmall;
 }
 
 #[test]
