@@ -474,7 +474,7 @@ impl Duration {
         let days = (hour_numeric_value / 24) as u32;
         let leftover_hour = (hour_numeric_value % 24) as u32;
 
-        let mut minute_and_second_part = bytes[byte_len - 5..].to_vec();
+        let minute_and_second_part = bytes[byte_len - 5..].to_vec();
 
         let mut t = Self::parse_minutes_seconds(&minute_and_second_part[..], 0)?;
         t.day = days;
@@ -574,18 +574,18 @@ impl Duration {
         let byte_len = bytes.len() - offset;
 
         if byte_len != 5 {
-            return Err(ParseError::InvalidCharMinute)
+            return Err(ParseError::InvalidCharMinute);
         }
-        let mut minutes = bytes.get(offset).ok_or(ParseError::InvalidCharMinute)? - b'0' ;
+        let mut minutes = bytes.get(offset).ok_or(ParseError::InvalidCharMinute)? - b'0';
         minutes *= 10;
-        minutes += bytes.get(offset + 1).ok_or(ParseError::InvalidCharMinute)? - b'0' ;
+        minutes += bytes.get(offset + 1).ok_or(ParseError::InvalidCharMinute)? - b'0';
 
         // offset + 2 => ":"
-        let mut seconds = bytes.get(offset + 3).ok_or(ParseError::InvalidCharMinute)? - b'0' ;
+        let mut seconds = bytes.get(offset + 3).ok_or(ParseError::InvalidCharMinute)? - b'0';
         seconds *= 10;
         seconds += bytes.get(offset + 4).ok_or(ParseError::InvalidCharSecond)? - b'0';
 
-        Ok( Self {
+        Ok(Self {
             positive: false,
             day: 0,
             second: (minutes * 60 + seconds) as u32,
