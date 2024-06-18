@@ -472,16 +472,13 @@ impl Duration {
 
         // extract the Day value and parse the left over time part.
         let days = (hour_numeric_value / 24) as u32;
-        let leftover_hour = (hour_numeric_value % 24) as i32;
+        let leftover_hour = (hour_numeric_value % 24) as u32;
 
-        let h1 = (leftover_hour / 10) as u8 + b'0';
-        let h2 = (leftover_hour % 10) as u8 + b'0';
+        let mut minute_and_second_part = bytes[byte_len - 5..].to_vec();
 
-        let mut temp_vec: Vec<u8> = vec![h1, h2];
-        temp_vec.extend_from_slice(&bytes[byte_len - 6..]);
-
-        let mut t = Self::parse_time(&temp_vec[..], 0, &TimeConfigBuilder::new().build())?;
+        let mut t = Self::parse_minutes_seconds(&minute_and_second_part[..], 0)?;
         t.day = days;
+        t.second += leftover_hour * 3_600;
         Ok(t)
     }
 
@@ -570,6 +567,30 @@ impl Duration {
             }
             None => days_only!(day),
         }
+    }
+
+    fn parse_minutes_seconds(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+        // MM:SS
+        let byte_len = bytes.len() - offset;
+
+        if byte_len != 5 {
+            return Err(ParseError::InvalidCharMinute)
+        }
+        let mut minutes = bytes.get(offset).ok_or(ParseError::InvalidCharMinute)? - b'0' ;
+        minutes *= 10;
+        minutes += bytes.get(offset + 1).ok_or(ParseError::InvalidCharMinute)? - b'0' ;
+
+        // offset + 2 => ":"
+        let mut seconds = bytes.get(offset + 3).ok_or(ParseError::InvalidCharMinute)? - b'0' ;
+        seconds *= 10;
+        seconds += bytes.get(offset + 4).ok_or(ParseError::InvalidCharSecond)? - b'0';
+
+        Ok( Self {
+            positive: false,
+            day: 0,
+            second: (minutes * 60 + seconds) as u32,
+            microsecond: 0,
+        })
     }
 
     fn parse_time(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
