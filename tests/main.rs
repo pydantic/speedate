@@ -1155,6 +1155,7 @@ param_tests! {
     duration_time_timezone: err => "00:01:03x", ExtraCharacters;
     duration_time_more_than_24_hour: ok => "24:01:03", "P1DT1M3S";
     duration_time_way_more_than_24_hour: ok => "2400000000:01:03", "P273972Y220DT1M3S";
+    duration_time_way_more_than_24_hour_long_fraction: ok => "2400000000:01:03.654321", "P273972Y220DT1M3.654321S";
     duration_time_invalid_over_limit_hour: err => "100000000000:01:03", DurationHourValueTooLarge;
     duration_time_invalid_format_hour: err => "1000xxx000:01:03", InvalidCharHour;
     duration_time_invalid_minute: err => "00:60:03", OutOfRangeMinute;
