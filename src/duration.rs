@@ -506,10 +506,12 @@ impl Duration {
 
     fn parse_time(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
         let byte_len = bytes.len();
+        if byte_len - offset < 5 {
+            return Err(ParseError::TooShort);
+        }
         const HOUR_NUMERIC_LIMIT: i64 = 24 * 10i64.pow(8);
         let mut hour: i64 = 0;
-        let mut day: u32 = 0;
-        let first_colon_index = bytes.iter().position(|&x| x == b':').unwrap();
+
         let mut chunks = bytes
             .get(offset..)
             .ok_or(ParseError::TooShort)?
@@ -518,7 +520,7 @@ impl Duration {
         // can just use `.split_once()` in future maybe, if that stabilises
         let (hour_part, remaining) = match (chunks.next(), chunks.next(), chunks.next()) {
             (_, _, Some(_)) | (None, _, _) => unreachable!("should always be 1 or 2 chunks"),
-            (Some(hour_part), None, _) => return Err(ParseError::InvalidCharHour),
+            (Some(_hour_part), None, _) => return Err(ParseError::InvalidCharHour),
             (Some(hour_part), Some(remaining), None) => (hour_part, remaining),
         };
 
@@ -533,19 +535,19 @@ impl Duration {
             return Err(ParseError::DurationHourValueTooLarge);
         }
 
-        if byte_len - offset < 5 {
-            return Err(ParseError::TooShort);
+        let mut new_bytes = *b"00:00:00.000000";
+        if 3 + remaining.len() > new_bytes.len() {
+            return Err(ParseError::SecondFractionTooLong);
         }
-        let mut temp_vec: Vec<u8> = vec![b'0', b'0'];
-        temp_vec.extend_from_slice(&bytes[first_colon_index..]);
-        let new_bytes = &temp_vec[..];
+        let new_bytes = &mut new_bytes[..3 + remaining.len()];
+        new_bytes[3..].copy_from_slice(remaining);
 
-        let t = crate::time::PureTime::parse(new_bytes, offset, config)?;
+        let t = crate::time::PureTime::parse(new_bytes, 0, config)?;
 
         if new_bytes.len() > t.position {
             return Err(ParseError::ExtraCharacters);
         }
-        day = hour as u32 / 24;
+        let day = hour as u32 / 24;
         hour %= 24;
 
         Ok(Self {
