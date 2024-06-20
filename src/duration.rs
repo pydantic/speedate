@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::{time::TimeConfig, ParseError, Time, TimeConfigBuilder};
+use crate::{time::TimeConfig, ParseError, Time, TimeConfigBuilder, get_digit_unchecked};
 
 /// A Duration
 ///
@@ -298,24 +298,13 @@ impl Duration {
         };
         let mut d = match bytes.get(offset).copied() {
             Some(b'P') => Self::parse_iso_duration(bytes, offset + 1),
-            _ => match bytes.get(offset + 2).copied() {
-                Some(b':') => {
-                    let h1 = bytes.get(offset).copied().unwrap() - b'0';
-                    let h2 = bytes.get(offset + 1).copied().unwrap() - b'0';
-                    if h1 * 10 + h2 > 23 {
-                        Self::parse_oversize_hour_time_format(bytes, offset)
-                    } else {
-                        Self::parse_time(bytes, offset, config)
-                    }
+            _ => {
+                if Self::is_duration_date_format(bytes) || bytes.len() < 5 {
+                    Self::parse_days_time(bytes, offset)
+                } else {
+                    Self::parse_time(bytes, offset, config)
                 }
-                _ => {
-                    if bytes.len() - offset < 8 || Self::is_duration_date_format(bytes) {
-                        Self::parse_days_time(bytes, offset)
-                    } else {
-                        Self::parse_oversize_hour_time_format(bytes, offset)
-                    }
-                }
-            },
+            }
         }?;
         d.positive = positive;
 
@@ -434,59 +423,10 @@ impl Duration {
         })
     }
 
-    fn parse_oversize_hour_time_format(bytes: &[u8], offset: usize) -> Result<Duration, ParseError> {
-        // handle format H..H:MM:DD. So we already know the fix format for the last 6 chars and
-        // minimum length is 8;
-        let byte_len = bytes.len();
-        if byte_len < 8 {
-            return Err(ParseError::TooShort);
-        }
-
-        let hour_numeric_limit = 24 * (1e9 as i64);
-
-        // see if the ":" is where it should be in "H..H:MM:DD".
-        if bytes.get(byte_len - 3) != Some(&b':') || bytes.get(byte_len - 6) != Some(&b':') {
-            return Err(ParseError::DurationInvalidFraction);
-        }
-
-        let mut hour_numeric_value: i64 = 0;
-        let hour_byte_len = byte_len - 6;
-        // the limit for H..H is 1,000,000,000 * 24 => result have length of 11 chars.
-        // so just checking if it can fail early.
-        if hour_byte_len > 11 || (hour_byte_len == 11 && (bytes.get(offset) > Some(&b'2'))) {
-            return Err(ParseError::DurationHourValueTooLarge);
-        }
-
-        // parsing the H..H in to a number.
-        for idx in offset..hour_byte_len {
-            let n = bytes.get(idx).ok_or(ParseError::InvalidCharHour)? - b'0';
-            if n > 9 {
-                return Err(ParseError::InvalidCharHour);
-            }
-            hour_numeric_value = (hour_numeric_value * 10) + (n as i64);
-        }
-
-        if hour_numeric_value >= hour_numeric_limit {
-            return Err(ParseError::DurationHourValueTooLarge);
-        }
-
-        // extract the Day value and parse the left over time part.
-        let days = (hour_numeric_value / 24) as u32;
-        let leftover_hour = (hour_numeric_value % 24) as u32;
-
-        let minute_and_second_part = bytes[byte_len - 5..].to_vec();
-
-        let mut t = Self::parse_minutes_seconds(&minute_and_second_part[..], 0)?;
-        t.day = days;
-        t.second += leftover_hour * 3_600;
-        Ok(t)
-    }
-
     fn is_duration_date_format(bytes: &[u8]) -> bool {
         for byte in bytes {
-            match byte {
-                b'd' | b'D' => return true,
-                _ => {}
+            if *byte == b'd' || *byte == b'D' {
+                return true;
             }
         }
         false
@@ -569,41 +509,43 @@ impl Duration {
         }
     }
 
-    fn parse_minutes_seconds(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        // MM:SS
-        let byte_len = bytes.len() - offset;
-
-        if byte_len != 5 {
-            return Err(ParseError::InvalidCharMinute);
-        }
-        let mut minutes = bytes.get(offset).ok_or(ParseError::InvalidCharMinute)? - b'0';
-        minutes *= 10;
-        minutes += bytes.get(offset + 1).ok_or(ParseError::InvalidCharMinute)? - b'0';
-
-        // offset + 2 => ":"
-        let mut seconds = bytes.get(offset + 3).ok_or(ParseError::InvalidCharMinute)? - b'0';
-        seconds *= 10;
-        seconds += bytes.get(offset + 4).ok_or(ParseError::InvalidCharSecond)? - b'0';
-
-        Ok(Self {
-            positive: false,
-            day: 0,
-            second: (minutes * 60 + seconds) as u32,
-            microsecond: 0,
-        })
-    }
-
     fn parse_time(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
-        let t = crate::time::PureTime::parse(bytes, offset, config)?;
+        let byte_len = bytes.len();
+        const HOUR_NUMERIC_LIMIT: i64 = 24 * 10i64.pow(8);
+        let mut hour: i64 = 0;
+        let mut day: u32 = 0;
+        let first_colon_index = bytes.iter().position(|&x| x == b':').unwrap();
 
-        if bytes.len() > t.position {
+        for idx in offset..first_colon_index {
+            let h = bytes.get(idx).ok_or(ParseError::InvalidCharHour)? - b'0';
+            if h > 9 {
+                return Err(ParseError::InvalidCharHour);
+            }
+            hour = (hour * 10) + (h as i64);
+        }
+        if hour > HOUR_NUMERIC_LIMIT {
+            return Err(ParseError::DurationHourValueTooLarge);
+        }
+
+        if byte_len - offset < 5 {
+            return Err(ParseError::TooShort);
+        }
+        let mut temp_vec: Vec<u8> = vec![b'0', b'0'];
+        temp_vec.extend_from_slice(&bytes[first_colon_index..]);
+        let new_bytes = &temp_vec[..];
+
+        let t = crate::time::PureTime::parse(new_bytes, offset, config)?;
+
+        if new_bytes.len() > t.position {
             return Err(ParseError::ExtraCharacters);
         }
+        day = hour as u32 / 24;
+        hour = hour % 24;
 
         Ok(Self {
             positive: false, // is set above
-            day: 0,
-            second: t.total_seconds(),
+            day,
+            second: t.total_seconds() + (hour as u32) * 3_600,
             microsecond: t.microsecond,
         })
     }
