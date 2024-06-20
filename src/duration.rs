@@ -424,12 +424,7 @@ impl Duration {
     }
 
     fn is_duration_date_format(bytes: &[u8]) -> bool {
-        for byte in bytes {
-            if *byte == b'd' || *byte == b'D' {
-                return true;
-            }
-        }
-        false
+        bytes.iter().any(|&byte| byte == b'd' || byte == b'D')
     }
 
     fn parse_days_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
@@ -515,9 +510,20 @@ impl Duration {
         let mut hour: i64 = 0;
         let mut day: u32 = 0;
         let first_colon_index = bytes.iter().position(|&x| x == b':').unwrap();
+        let mut chunks = bytes
+            .get(offset..)
+            .ok_or(ParseError::TooShort)?
+            .splitn(2, |&byte| byte == b':');
 
-        for idx in offset..first_colon_index {
-            let h = bytes.get(idx).ok_or(ParseError::InvalidCharHour)? - b'0';
+        // can just use `.split_once()` in future maybe, if that stabilises
+        let (hour_part, remaining) = match (chunks.next(), chunks.next(), chunks.next()) {
+            (_, _, Some(_)) | (None, _, _) => unreachable!("should always be 1 or 2 chunks"),
+            (Some(hour_part), None, _) => return Err(ParseError::InvalidCharHour),
+            (Some(hour_part), Some(remaining), None) => (hour_part, remaining),
+        };
+
+        for byte in hour_part {
+            let h = *byte - b'0';
             if h > 9 {
                 return Err(ParseError::InvalidCharHour);
             }
@@ -540,7 +546,7 @@ impl Duration {
             return Err(ParseError::ExtraCharacters);
         }
         day = hour as u32 / 24;
-        hour = hour % 24;
+        hour %= 24;
 
         Ok(Self {
             positive: false, // is set above
