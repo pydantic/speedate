@@ -298,10 +298,13 @@ impl Duration {
         };
         let mut d = match bytes.get(offset).copied() {
             Some(b'P') => Self::parse_iso_duration(bytes, offset + 1),
-            _ => match bytes.get(offset + 2).copied() {
-                Some(b':') => Self::parse_time(bytes, offset, config),
-                _ => Self::parse_days_time(bytes, offset),
-            },
+            _ => {
+                if Self::is_duration_date_format(bytes) || bytes.len() < 5 {
+                    Self::parse_days_time(bytes, offset)
+                } else {
+                    Self::parse_time(bytes, offset, config)
+                }
+            }
         }?;
         d.positive = positive;
 
@@ -420,6 +423,10 @@ impl Duration {
         })
     }
 
+    fn is_duration_date_format(bytes: &[u8]) -> bool {
+        bytes.iter().any(|&byte| byte == b'd' || byte == b'D')
+    }
+
     fn parse_days_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
         let (day, offset) = match bytes.get(offset).copied() {
             Some(c) => Self::parse_number(bytes, c, offset),
@@ -498,16 +505,63 @@ impl Duration {
     }
 
     fn parse_time(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
-        let t = crate::time::PureTime::parse(bytes, offset, config)?;
+        let byte_len = bytes.len();
+        if byte_len - offset < 5 {
+            return Err(ParseError::TooShort);
+        }
+        const HOUR_NUMERIC_LIMIT: i64 = 24 * 10i64.pow(8);
+        let mut hour: i64 = 0;
 
-        if bytes.len() > t.position {
+        let mut chunks = bytes
+            .get(offset..)
+            .ok_or(ParseError::TooShort)?
+            .splitn(2, |&byte| byte == b':');
+
+        // can just use `.split_once()` in future maybe, if that stabilises
+        let (hour_part, mut remaining) = match (chunks.next(), chunks.next(), chunks.next()) {
+            (_, _, Some(_)) | (None, _, _) => unreachable!("should always be 1 or 2 chunks"),
+            (Some(_hour_part), None, _) => return Err(ParseError::InvalidCharHour),
+            (Some(hour_part), Some(remaining), None) => (hour_part, remaining),
+        };
+
+        // > 9.999.999.999
+        if hour_part.len() > 10 {
+            return Err(ParseError::DurationHourValueTooLarge);
+        }
+
+        for byte in hour_part {
+            let h = *byte - b'0';
+            if h > 9 {
+                return Err(ParseError::InvalidCharHour);
+            }
+            hour = (hour * 10) + (h as i64);
+        }
+        if hour > HOUR_NUMERIC_LIMIT {
+            return Err(ParseError::DurationHourValueTooLarge);
+        }
+
+        let mut new_bytes = *b"00:00:00.000000";
+        if 3 + remaining.len() > new_bytes.len() {
+            match config.microseconds_precision_overflow_behavior {
+                crate::MicrosecondsPrecisionOverflowBehavior::Truncate => remaining = &remaining[..new_bytes.len() - 3],
+                crate::MicrosecondsPrecisionOverflowBehavior::Error => return Err(ParseError::SecondFractionTooLong),
+            }
+        }
+        let new_bytes = &mut new_bytes[..3 + remaining.len()];
+        new_bytes[3..].copy_from_slice(remaining);
+
+        let t = crate::time::PureTime::parse(new_bytes, 0, config)?;
+
+        if new_bytes.len() > t.position {
             return Err(ParseError::ExtraCharacters);
         }
+        let day = hour as u32 / 24;
+        hour %= 24;
 
         Ok(Self {
             positive: false, // is set above
-            day: 0,
-            second: t.total_seconds(),
+            day,
+            second: t.total_seconds() + (hour as u32) * 3_600,
             microsecond: t.microsecond,
         })
     }

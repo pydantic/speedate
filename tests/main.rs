@@ -1153,7 +1153,12 @@ param_tests! {
     duration_time_fraction: ok => "00:01:03.123", "PT1M3.123S";
     duration_time_extra: err => "00:01:03.123x", ExtraCharacters;
     duration_time_timezone: err => "00:01:03x", ExtraCharacters;
-    duration_time_invalid_hour: err => "24:01:03", OutOfRangeHour;
+    duration_time_more_than_24_hour: ok => "24:01:03", "P1DT1M3S";
+    duration_time_way_more_than_24_hour: ok => "2400000000:01:03", "P273972Y220DT1M3S";
+    duration_time_way_more_than_24_hour_long_fraction: ok => "2400000000:01:03.654321", "P273972Y220DT1M3.654321S";
+    duration_time_invalid_over_limit_hour: err => "100000000000:01:03", DurationHourValueTooLarge;
+    duration_time_overflow_hour: err => "100000000000000000000000:01:03", DurationHourValueTooLarge;
+    duration_time_invalid_format_hour: err => "1000xxx000:01:03", InvalidCharHour;
     duration_time_invalid_minute: err => "00:60:03", OutOfRangeMinute;
     duration_time_invalid_second: err => "00:00:60", OutOfRangeSecond;
     duration_time_fraction_too_long: err => "00:00:00.1234567", SecondFractionTooLong;
