@@ -518,7 +518,7 @@ impl Duration {
             .splitn(2, |&byte| byte == b':');
 
         // can just use `.split_once()` in future maybe, if that stabilises
-        let (hour_part, remaining) = match (chunks.next(), chunks.next(), chunks.next()) {
+        let (hour_part, mut remaining) = match (chunks.next(), chunks.next(), chunks.next()) {
             (_, _, Some(_)) | (None, _, _) => unreachable!("should always be 1 or 2 chunks"),
             (Some(_hour_part), None, _) => return Err(ParseError::InvalidCharHour),
             (Some(hour_part), Some(remaining), None) => (hour_part, remaining),
@@ -537,7 +537,10 @@ impl Duration {
 
         let mut new_bytes = *b"00:00:00.000000";
         if 3 + remaining.len() > new_bytes.len() {
-            return Err(ParseError::SecondFractionTooLong);
+            match config.microseconds_precision_overflow_behavior {
+                crate::MicrosecondsPrecisionOverflowBehavior::Truncate => remaining = &remaining[..new_bytes.len() - 3],
+                crate::MicrosecondsPrecisionOverflowBehavior::Error => return Err(ParseError::SecondFractionTooLong),
+            }
         }
         let new_bytes = &mut new_bytes[..3 + remaining.len()];
         new_bytes[3..].copy_from_slice(remaining);

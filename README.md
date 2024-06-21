@@ -42,58 +42,53 @@ This will be the datetime parsing logic for [pydantic-core](https://github.com/p
 ```rust
 use speedate::{DateTime, Date, Time};
 
-fn main() {
-    let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
-    assert_eq!(
-        dt,
-        DateTime {
-            date: Date {
-                year: 2022,
-                month: 1,
-                day: 1,
-            },
-            time: Time {
-                hour: 12,
-                minute: 13,
-                second: 14,
-                microsecond: 0,
-                tz_offset: Some(0),
-            },
-        }
-    );
-    assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
-}
+let dt = DateTime::parse_str("2022-01-01T12:13:14Z").unwrap();
+assert_eq!(
+    dt,
+    DateTime {
+        date: Date {
+            year: 2022,
+            month: 1,
+            day: 1,
+        },
+        time: Time {
+            hour: 12,
+            minute: 13,
+            second: 14,
+            microsecond: 0,
+            tz_offset: Some(0),
+        },
+    }
+);
+assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
 ```
 
 To control the specifics of time parsing you can use provide a `TimeConfig`:
 
 ```rust
 use speedate::{DateTime, Date, Time, TimeConfig};
-
-fn main() {
-    let dt = DateTime::parse_bytes_with_config(
-        "1689102037.5586429".as_bytes(),
-        &TimeConfig::builder().unix_timestamp_offset(Some(0)).build(),
-    ).unwrap();
-    assert_eq!(
-        dt,
-        DateTime {
-            date: Date {
-                year: 2023,
-                month: 7,
-                day: 11,
-            },
-            time: Time {
-                hour: 19,
-                minute: 0,
-                second: 37,
-                microsecond: 558643,
-                tz_offset: Some(0),
-            },
-        }
-    );
-    assert_eq!(dt.to_string(), "2023-07-11T19:00:37.558643Z");
-}
+let dt = DateTime::parse_bytes_with_config(
+    "1689102037.5586429".as_bytes(),
+    &TimeConfig::builder().unix_timestamp_offset(Some(0)).build(),
+).unwrap();
+assert_eq!(
+    dt,
+    DateTime {
+        date: Date {
+            year: 2023,
+            month: 7,
+            day: 11,
+        },
+        time: Time {
+            hour: 19,
+            minute: 0,
+            second: 37,
+            microsecond: 558643,
+            tz_offset: Some(0),
+        },
+    }
+);
+assert_eq!(dt.to_string(), "2023-07-11T19:00:37.558643Z");
 ```
 
 ## Performance
