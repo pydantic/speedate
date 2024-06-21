@@ -524,6 +524,11 @@ impl Duration {
             (Some(hour_part), Some(remaining), None) => (hour_part, remaining),
         };
 
+        // > 9.999.999.999
+        if hour_part.len() > 10 {
+            return Err(ParseError::DurationHourValueTooLarge);
+        }
+
         for byte in hour_part {
             let h = *byte - b'0';
             if h > 9 {
