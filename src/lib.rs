@@ -13,7 +13,7 @@ mod time;
 pub use date::Date;
 pub use datetime::DateTime;
 pub use duration::Duration;
-pub use time::{MicrosecondsPrecisionOverflowBehavior, Time, TimeConfig, TimeConfigBuilder};
+pub use time::{MicrosecondsPrecisionOverflowBehavior, Time, TimeConfig, TimeConfigBuilder, TimestampInterpretation};
 
 pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
 
@@ -142,6 +142,8 @@ pub enum ParseError {
     DateTooLarge,
     /// numeric times may not exceed 86,399 seconds
     TimeTooLarge,
+
+
 }
 
 #[derive(Debug, Display, EnumMessage, PartialEq, Eq, Clone)]
@@ -149,6 +151,8 @@ pub enum ParseError {
 pub enum ConfigError {
     // SecondsPrecisionOverflowBehavior string representation, must be one of "error" or "truncate"
     UnknownMicrosecondsPrecisionOverflowBehaviorString,
+    // Unknown timestamp interpretation string, must be one of "error", "truncate" or "ignore"
+    UnknownTimestampInterpretationString,
 }
 
 /// Used internally to write numbers to a buffer for `Display` of speedate types
