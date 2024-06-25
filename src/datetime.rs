@@ -1,5 +1,5 @@
-use crate::numbers::{float_parse_bytes, IntFloat};
-use crate::TimeConfigBuilder;
+use crate::date::MS_WATERSHED;
+use crate::{int_parse_bytes, TimeConfigBuilder};
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
@@ -339,14 +339,36 @@ impl DateTime {
     pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
         match Self::parse_bytes_rfc3339_with_config(bytes, config) {
             Ok(d) => Ok(d),
-            Err(e) => match float_parse_bytes(bytes) {
-                IntFloat::Int(int) => Self::from_timestamp_with_config(int, 0, config),
-                IntFloat::Float(float) => {
-                    let micro = (float.fract() * 1_000_000_f64).round() as u32;
-                    Self::from_timestamp_with_config(float.floor() as i64, micro, config)
+            Err(e) => {
+                let mut split = bytes.splitn(2, |&b| b == b'.');
+                let Some(timestamp) =
+                    int_parse_bytes(split.next().expect("splitn always returns at least one element"))
+                else {
+                    return Err(e);
+                };
+                let float_fraction = split.next();
+                debug_assert!(split.next().is_none()); // at most two elements
+                match float_fraction {
+                    Some(fract) => {
+                        // fraction is either:
+                        // - up to 3 digits of millisecond fractions, i.e. microseconds
+                        // - or up to 6 digits of second fractions, i.e. milliseconds
+                        let max_digits = if timestamp > MS_WATERSHED { 3 } else { 6 };
+                        let Some(fract_integers) = int_parse_bytes(fract) else {
+                            return Err(e);
+                        };
+                        let multiple = 10f64.powf(max_digits as f64 - fract.len() as f64);
+                        Self::from_timestamp_with_config(
+                            timestamp,
+                            // FIXME should we error if the fraction is too long?
+                            // We have TimeConfig truncate / error option.
+                            (fract_integers as f64 * multiple).round() as u32,
+                            config,
+                        )
+                    }
+                    None => Self::from_timestamp_with_config(timestamp, 0, config),
                 }
-                IntFloat::Err => Err(e),
-            },
+            }
         }
     }
 
