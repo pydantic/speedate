@@ -1475,6 +1475,13 @@ fn test_timestamp_interpretation() {
 
     assert_eq!(auto_dt.to_string(), "2022-06-07T16:28:40");
     assert_eq!(always_seconds_dt.to_string(), "2022-06-07T16:28:40");
+
+    // Test the specific case where timestamp is divided and multiplied
+    let auto_dt = DateTime::from_timestamp_with_config(20_000_000_001, 0, &auto_config).unwrap();
+    assert_eq!(auto_dt.to_string(), "1970-08-20T11:33:20.001000");
+
+    let always_seconds_dt = DateTime::from_timestamp_with_config(20_000_000_001, 0, &always_seconds_config).unwrap();
+    assert_eq!(always_seconds_dt.to_string(), "2603-10-11T11:33:21");
 }
 
 #[test]
