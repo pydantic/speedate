@@ -1,5 +1,5 @@
 use crate::numbers::{float_parse_bytes, IntFloat};
-use crate::TimeConfigBuilder;
+use crate::{TimeConfigBuilder, TimestampInterpretation};
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
@@ -390,7 +390,11 @@ impl DateTime {
         timestamp_microsecond: u32,
         config: &TimeConfig,
     ) -> Result<Self, ParseError> {
-        let (mut second, extra_microsecond) = Date::timestamp_watershed(timestamp)?;
+        let (mut second, extra_microsecond) = match config.timestamp_interpretation {
+            TimestampInterpretation::Auto => Date::timestamp_watershed(timestamp)?,
+            TimestampInterpretation::AlwaysSeconds => (timestamp, 0),
+        };
+
         let mut total_microsecond = timestamp_microsecond
             .checked_add(extra_microsecond)
             .ok_or(ParseError::TimeTooLarge)?;
@@ -402,7 +406,7 @@ impl DateTime {
         }
         let date = Date::from_timestamp_calc(second)?;
         // rem_euclid since if `timestamp_second = -100`, we want `time_second = 86300` (e.g. `86400 - 100`)
-        let time_second = second.rem_euclid(86_400) as u32;
+        let time_second = second.rem_euclid(86_400);
         Ok(Self {
             date,
             time: Time::from_timestamp_with_config(time_second, total_microsecond, config)?,
