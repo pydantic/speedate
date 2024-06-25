@@ -1476,3 +1476,52 @@ fn test_timestamp_interpretation() {
     assert_eq!(auto_dt.to_string(), "2022-06-07T16:28:40");
     assert_eq!(always_seconds_dt.to_string(), "2022-06-07T16:28:40");
 }
+
+#[test]
+fn test_timestamp_interpretation_try_from() {
+    use speedate::{ConfigError, TimestampInterpretation};
+
+    // Test valid inputs
+    assert_eq!(
+        TimestampInterpretation::try_from("auto"),
+        Ok(TimestampInterpretation::Auto)
+    );
+    assert_eq!(
+        TimestampInterpretation::try_from("Auto"),
+        Ok(TimestampInterpretation::Auto)
+    );
+    assert_eq!(
+        TimestampInterpretation::try_from("AUTO"),
+        Ok(TimestampInterpretation::Auto)
+    );
+    assert_eq!(
+        TimestampInterpretation::try_from("always_seconds"),
+        Ok(TimestampInterpretation::AlwaysSeconds)
+    );
+    assert_eq!(
+        TimestampInterpretation::try_from("Always_Seconds"),
+        Ok(TimestampInterpretation::AlwaysSeconds)
+    );
+    assert_eq!(
+        TimestampInterpretation::try_from("ALWAYS_SECONDS"),
+        Ok(TimestampInterpretation::AlwaysSeconds)
+    );
+
+    // Test invalid inputs
+    assert_eq!(
+        TimestampInterpretation::try_from("invalid"),
+        Err(ConfigError::UnknownTimestampInterpretationString)
+    );
+    assert_eq!(
+        TimestampInterpretation::try_from(""),
+        Err(ConfigError::UnknownTimestampInterpretationString)
+    );
+    assert_eq!(
+        TimestampInterpretation::try_from("autoX"),
+        Err(ConfigError::UnknownTimestampInterpretationString)
+    );
+    assert_eq!(
+        TimestampInterpretation::try_from("always_secondsX"),
+        Err(ConfigError::UnknownTimestampInterpretationString)
+    );
+}
