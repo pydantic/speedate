@@ -230,12 +230,22 @@ fn date_comparison() {
 }
 
 #[test]
-fn date_timestamp() {
+fn date_timestamp_exact() {
     let d = Date::from_timestamp(1_654_560_000, true).unwrap();
     assert_eq!(d.to_string(), "2022-06-07");
     assert_eq!(d.timestamp(), 1_654_560_000);
 
     match Date::from_timestamp(1_654_560_001, true) {
+        Ok(d) => panic!("unexpectedly valid, {d}"),
+        Err(e) => assert_eq!(e, ParseError::DateNotExact),
+    }
+
+    // milliseconds
+    let d = Date::from_timestamp(1_654_560_000_000, true).unwrap();
+    assert_eq!(d.to_string(), "2022-06-07");
+    assert_eq!(d.timestamp(), 1_654_560_000);
+
+    match Date::from_timestamp(1_654_560_000_001, true) {
         Ok(d) => panic!("unexpectedly valid, {d}"),
         Err(e) => assert_eq!(e, ParseError::DateNotExact),
     }
@@ -854,6 +864,9 @@ param_tests! {
     dt_unix1: ok => "1654646400", "2022-06-08T00:00:00";
     dt_unix2: ok => "1654646404", "2022-06-08T00:00:04";
     dt_unix_float: ok => "1654646404.5", "2022-06-08T00:00:04.500000";
+    dt_unix_float_limit: ok => "1654646404.123456", "2022-06-08T00:00:04.123456";
+    dt_unix_float_ms: ok => "1654646404000.5", "2022-06-08T00:00:04.000500";
+    dt_unix_float_ms_limit: ok => "1654646404123.456", "2022-06-08T00:00:04.123456";
     dt_short_date: err => "xxx", TooShort;
     dt_short_time: err => "2020-01-01T12:0", TooShort;
     dt: err => "202x-01-01", InvalidCharYear;
