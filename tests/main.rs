@@ -7,7 +7,7 @@ use strum::EnumMessage;
 
 use speedate::{
     float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateTime, Duration, IntFloat,
-    MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder,
+    MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder, TimestampInterpretation,
 };
 
 /// macro for expected values
@@ -363,7 +363,7 @@ fn time_from_timestamp_error() {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
     }
-    match Time::from_timestamp(u32::MAX, u32::MAX) {
+    match Time::from_timestamp(i64::from(u32::MAX), u32::MAX) {
         Ok(_) => panic!("unexpectedly valid"),
         Err(e) => assert_eq!(e, ParseError::TimeTooLarge),
     }
@@ -427,18 +427,22 @@ fn datetime_from_timestamp_range() {
 
 #[test]
 fn datetime_from_timestamp_specific() {
-    let dt = DateTime::from_timestamp(-11676095999, 4291493).unwrap();
+    let config = TimeConfigBuilder::new()
+        .timestamp_interpretation(TimestampInterpretation::Auto)
+        .build();
+
+    let dt = DateTime::from_timestamp_with_config(-11676095999, 4291493, &config).unwrap();
     assert_eq!(dt.to_string(), "1600-01-01T00:00:05.291493");
-    let dt = DateTime::from_timestamp(-1, 1667444).unwrap();
+    let dt = DateTime::from_timestamp_with_config(-1, 1667444, &config).unwrap();
     assert_eq!(dt.to_string(), "1970-01-01T00:00:00.667444");
-    let dt = DateTime::from_timestamp(32_503_680_000_000, 0).unwrap();
+    let dt = DateTime::from_timestamp_with_config(32_503_680_000_000, 0, &config).unwrap();
     assert_eq!(dt.to_string(), "3000-01-01T00:00:00");
-    let dt = DateTime::from_timestamp(-11_676_096_000, 0).unwrap();
+    let dt = DateTime::from_timestamp_with_config(-11_676_096_000, 0, &config).unwrap();
     assert_eq!(dt.to_string(), "1600-01-01T00:00:00");
-    let dt = DateTime::from_timestamp(1_095_216_660_480, 3221223).unwrap();
+    let dt = DateTime::from_timestamp_with_config(1_095_216_660_480, 3221223, &config).unwrap();
     assert_eq!(dt.to_string(), "2004-09-15T02:51:03.701223");
 
-    let d = DateTime::from_timestamp(253_402_300_799_000, 999999).unwrap();
+    let d = DateTime::from_timestamp_with_config(253_402_300_799_000, 999999, &config).unwrap();
     assert_eq!(d.to_string(), "9999-12-31T23:59:59.999999");
     match Date::from_timestamp(253_402_300_800_000, false) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
@@ -446,17 +450,22 @@ fn datetime_from_timestamp_specific() {
     }
 }
 
+
 #[test]
 fn datetime_watershed() {
-    let dt = DateTime::from_timestamp(20_000_000_000, 0).unwrap();
+    let config = TimeConfigBuilder::new()
+        .timestamp_interpretation(TimestampInterpretation::Auto)
+        .build();
+
+    let dt = DateTime::from_timestamp_with_config(20_000_000_000, 0, &config).unwrap();
     assert_eq!(dt.to_string(), "2603-10-11T11:33:20");
-    let dt = DateTime::from_timestamp(20_000_000_001, 0).unwrap();
+    let dt = DateTime::from_timestamp_with_config(20_000_000_001, 0, &config).unwrap();
     assert_eq!(dt.to_string(), "1970-08-20T11:33:20.001000");
-    match DateTime::from_timestamp(-20_000_000_000, 0) {
+    match DateTime::from_timestamp_with_config(-20_000_000_000, 0, &config) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
-    let dt = DateTime::from_timestamp(-20_000_000_001, 0).unwrap();
+    let dt = DateTime::from_timestamp_with_config(-20_000_000_001, 0, &config).unwrap();
     assert_eq!(dt.to_string(), "1969-05-14T12:26:39.999000");
 }
 
@@ -1418,6 +1427,7 @@ fn test_time_config_builder() {
         TimeConfig {
             microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Error,
             unix_timestamp_offset: None,
+            timestamp_interpretation: Default::default(),
         }
     );
     assert_eq!(TimeConfigBuilder::new().build(), TimeConfig::builder().build());
@@ -1443,3 +1453,29 @@ fn number_dash_err() {
     assert!(matches!(float_parse_bytes(b"-"), IntFloat::Err));
     assert!(matches!(float_parse_bytes(b"+"), IntFloat::Err));
 }
+
+#[test]
+fn test_timestamp_interpretation() {
+    let auto_config = TimeConfigBuilder::new()
+        .timestamp_interpretation(TimestampInterpretation::Auto)
+        .build();
+    let always_seconds_config = TimeConfigBuilder::new()
+        .timestamp_interpretation(TimestampInterpretation::AlwaysSeconds)
+        .build();
+
+    // Test with a timestamp that would be interpreted as milliseconds in Auto mode
+    let auto_dt = DateTime::from_timestamp_with_config(1654619320123, 0, &auto_config).unwrap();
+    let always_seconds_result = DateTime::from_timestamp_with_config(1654619320123, 0, &always_seconds_config);
+
+    assert_eq!(auto_dt.to_string(), "2022-06-07T16:28:40.123000");
+    assert!(matches!(always_seconds_result, Err(ParseError::DateTooLarge)));
+
+    // Test with a timestamp that would be interpreted as seconds in both modes
+    let auto_dt = DateTime::from_timestamp_with_config(1654619320, 0, &auto_config).unwrap();
+    let always_seconds_dt = DateTime::from_timestamp_with_config(1654619320, 0, &always_seconds_config).unwrap();
+
+    assert_eq!(auto_dt.to_string(), "2022-06-07T16:28:40");
+    assert_eq!(always_seconds_dt.to_string(), "2022-06-07T16:28:40");
+}
+
+
