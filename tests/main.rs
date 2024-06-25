@@ -450,7 +450,6 @@ fn datetime_from_timestamp_specific() {
     }
 }
 
-
 #[test]
 fn datetime_watershed() {
     let config = TimeConfigBuilder::new()

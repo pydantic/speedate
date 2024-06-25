@@ -247,11 +247,7 @@ impl Time {
     /// assert_eq!(d.to_string(), "01:02:20.000123");
     /// ```
     pub fn from_timestamp(timestamp: i64, timestamp_microsecond: u32) -> Result<Self, ParseError> {
-        Self::from_timestamp_with_config(
-            timestamp,
-            timestamp_microsecond,
-            &TimeConfigBuilder::new().build(),
-        )
+        Self::from_timestamp_with_config(timestamp, timestamp_microsecond, &TimeConfigBuilder::new().build())
     }
 
     /// Like `from_timestamp` but with a `TimeConfig`
@@ -277,33 +273,36 @@ impl Time {
         timestamp_microsecond: u32,
         config: &TimeConfig,
     ) -> Result<Self, ParseError> {
-        let (mut second, mut microsecond) = match config.timestamp_interpretation {
+        let (seconds, additional_microseconds) = match config.timestamp_interpretation {
             TimestampInterpretation::Auto => {
-                if timestamp > 20_000_000_000 {
-                    ((timestamp / 1000) as u32, ((timestamp % 1000) * 1000) as u32)
+                if timestamp.abs() > 20_000_000_000 {
+                    (timestamp / 1000, ((timestamp % 1000) * 1000) as u32)
                 } else {
-                    (timestamp as u32, timestamp_microsecond)
+                    (timestamp, 0)
                 }
-            },
-            TimestampInterpretation::AlwaysSeconds => (timestamp as u32, timestamp_microsecond),
+            }
+            TimestampInterpretation::AlwaysSeconds => (timestamp, 0),
         };
 
-        if microsecond >= 1_000_000 {
-            second = second
-                .checked_add(microsecond / 1_000_000)
-                .ok_or(ParseError::TimeTooLarge)?;
-            microsecond %= 1_000_000;
-        }
+        let total_microseconds = timestamp_microsecond.saturating_add(additional_microseconds);
+        let additional_seconds = total_microseconds / 1_000_000;
+        let final_microseconds = total_microseconds % 1_000_000;
 
-        if second >= 86_400 {
+        let total_seconds = seconds
+            .checked_add(additional_seconds as i64)
+            .ok_or(ParseError::TimeTooLarge)?;
+
+        if !(0..86_400).contains(&total_seconds) {
             return Err(ParseError::TimeTooLarge);
         }
 
+        let total_seconds = total_seconds as u32;
+
         Ok(Self {
-            hour: (second / 3600) as u8,
-            minute: ((second % 3600) / 60) as u8,
-            second: (second % 60) as u8,
-            microsecond,
+            hour: (total_seconds / 3600) as u8,
+            minute: ((total_seconds % 3600) / 60) as u8,
+            second: (total_seconds % 60) as u8,
+            microsecond: final_microseconds,
             tz_offset: config.unix_timestamp_offset,
         })
     }

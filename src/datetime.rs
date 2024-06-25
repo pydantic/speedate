@@ -1,6 +1,5 @@
 use crate::numbers::{float_parse_bytes, IntFloat};
-use crate::{TimeConfigBuilder, TimestampInterpretation};
-use crate::{time::TimeConfig, Date, ParseError, Time};
+use crate::{time::TimeConfig, Date, ParseError, Time, TimeConfigBuilder, TimestampInterpretation};
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
