@@ -1477,5 +1477,3 @@ fn test_timestamp_interpretation() {
     assert_eq!(auto_dt.to_string(), "2022-06-07T16:28:40");
     assert_eq!(always_seconds_dt.to_string(), "2022-06-07T16:28:40");
 }
-
-
