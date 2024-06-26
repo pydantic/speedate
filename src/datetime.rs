@@ -341,7 +341,7 @@ impl DateTime {
             Ok(d) => Ok(d),
             Err(e) => {
                 let mut split = bytes.splitn(2, |&b| b == b'.');
-                let Some(timestamp) =
+                let Some(mut timestamp) =
                     int_parse_bytes(split.next().expect("splitn always returns at least one element"))
                 else {
                     return Err(e);
@@ -356,7 +356,7 @@ impl DateTime {
                         // fraction is either:
                         // - up to 3 digits of millisecond fractions, i.e. microseconds
                         // - or up to 6 digits of second fractions, i.e. milliseconds
-                        let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
+                        let ts_abs = timestamp.saturating_abs();
                         let max_digits = if ts_abs > MS_WATERSHED { 3 } else { 6 };
                         let Some(fract_integers) = int_parse_bytes(fract) else {
                             return Err(e);
@@ -371,16 +371,27 @@ impl DateTime {
                                 ParseError::SecondFractionTooLong
                             });
                         }
+
                         // TODO: Technically this is rounding, but this is what the existing
                         // behaviour already did. Probably this is always better than "truncating"
                         // so we might want to change MicrosecondsPrecisionOverflowBehavior and
                         // make other uses also round / deprecate truncating.
                         let multiple = 10f64.powf(max_digits as f64 - fract.len() as f64);
-                        Self::from_timestamp_with_config(
-                            timestamp,
-                            (fract_integers as f64 * multiple).round() as u32,
-                            config,
-                        )
+                        let mut fract_value = (fract_integers as f64 * multiple).round() as u32;
+
+                        if timestamp < 0 {
+                            if max_digits == 3 {
+                                // we're using millisecond fractions (microseconds)
+                                fract_value = 1_000 - fract_value;
+                                timestamp = timestamp - 1;
+                            } else {
+                                // we're using second fractions (milliseconds)
+                                fract_value = 1_000_000 - fract_value;
+                                timestamp = timestamp - 1_000;
+                            }
+                        }
+
+                        Self::from_timestamp_with_config(timestamp, fract_value, config)
                     }
                 }
             }
