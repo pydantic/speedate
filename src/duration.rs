@@ -530,7 +530,7 @@ impl Duration {
         }
 
         for byte in hour_part {
-            let h = *byte - b'0';
+            let h = byte.wrapping_sub(b'0');
             if h > 9 {
                 return Err(ParseError::InvalidCharHour);
             }
