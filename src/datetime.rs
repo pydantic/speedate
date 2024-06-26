@@ -1,5 +1,5 @@
-use crate::numbers::{float_parse_bytes, IntFloat};
-use crate::TimeConfigBuilder;
+use crate::date::MS_WATERSHED;
+use crate::{int_parse_bytes, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
@@ -339,14 +339,50 @@ impl DateTime {
     pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
         match Self::parse_bytes_rfc3339_with_config(bytes, config) {
             Ok(d) => Ok(d),
-            Err(e) => match float_parse_bytes(bytes) {
-                IntFloat::Int(int) => Self::from_timestamp_with_config(int, 0, config),
-                IntFloat::Float(float) => {
-                    let micro = (float.fract() * 1_000_000_f64).round() as u32;
-                    Self::from_timestamp_with_config(float.floor() as i64, micro, config)
+            Err(e) => {
+                let mut split = bytes.splitn(2, |&b| b == b'.');
+                let Some(timestamp) =
+                    int_parse_bytes(split.next().expect("splitn always returns at least one element"))
+                else {
+                    return Err(e);
+                };
+                let float_fraction = split.next();
+                debug_assert!(split.next().is_none()); // at most two elements
+                match float_fraction {
+                    // If fraction exists but is empty (i.e. trailing `.`), allow for backwards compatibility;
+                    // TODO might want to reconsider this later?
+                    Some(b"") | None => Self::from_timestamp_with_config(timestamp, 0, config),
+                    Some(fract) => {
+                        // fraction is either:
+                        // - up to 3 digits of millisecond fractions, i.e. microseconds
+                        // - or up to 6 digits of second fractions, i.e. milliseconds
+                        let max_digits = if timestamp > MS_WATERSHED { 3 } else { 6 };
+                        let Some(fract_integers) = int_parse_bytes(fract) else {
+                            return Err(e);
+                        };
+                        if config.microseconds_precision_overflow_behavior
+                            == MicrosecondsPrecisionOverflowBehavior::Error
+                            && fract.len() > max_digits
+                        {
+                            return Err(if timestamp > MS_WATERSHED {
+                                ParseError::MillisecondFractionTooLong
+                            } else {
+                                ParseError::SecondFractionTooLong
+                            });
+                        }
+                        // TODO: Technically this is rounding, but this is what the existing
+                        // behaviour already did. Probably this is always better than "truncating"
+                        // so we might want to change MicrosecondsPrecisionOverflowBehavior and
+                        // make other uses also round / deprecate truncating.
+                        let multiple = 10f64.powf(max_digits as f64 - fract.len() as f64);
+                        Self::from_timestamp_with_config(
+                            timestamp,
+                            (fract_integers as f64 * multiple).round() as u32,
+                            config,
+                        )
+                    }
                 }
-                IntFloat::Err => Err(e),
-            },
+            }
         }
     }
 

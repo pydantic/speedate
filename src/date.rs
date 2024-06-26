@@ -56,7 +56,7 @@ impl FromStr for Date {
 
 // 2e10 if greater than this, the number is in ms, if less than or equal, it's in seconds
 // (in seconds this is 11th October 2603, in ms it's 20th August 1970)
-const MS_WATERSHED: i64 = 20_000_000_000;
+pub(crate) const MS_WATERSHED: i64 = 20_000_000_000;
 // 1600-01-01 as a unix timestamp used for from_timestamp below
 const UNIX_1600: i64 = -11_676_096_000;
 // 9999-12-31T23:59:59 as a unix timestamp, used as max allowed value below
@@ -272,11 +272,11 @@ impl Date {
 
     pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
         let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
-        let (mut seconds, mut microseconds) = if ts_abs > MS_WATERSHED {
-            (timestamp / 1_000, timestamp % 1_000 * 1000)
-        } else {
-            (timestamp, 0)
-        };
+        if ts_abs <= MS_WATERSHED {
+            return Ok((timestamp, 0));
+        }
+        let mut seconds = timestamp / 1_000;
+        let mut microseconds = ((timestamp % 1_000) * 1000) as i32;
         if microseconds < 0 {
             seconds -= 1;
             microseconds += 1_000_000;

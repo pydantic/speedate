@@ -118,6 +118,8 @@ pub enum ParseError {
     SecondFractionTooLong,
     /// second fraction digits missing after `.`
     SecondFractionMissing,
+    /// millisecond fraction value is more than 3 digits long
+    MillisecondFractionTooLong,
     /// invalid digit in duration
     DurationInvalidNumber,
     /// `t` character repeated in duration
