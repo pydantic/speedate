@@ -867,6 +867,8 @@ param_tests! {
     dt_unix_float_limit: ok => "1654646404.123456", "2022-06-08T00:00:04.123456";
     dt_unix_float_ms: ok => "1654646404000.5", "2022-06-08T00:00:04.000500";
     dt_unix_float_ms_limit: ok => "1654646404123.456", "2022-06-08T00:00:04.123456";
+    dt_unix_float_empty: ok => "1654646404.", "2022-06-08T00:00:04";
+    dt_unix_float_ms_empty: ok => "1654646404000.", "2022-06-08T00:00:04";
     dt_unix_float_too_long: err => "1654646404.1234567", SecondFractionTooLong;
     dt_unix_float_ms_too_long: err => "1654646404123.4567", MillisecondFractionTooLong;
     dt_short_date: err => "xxx", TooShort;
