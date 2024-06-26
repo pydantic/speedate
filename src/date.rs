@@ -206,17 +206,10 @@ impl Date {
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
     pub fn from_timestamp(timestamp: i64, require_exact: bool) -> Result<Self, ParseError> {
-        let (timestamp_second, millis) = Self::timestamp_watershed(timestamp)?;
-        let d = Self::from_timestamp_calc(timestamp_second)?;
-        if require_exact {
-            if millis != 0 {
-                return Err(ParseError::DateNotExact);
-            }
-
-            let time_second = timestamp_second.rem_euclid(86_400);
-            if time_second != 0 {
-                return Err(ParseError::DateNotExact);
-            }
+        let (seconds, microseconds) = Self::timestamp_watershed(timestamp)?;
+        let (d, remaining_seconds) = Self::from_timestamp_calc(seconds)?;
+        if require_exact && (remaining_seconds != 0 || microseconds != 0) {
+            return Err(ParseError::DateNotExact);
         }
         Ok(d)
     }
@@ -291,7 +284,7 @@ impl Date {
         Ok((seconds, microseconds as u32))
     }
 
-    pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<Self, ParseError> {
+    pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<(Self, u32), ParseError> {
         if timestamp_second < UNIX_1600 {
             return Err(ParseError::DateTooSmall);
         }
@@ -316,7 +309,7 @@ impl Date {
             true => leap_year_month_day(ordinal_day),
             false => common_year_month_day(ordinal_day),
         };
-        Ok(Self { year, month, day })
+        Ok((Self { year, month, day }, (timestamp_second.rem_euclid(86_400)) as u32))
     }
 
     /// Parse a date from bytes, no check is performed for extract characters at the end of the string
