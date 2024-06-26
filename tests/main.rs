@@ -230,12 +230,22 @@ fn date_comparison() {
 }
 
 #[test]
-fn date_timestamp() {
+fn date_timestamp_exact() {
     let d = Date::from_timestamp(1_654_560_000, true).unwrap();
     assert_eq!(d.to_string(), "2022-06-07");
     assert_eq!(d.timestamp(), 1_654_560_000);
 
     match Date::from_timestamp(1_654_560_001, true) {
+        Ok(d) => panic!("unexpectedly valid, {d}"),
+        Err(e) => assert_eq!(e, ParseError::DateNotExact),
+    }
+
+    // milliseconds
+    let d = Date::from_timestamp(1_654_560_000_000, true).unwrap();
+    assert_eq!(d.to_string(), "2022-06-07");
+    assert_eq!(d.timestamp(), 1_654_560_000);
+
+    match Date::from_timestamp(1_654_560_000_001, true) {
         Ok(d) => panic!("unexpectedly valid, {d}"),
         Err(e) => assert_eq!(e, ParseError::DateNotExact),
     }

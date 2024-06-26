@@ -400,9 +400,7 @@ impl DateTime {
                 .ok_or(ParseError::TimeTooLarge)?;
             total_microsecond %= 1_000_000;
         }
-        let date = Date::from_timestamp_calc(second)?;
-        // rem_euclid since if `timestamp_second = -100`, we want `time_second = 86300` (e.g. `86400 - 100`)
-        let time_second = second.rem_euclid(86_400) as u32;
+        let (date, time_second) = Date::from_timestamp_calc(second)?;
         Ok(Self {
             date,
             time: Time::from_timestamp_with_config(time_second, total_microsecond, config)?,
