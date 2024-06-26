@@ -134,9 +134,9 @@ pub enum ParseError {
     DurationInvalidDays,
     /// a numeric value in the duration is too large
     DurationValueTooLarge,
-    /// durations may not exceed 999,999,999 days
+    /// durations may not exceed 999,999,999 hours
     DurationHourValueTooLarge,
-    /// durations hours must less than 1,000,000,000
+    /// durations may not exceed 999,999,999 days
     DurationDaysTooLarge,
     /// dates before 1600 are not supported as unix timestamps
     DateTooSmall,
