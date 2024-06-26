@@ -1176,6 +1176,7 @@ param_tests! {
     duration_time_invalid_over_limit_hour: err => "100000000000:01:03", DurationHourValueTooLarge;
     duration_time_overflow_hour: err => "100000000000000000000000:01:03", DurationHourValueTooLarge;
     duration_time_invalid_format_hour: err => "1000xxx000:01:03", InvalidCharHour;
+    duration_time_invalid_format_hour2: err => "1 10:10", InvalidCharHour;
     duration_time_invalid_minute: err => "00:60:03", OutOfRangeMinute;
     duration_time_invalid_second: err => "00:00:60", OutOfRangeSecond;
     duration_time_fraction_too_long: err => "00:00:00.1234567", SecondFractionTooLong;
