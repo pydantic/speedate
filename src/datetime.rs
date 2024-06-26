@@ -370,7 +370,10 @@ impl DateTime {
                                 ParseError::SecondFractionTooLong
                             });
                         }
-                        // Technically this is rounding
+                        // TODO: Technically this is rounding, but this is what the existing
+                        // behaviour already did. Probably this is always better than "truncating"
+                        // so we might want to change MicrosecondsPrecisionOverflowBehavior and
+                        // make other uses also round / deprecate truncating.
                         let multiple = 10f64.powf(max_digits as f64 - fract.len() as f64);
                         Self::from_timestamp_with_config(
                             timestamp,
