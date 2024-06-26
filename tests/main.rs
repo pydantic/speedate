@@ -867,6 +867,8 @@ param_tests! {
     dt_unix_float_limit: ok => "1654646404.123456", "2022-06-08T00:00:04.123456";
     dt_unix_float_ms: ok => "1654646404000.5", "2022-06-08T00:00:04.000500";
     dt_unix_float_ms_limit: ok => "1654646404123.456", "2022-06-08T00:00:04.123456";
+    dt_unix_float_too_long: err => "1654646404.1234567", SecondFractionTooLong;
+    dt_unix_float_ms_too_long: err => "1654646404123.4567", MillisecondFractionTooLong;
     dt_short_date: err => "xxx", TooShort;
     dt_short_time: err => "2020-01-01T12:0", TooShort;
     dt: err => "202x-01-01", InvalidCharYear;
@@ -1393,7 +1395,10 @@ fn test_datetime_parse_bytes_does_not_add_offset_for_rfc3339() {
 fn test_datetime_parse_unix_timestamp_from_bytes_with_utc_offset() {
     let time = DateTime::parse_bytes_with_config(
         "1689102037.5586429".as_bytes(),
-        &(TimeConfigBuilder::new().unix_timestamp_offset(Some(0)).build()),
+        &(TimeConfigBuilder::new()
+            .unix_timestamp_offset(Some(0))
+            .microseconds_precision_overflow_behavior(MicrosecondsPrecisionOverflowBehavior::Truncate)
+            .build()),
     )
     .unwrap();
     assert_eq!(time.to_string(), "2023-07-11T19:00:37.558643Z");
@@ -1403,7 +1408,10 @@ fn test_datetime_parse_unix_timestamp_from_bytes_with_utc_offset() {
 fn test_datetime_parse_unix_timestamp_from_bytes_as_naive() {
     let time = DateTime::parse_bytes_with_config(
         "1689102037.5586429".as_bytes(),
-        &(TimeConfigBuilder::new().unix_timestamp_offset(None).build()),
+        &(TimeConfigBuilder::new()
+            .unix_timestamp_offset(None)
+            .microseconds_precision_overflow_behavior(MicrosecondsPrecisionOverflowBehavior::Truncate)
+            .build()),
     )
     .unwrap();
     assert_eq!(time.to_string(), "2023-07-11T19:00:37.558643");

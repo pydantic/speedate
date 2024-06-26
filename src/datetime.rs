@@ -1,5 +1,5 @@
 use crate::date::MS_WATERSHED;
-use crate::{int_parse_bytes, TimeConfigBuilder};
+use crate::{int_parse_bytes, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
@@ -349,6 +349,9 @@ impl DateTime {
                 let float_fraction = split.next();
                 debug_assert!(split.next().is_none()); // at most two elements
                 match float_fraction {
+                    // If fraction exists but is empty (i.e. trailing `.`), allow for backwards compatibility;
+                    // TODO might want to reconsider this later?
+                    Some(b"") | None => Self::from_timestamp_with_config(timestamp, 0, config),
                     Some(fract) => {
                         // fraction is either:
                         // - up to 3 digits of millisecond fractions, i.e. microseconds
@@ -357,16 +360,24 @@ impl DateTime {
                         let Some(fract_integers) = int_parse_bytes(fract) else {
                             return Err(e);
                         };
+                        if config.microseconds_precision_overflow_behavior
+                            == MicrosecondsPrecisionOverflowBehavior::Error
+                            && fract.len() > max_digits
+                        {
+                            return Err(if timestamp > MS_WATERSHED {
+                                ParseError::MillisecondFractionTooLong
+                            } else {
+                                ParseError::SecondFractionTooLong
+                            });
+                        }
+                        // Technically this is rounding
                         let multiple = 10f64.powf(max_digits as f64 - fract.len() as f64);
                         Self::from_timestamp_with_config(
                             timestamp,
-                            // FIXME should we error if the fraction is too long?
-                            // We have TimeConfig truncate / error option.
                             (fract_integers as f64 * multiple).round() as u32,
                             config,
                         )
                     }
-                    None => Self::from_timestamp_with_config(timestamp, 0, config),
                 }
             }
         }
