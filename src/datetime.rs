@@ -356,7 +356,8 @@ impl DateTime {
                         // fraction is either:
                         // - up to 3 digits of millisecond fractions, i.e. microseconds
                         // - or up to 6 digits of second fractions, i.e. milliseconds
-                        let max_digits = if timestamp > MS_WATERSHED { 3 } else { 6 };
+                        let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
+                        let max_digits = if ts_abs > MS_WATERSHED { 3 } else { 6 };
                         let Some(fract_integers) = int_parse_bytes(fract) else {
                             return Err(e);
                         };
@@ -364,7 +365,7 @@ impl DateTime {
                             == MicrosecondsPrecisionOverflowBehavior::Error
                             && fract.len() > max_digits
                         {
-                            return Err(if timestamp > MS_WATERSHED {
+                            return Err(if ts_abs > MS_WATERSHED {
                                 ParseError::MillisecondFractionTooLong
                             } else {
                                 ParseError::SecondFractionTooLong
