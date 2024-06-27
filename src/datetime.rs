@@ -341,7 +341,7 @@ impl DateTime {
             Ok(d) => Ok(d),
             Err(e) => {
                 let mut split = bytes.splitn(2, |&b| b == b'.');
-                let Some(mut timestamp) =
+                let Some(timestamp) =
                     int_parse_bytes(split.next().expect("splitn always returns at least one element"))
                 else {
                     return Err(e);
@@ -370,28 +370,53 @@ impl DateTime {
                             } else {
                                 ParseError::SecondFractionTooLong
                             });
+                        }            
+
+                        // let scaling_factor = 10f64.powf(max_digits as f64 - fract.len() as f64) as f64;
+                        // let rounded_fract = (fract_integers as f64 * scaling_factor).round() as u32;
+
+                        // let truncated_fract: u32 = if (fract_integers as u32) >= 10u32.pow(max_digits as u32) {
+                        //     ((fract_integers as u32) / 10u32.pow(fract.len() as u32 - max_digits as u32)) as u32
+                        // } else {
+                        //     (fract_integers as u32) * 10u32.pow(max_digits as u32 - fract.len() as u32)
+                        // };
+
+                        let str_fract = fract_integers.to_string();
+                        let padded_str_fract = format!("{:0<6}", str_fract);
+                        let sliced_str_fract = &padded_str_fract[..max_digits];
+                        let truncated_fract = format!("{:0<6}", sliced_str_fract).parse::<u32>().unwrap();
+
+                        let mut seconds: i64;
+                        let mut total_microseconds: u32;
+
+                        if ts_abs > MS_WATERSHED {
+                            // convert timestamp to seconds, and fract_value is already in microseconds
+                            seconds = timestamp / 1_000;
+                            let extra_microseconds = ((timestamp % 1_000).abs() * 1_000) as u32;
+                            total_microseconds = truncated_fract.checked_add(extra_microseconds).ok_or(ParseError::TimeTooLarge)?;
+                        } else {
+                            // timestamp is already in seconds, and rounded_fract is in milliseconds - convert to microseconds
+                            seconds = timestamp;
+                            total_microseconds = truncated_fract * 1_000;
                         }
 
-                        // TODO: Technically this is rounding, but this is what the existing
-                        // behaviour already did. Probably this is always better than "truncating"
-                        // so we might want to change MicrosecondsPrecisionOverflowBehavior and
-                        // make other uses also round / deprecate truncating.
-                        let multiple = 10f64.powf(max_digits as f64 - fract.len() as f64);
-                        let mut fract_value = (fract_integers as f64 * multiple).round() as u32;
-
-                        if timestamp < 0 {
-                            if max_digits == 3 {
-                                // we're using millisecond fractions (microseconds)
-                                fract_value = 1_000 - fract_value;
-                                timestamp = timestamp - 1;
-                            } else {
-                                // we're using second fractions (milliseconds)
-                                fract_value = 1_000_000 - fract_value;
-                                timestamp = timestamp - 1_000;
-                            }
+                        // we do a little bit of a dance here - the idea being, let's say we have a value -2.25
+                        // first, we take the integer component (-2) and the fractional component (0.25), which we parse as 250_000 microseconds
+                        // second, we subtract 1 from the integer component: -2 - 1 = -3
+                        // third, we subtract the fractional component from 1_000_000: 1_000_000 - 250_000 = 750_000
+                        // finally, we combine the integer and fractional components: -3 seconds + 750_000 microseconds = -2.25 seconds
+                        // this is necessary because down the line, we treat negative and positive timestamps the same way, so we have
+                        // to make sure that the fractional component is always positive, hence the dance
+                        if seconds < 0 {
+                            seconds -= 1;
+                            total_microseconds = 1_000_000 - total_microseconds;
                         }
 
-                        Self::from_timestamp_with_config(timestamp, fract_value, config)
+                        let (date, time_second) = Date::from_timestamp_calc(seconds)?;
+                        Ok(Self {
+                            date,
+                            time: Time::from_timestamp_with_config(time_second, total_microseconds, config)?,
+                        })
                     }
                 }
             }
