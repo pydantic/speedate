@@ -339,31 +339,32 @@ impl DateTime {
     pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
         match Self::parse_bytes_rfc3339_with_config(bytes, config) {
             Ok(d) => Ok(d),
-            Err(e) => {
-                match float_parse_bytes(bytes) {
-                    IntFloat::Int(int) => Self::from_timestamp_with_config(int, 0, config),
-                    IntFloat::Float(float) => {
+            Err(e) => match float_parse_bytes(bytes) {
+                IntFloat::Int(int) => Self::from_timestamp_with_config(int, 0, config),
+                IntFloat::Float(float) => {
+                    let timestamp_in_milliseconds = float.abs() > MS_WATERSHED as f64;
+                    let timestamp_normalized: f64 = if timestamp_in_milliseconds {
+                        float / 1_000f64
+                    } else {
+                        float
+                    };
+                    let seconds = timestamp_normalized.floor() as i64;
+                    let microseconds = ((timestamp_normalized - seconds as f64) * 1_000_000f64).round() as u32;
 
-                        let timestamp_in_milliseconds = float.abs() > MS_WATERSHED as f64;
-                        let timestamp_normalized: f64 = if timestamp_in_milliseconds { float / 1_000f64 } else { float };
-                        let seconds = timestamp_normalized.floor() as i64;
-                        let microseconds = ((timestamp_normalized - seconds as f64) * 1_000_000f64).round() as u32;
+                    if config.microseconds_precision_overflow_behavior == MicrosecondsPrecisionOverflowBehavior::Error {
+                        let fractional_digits = float.to_string().split('.').nth(1).unwrap_or("").len();
 
-                        if config.microseconds_precision_overflow_behavior == MicrosecondsPrecisionOverflowBehavior::Error {
-                            let fractional_digits = float.to_string().split('.').nth(1).unwrap_or("").len();
-
-                            if timestamp_in_milliseconds && fractional_digits > 3 {
-                                return Err(ParseError::MillisecondFractionTooLong);
-                            } else if !timestamp_in_milliseconds && fractional_digits > 6 {
-                                return Err(ParseError::SecondFractionTooLong);
-                            }
+                        if timestamp_in_milliseconds && fractional_digits > 3 {
+                            return Err(ParseError::MillisecondFractionTooLong);
+                        } else if !timestamp_in_milliseconds && fractional_digits > 6 {
+                            return Err(ParseError::SecondFractionTooLong);
                         }
+                    }
 
-                        Self::from_timestamp_with_config(seconds, microseconds, config)
-                    },
-                    IntFloat::Err => Err(e),
+                    Self::from_timestamp_with_config(seconds, microseconds, config)
                 }
-            }
+                IntFloat::Err => Err(e),
+            },
         }
     }
 
