@@ -270,14 +270,11 @@ impl Date {
         }
     }
 
-    // Calculate the number of seconds and microseconds associated with a timestamp
-    // If the timestamp is less than 2e10, then it analyzed in seconds, otherwise in milliseconds
     pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
         let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
         if ts_abs <= MS_WATERSHED {
             return Ok((timestamp, 0));
         }
-        // if the timestamp is in milliseconds, then we need to convert it to seconds
         let mut seconds = timestamp / 1_000;
         let mut microseconds = ((timestamp % 1_000) * 1000) as i32;
         if microseconds < 0 {
