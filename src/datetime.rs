@@ -1,5 +1,5 @@
 use crate::date::MS_WATERSHED;
-use crate::{float_parse_bytes, int_parse_bytes, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
+use crate::{float_parse_bytes, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
@@ -340,62 +340,28 @@ impl DateTime {
         match Self::parse_bytes_rfc3339_with_config(bytes, config) {
             Ok(d) => Ok(d),
             Err(e) => {
-                let mut split = bytes.splitn(2, |&b| b == b'.');
-                let Some(timestamp) =
-                    int_parse_bytes(split.next().expect("splitn always returns at least one element"))
-                else {
-                    return Err(e);
-                };
-                let float_fraction = split.next();
-                debug_assert!(split.next().is_none()); // at most two elements
-                match float_fraction {
-                    // If fraction exists but is empty (i.e. trailing `.`), allow for backwards compatibility;
-                    // TODO might want to reconsider this later?
-                    Some(b"") | None => Self::from_timestamp_with_config(timestamp, 0, config),
-                    Some(fract) => {
-                        // fraction is either:
-                        // - up to 3 digits of millisecond fractions, i.e. microseconds
-                        // - or up to 6 digits of second fractions, i.e. milliseconds
-                        let ts_abs = timestamp.saturating_abs();
-                        let max_digits = if ts_abs > MS_WATERSHED { 3 } else { 6 };
-                        let Some(fract_integers) = int_parse_bytes(fract) else {
-                            return Err(e);
-                        };
-                        if config.microseconds_precision_overflow_behavior
-                            == MicrosecondsPrecisionOverflowBehavior::Error
-                            && fract.len() > max_digits
-                        {
-                            return Err(if ts_abs > MS_WATERSHED {
-                                ParseError::MillisecondFractionTooLong
-                            } else {
-                                ParseError::SecondFractionTooLong
-                            });
-                        }
+                match float_parse_bytes(bytes) {
+                    IntFloat::Int(int) => Self::from_timestamp_with_config(int, 0, config),
+                    IntFloat::Float(float) => {
 
-                        if ts_abs <= MS_WATERSHED {
-                            let multiple = 10f64.powf(max_digits as f64 - fract.len() as f64);
-                            Self::from_timestamp_with_config(
-                                timestamp,
-                                (fract_integers as f64 * multiple).round() as u32,
-                                config,                        
-                            )
-                        } else {
-                            match float_parse_bytes(bytes) {
-                                IntFloat::Int(int) => Self::from_timestamp_with_config(int / 1_000, ((int % 1_000) * 1_000) as u32, config), 
-                                IntFloat::Float(mut float) => {
-                                    float = float / 1_000f64;
-                                    let timestamp_int = float.floor() as i64;
-                                    let fract_integers =  ((float - timestamp_int as f64) * 1_000_000f64).round() as u32;
-                                    if float < 0.0 {
-                                        Self::from_timestamp_with_config(timestamp_int, fract_integers, config) // Use timestamp_int here
-                                    } else {
-                                        Self::from_timestamp_with_config(timestamp_int, fract_integers, config) // Use timestamp_int here
-                                    }
-                                },
-                                IntFloat::Err => Err(e),
+                        let timestamp_in_milliseconds = float.abs() > MS_WATERSHED as f64;
+                        let timestamp_normalized: f64 = if timestamp_in_milliseconds { float / 1_000f64 } else { float };
+                        let seconds = timestamp_normalized.floor() as i64;
+                        let microseconds = ((timestamp_normalized - seconds as f64) * 1_000_000f64).round() as u32;
+
+                        if config.microseconds_precision_overflow_behavior == MicrosecondsPrecisionOverflowBehavior::Error {
+                            let fractional_digits = float.to_string().split('.').nth(1).unwrap_or("").len();
+
+                            if timestamp_in_milliseconds && fractional_digits > 3 {
+                                return Err(ParseError::MillisecondFractionTooLong);
+                            } else if !timestamp_in_milliseconds && fractional_digits > 6 {
+                                return Err(ParseError::SecondFractionTooLong);
                             }
                         }
-                    }
+
+                        Self::from_timestamp_with_config(seconds, microseconds, config)
+                    },
+                    IntFloat::Err => Err(e),
                 }
             }
         }
