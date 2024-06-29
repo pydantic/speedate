@@ -343,13 +343,6 @@ impl DateTime {
                 IntFloat::Int(int) => Self::from_timestamp_with_config(int, 0, config),
                 IntFloat::Float(float) => {
                     let timestamp_in_milliseconds = float.abs() > MS_WATERSHED as f64;
-                    let timestamp_normalized: f64 = if timestamp_in_milliseconds {
-                        float / 1_000f64
-                    } else {
-                        float
-                    };
-                    let seconds = timestamp_normalized.floor() as i64;
-                    let microseconds = ((timestamp_normalized - seconds as f64) * 1_000_000f64).round() as u32;
 
                     if config.microseconds_precision_overflow_behavior == MicrosecondsPrecisionOverflowBehavior::Error {
                         let fractional_digits = float.to_string().split('.').nth(1).unwrap_or("").len();
@@ -360,6 +353,14 @@ impl DateTime {
                             return Err(ParseError::SecondFractionTooLong);
                         }
                     }
+
+                    let timestamp_normalized: f64 = if timestamp_in_milliseconds {
+                        float / 1_000f64
+                    } else {
+                        float
+                    };
+                    let seconds = timestamp_normalized.floor() as i64;
+                    let microseconds = ((timestamp_normalized - seconds as f64) * 1_000_000f64).round() as u32;
 
                     Self::from_timestamp_with_config(seconds, microseconds, config)
                 }
