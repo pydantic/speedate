@@ -1,5 +1,5 @@
 use crate::date::MS_WATERSHED;
-use crate::{float_parse_bytes, IntFloat, int_parse_bytes, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
+use crate::{float_parse_bytes, int_parse_bytes, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
