@@ -1480,12 +1480,12 @@ fn can_accurately_parse_recent_timestamps() {
         let dt = DateTime::parse_str(&formatted_s)?;
         Ok(dt.timestamp() * 1_000_000 + i64::from(dt.time.microsecond))
     }
-    
+
     fn reformat_us_to_s(us: &str) -> String {
         let (integral, fractional) = us.split_at(us.len() - 6);
         format!("{integral}.{fractional}")
     }
-    
+
     let recently_us = 1719776043_000000;
     for delta in 0..1_000_000 {
         let us = recently_us - delta;
