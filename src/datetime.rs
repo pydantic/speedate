@@ -345,10 +345,7 @@ impl DateTime {
                     let timestamp_in_milliseconds = float.abs() > MS_WATERSHED as f64;
 
                     if config.microseconds_precision_overflow_behavior == MicrosecondsPrecisionOverflowBehavior::Error {
-                        let decimal_digits_count = match decimal_digits_count {
-                            Some(d) => d,
-                            None => 0,
-                        };
+                        let decimal_digits_count = decimal_digits_count.unwrap_or(0);
 
                         if timestamp_in_milliseconds && decimal_digits_count > 3 {
                             return Err(ParseError::MillisecondFractionTooLong);
