@@ -1,5 +1,5 @@
 use crate::date::MS_WATERSHED;
-use crate::{float_parse_bytes, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
+use crate::{float_parse_bytes, fractional_digits, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
@@ -345,7 +345,7 @@ impl DateTime {
                     let timestamp_in_milliseconds = float.abs() > MS_WATERSHED as f64;
 
                     if config.microseconds_precision_overflow_behavior == MicrosecondsPrecisionOverflowBehavior::Error {
-                        let fractional_digits = float.to_string().split('.').nth(1).unwrap_or("").len();
+                        let fractional_digits = fractional_digits(bytes);
 
                         if timestamp_in_milliseconds && fractional_digits > 3 {
                             return Err(ParseError::MillisecondFractionTooLong);

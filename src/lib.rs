@@ -15,7 +15,7 @@ pub use datetime::DateTime;
 pub use duration::Duration;
 pub use time::{MicrosecondsPrecisionOverflowBehavior, Time, TimeConfig, TimeConfigBuilder};
 
-pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
+pub use numbers::{float_parse_bytes, float_parse_str, fractional_digits, int_parse_bytes, int_parse_str, IntFloat};
 
 /// Parsing datetime, date, time & duration values
 
