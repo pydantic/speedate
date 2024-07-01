@@ -1,5 +1,5 @@
 use crate::date::MS_WATERSHED;
-use crate::{float_parse_bytes, fractional_digits, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
+use crate::{float_parse_bytes, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder};
 use crate::{time::TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
@@ -340,16 +340,19 @@ impl DateTime {
         match Self::parse_bytes_rfc3339_with_config(bytes, config) {
             Ok(d) => Ok(d),
             Err(e) => match float_parse_bytes(bytes) {
-                IntFloat::Int(int) => Self::from_timestamp_with_config(int, 0, config),
-                IntFloat::Float(float) => {
+                (IntFloat::Int(int), _) => Self::from_timestamp_with_config(int, 0, config),
+                (IntFloat::Float(float), decimal_digits_count) => {
                     let timestamp_in_milliseconds = float.abs() > MS_WATERSHED as f64;
 
                     if config.microseconds_precision_overflow_behavior == MicrosecondsPrecisionOverflowBehavior::Error {
-                        let fractional_digits = fractional_digits(bytes);
+                        let decimal_digits_count = match decimal_digits_count {
+                            Some(d) => d,
+                            None => 0,
+                        };
 
-                        if timestamp_in_milliseconds && fractional_digits > 3 {
+                        if timestamp_in_milliseconds && decimal_digits_count > 3 {
                             return Err(ParseError::MillisecondFractionTooLong);
-                        } else if !timestamp_in_milliseconds && fractional_digits > 6 {
+                        } else if !timestamp_in_milliseconds && decimal_digits_count > 6 {
                             return Err(ParseError::SecondFractionTooLong);
                         }
                     }
@@ -369,7 +372,7 @@ impl DateTime {
 
                     Self::from_timestamp_with_config(seconds, microseconds, config)
                 }
-                IntFloat::Err => Err(e),
+                (IntFloat::Err, _) => Err(e),
             },
         }
     }

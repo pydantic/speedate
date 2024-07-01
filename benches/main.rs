@@ -251,27 +251,22 @@ fn format_date_time(bench: &mut Bencher) {
 
 #[bench]
 fn parse_timestamp_str(bench: &mut Bencher) {
-    let d1 = black_box("1654646400");
-    let d2 = black_box("-1654646400");
-    let d3 = black_box("1654646404");
-    let d4 = black_box("-1654646404");
-    let d5 = black_box("1654646404.5");
-    let d6 = black_box("1654646404.123456");
-    let d7 = black_box("1654646404000.5");
-    let d8 = black_box("1654646404123.456");
-    let d9 = black_box("-1654646404.123456");
-    let d10 = black_box("-1654646404000.123");
+    let timestamps = [
+        "1654646400",
+        "-1654646400",
+        "1654646404",
+        "-1654646404",
+        "1654646404.5",
+        "1654646404.123456",
+        "1654646404000.5",
+        "1654646404123.456",
+        "-1654646404.123456",
+        "-1654646404000.123",
+    ];
 
     bench.iter(|| {
-        black_box(DateTime::parse_str(d1).unwrap());
-        black_box(DateTime::parse_str(d2).unwrap());
-        black_box(DateTime::parse_str(d3).unwrap());
-        black_box(DateTime::parse_str(d4).unwrap());
-        black_box(DateTime::parse_str(d5).unwrap());
-        black_box(DateTime::parse_str(d6).unwrap());
-        black_box(DateTime::parse_str(d7).unwrap());
-        black_box(DateTime::parse_str(d8).unwrap());
-        black_box(DateTime::parse_str(d9).unwrap());
-        black_box(DateTime::parse_str(d10).unwrap());
-    })
+        for &timestamp in &timestamps {
+            black_box(DateTime::parse_str(timestamp).unwrap());
+        }
+    });
 }

@@ -51,21 +51,24 @@ impl IntFloat {
 ///
 /// This is around 2x faster than using `str::parse::<f64>()`
 pub fn float_parse_str(s: &str) -> IntFloat {
-    float_parse_bytes(s.as_bytes())
+    // we could eventually expose the number of decimal digits here, but it's
+    // not needed for now
+    let (float, _decimal_digits_count) = float_parse_bytes(s.as_bytes());
+    float
 }
 
 /// Parse bytes as an float.
-pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
+pub fn float_parse_bytes(s: &[u8]) -> (IntFloat, Option<usize>) {
     let (neg, first_digit, digits) = match s {
         [b'-', first, digits @ ..] => (true, first, digits),
         [b'+', first, digits @ ..] | [first, digits @ ..] => (false, first, digits),
-        _ => return IntFloat::Err,
+        _ => return (IntFloat::Err, None),
     };
 
     let mut int_part = match first_digit {
         b'0' => 0,
         b'1'..=b'9' => (first_digit & 0x0f) as i64,
-        _ => return IntFloat::Err,
+        _ => return (IntFloat::Err, None),
     };
 
     let mut found_dot = false;
@@ -77,48 +80,43 @@ pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
             b'0'..=b'9' => {
                 int_part = match int_part.checked_mul(10) {
                     Some(i) => i,
-                    None => return IntFloat::Err,
+                    None => return (IntFloat::Err, None),
                 };
                 int_part = match int_part.checked_add((digit & 0x0f) as i64) {
                     Some(i) => i,
-                    None => return IntFloat::Err,
+                    None => return (IntFloat::Err, None),
                 };
             }
             b'.' => {
                 found_dot = true;
                 break;
             }
-            _ => return IntFloat::Err,
+            _ => return (IntFloat::Err, None),
         }
     }
 
     if found_dot {
         let mut result = int_part as f64;
         let mut div = 10_f64;
+        let mut decimal_digits = 0;
         for digit in bytes {
+            decimal_digits += 1;
             match digit {
                 b'0'..=b'9' => {
                     result += (digit & 0x0f) as f64 / div;
                     div *= 10_f64;
                 }
-                _ => return IntFloat::Err,
+                _ => return (IntFloat::Err, Some(decimal_digits)),
             }
         }
         if neg {
-            IntFloat::Float(-result)
+            (IntFloat::Float(-result), Some(decimal_digits))
         } else {
-            IntFloat::Float(result)
+            (IntFloat::Float(result), Some(decimal_digits))
         }
     } else if neg {
-        IntFloat::Int(-int_part)
+        (IntFloat::Int(-int_part), None)
     } else {
-        IntFloat::Int(int_part)
-    }
-}
-
-pub fn fractional_digits(bytes: &[u8]) -> usize {
-    match bytes.splitn(2, |&b| b == b'.').nth(1) {
-        Some(b"") | None => 0,
-        Some(fraction) => fraction.len(),
+        (IntFloat::Int(int_part), None)
     }
 }

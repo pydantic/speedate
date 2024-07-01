@@ -1468,8 +1468,8 @@ fn number_dash_err() {
 
     assert!(matches!(float_parse_str("-"), IntFloat::Err));
     assert!(matches!(float_parse_str("+"), IntFloat::Err));
-    assert!(matches!(float_parse_bytes(b"-"), IntFloat::Err));
-    assert!(matches!(float_parse_bytes(b"+"), IntFloat::Err));
+    assert!(matches!(float_parse_bytes(b"-"), (IntFloat::Err, _)));
+    assert!(matches!(float_parse_bytes(b"+"), (IntFloat::Err, _)));
 }
 
 #[test]
