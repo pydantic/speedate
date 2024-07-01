@@ -96,22 +96,22 @@ pub fn float_parse_bytes(s: &[u8]) -> (IntFloat, Option<usize>) {
     }
 
     if found_dot {
-        let mut result = int_part as f64; // Integer part
-        let mut frac_integers: u64 = 0; // To accumulate fractional part as integer
-        let mut decimal_digits = 0; // Count of digits in the fractional part
+        let mut result = int_part as f64;
+        let mut decimal_integers: u64 = 0;
+        let mut decimal_digits: usize = 0;
 
         for digit in bytes {
             match digit {
                 b'0'..=b'9' => {
                     decimal_digits += 1;
-                    frac_integers = frac_integers * 10 + (digit & 0x0f) as u64;
+                    decimal_integers = decimal_integers * 10 + (digit & 0x0f) as u64;
                 }
                 _ => return (IntFloat::Err, Some(decimal_digits)),
             }
         }
 
-        // Convert fractional part to f64 and divide by 10^decimal_digits
-        let frac_as_f64 = frac_integers as f64 / 10_f64.powi(decimal_digits as i32);
+        // Convert fractional part to f64 and divide by 10^frac_digits
+        let frac_as_f64 = decimal_integers as f64 / 10_f64.powi(decimal_digits as i32);
         result += frac_as_f64;
 
         if neg {
