@@ -359,6 +359,11 @@ impl DateTime {
                     } else {
                         float
                     };
+
+                    // if seconds is negative, we round down (left on the number line), so -6.25 -> -7
+                    // which allows for a positive number of microseconds to compensate back up to -6.25
+                    // which is the equivalent of doing (seconds - 1) and (microseconds + 1_000_000)
+                    // like we do in Date::timestamp_watershed
                     let seconds = timestamp_normalized.floor() as i64;
                     let microseconds = ((timestamp_normalized - seconds as f64) * 1_000_000f64).round() as u32;
 
