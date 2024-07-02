@@ -53,7 +53,7 @@ impl IntFloat {
 pub fn float_parse_str(s: &str) -> IntFloat {
     // we could eventually expose the number of decimal digits here, but it's
     // not needed for now
-    let (float, _decimal_digits_count) = float_parse_bytes(s.as_bytes());
+    let (float, _) = float_parse_bytes(s.as_bytes());
     float
 }
 
