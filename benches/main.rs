@@ -251,7 +251,7 @@ fn format_date_time(bench: &mut Bencher) {
 
 #[bench]
 fn parse_timestamp_str(bench: &mut Bencher) {
-    let timestamps = [
+    let timestamps = black_box([
         "1654646400",
         "-1654646400",
         "1654646404",
@@ -262,10 +262,10 @@ fn parse_timestamp_str(bench: &mut Bencher) {
         "1654646404123.456",
         "-1654646404.123456",
         "-1654646404000.123",
-    ];
+    ]);
 
     bench.iter(|| {
-        for &timestamp in &timestamps {
+        for timestamp in &timestamps {
             black_box(DateTime::parse_str(timestamp).unwrap());
         }
     });

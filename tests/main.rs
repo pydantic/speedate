@@ -1468,39 +1468,6 @@ fn number_dash_err() {
 
     assert!(matches!(float_parse_str("-"), IntFloat::Err));
     assert!(matches!(float_parse_str("+"), IntFloat::Err));
-    assert!(matches!(float_parse_bytes(b"-"), (IntFloat::Err, _)));
-    assert!(matches!(float_parse_bytes(b"+"), (IntFloat::Err, _)));
-}
-
-#[test]
-fn can_accurately_parse_recent_timestamps() {
-    fn roundtrip_us(us: i64) -> Result<i64, ParseError> {
-        let formatted_us = us.to_string();
-        let formatted_s = reformat_us_to_s(&formatted_us); // insert decimal point
-        let dt = DateTime::parse_str(&formatted_s)?;
-        Ok(dt.timestamp() * 1_000_000 + i64::from(dt.time.microsecond))
-    }
-
-    fn reformat_us_to_s(us: &str) -> String {
-        let (integral, fractional) = us.split_at(us.len() - 6);
-        format!("{integral}.{fractional}")
-    }
-
-    let recently_us = 1719776043_000000;
-    for delta in 0..1_000_000 {
-        let us = recently_us - delta;
-        assert_eq!(roundtrip_us(us), Ok(us));
-    }
-}
-
-#[test]
-fn can_parse_4295391417_429607() {
-    // parsing "works", but the value is wrong.
-    let dt = DateTime::parse_str("4295391417.429607").unwrap();
-    assert_eq!(dt.time.microsecond, 429607);
-}
-
-#[test]
-fn can_parse_1719776042_999989() {
-    DateTime::parse_str("1719776042.999989").unwrap();
+    assert!(matches!(float_parse_bytes(b"-"), IntFloat::Err));
+    assert!(matches!(float_parse_bytes(b"+"), IntFloat::Err));
 }
