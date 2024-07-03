@@ -266,7 +266,7 @@ fn parse_timestamp_str(bench: &mut Bencher) {
 
     bench.iter(|| {
         for timestamp in &timestamps {
-            black_box(DateTime::parse_str(timestamp).unwrap());
+            black_box(DateTime::parse_str(black_box(*timestamp)).unwrap());
         }
     });
 }
