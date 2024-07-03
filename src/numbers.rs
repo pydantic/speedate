@@ -115,3 +115,13 @@ pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
         IntFloat::Int(int_part)
     }
 }
+
+/// Count the number of decimal places in a byte slice.
+/// Caution: does not verify the integrity of the input,
+/// so it may return incorrect results for invalid inputs.
+pub(crate) fn decimal_digits(bytes: &[u8]) -> usize {
+    match bytes.splitn(2, |&b| b == b'.').nth(1) {
+        Some(b"") | None => 0,
+        Some(fraction) => fraction.len(),
+    }
+}

@@ -248,3 +248,25 @@ fn format_date_time(bench: &mut Bencher) {
         black_box(date.to_string());
     })
 }
+
+#[bench]
+fn parse_timestamp_str(bench: &mut Bencher) {
+    let timestamps = black_box([
+        "1654646400",
+        "-1654646400",
+        "1654646404",
+        "-1654646404",
+        "1654646404.5",
+        "1654646404.123456",
+        "1654646404000.5",
+        "1654646404123.456",
+        "-1654646404.123456",
+        "-1654646404000.123",
+    ]);
+
+    bench.iter(|| {
+        for timestamp in &timestamps {
+            black_box(DateTime::parse_str(black_box(*timestamp)).unwrap());
+        }
+    });
+}
