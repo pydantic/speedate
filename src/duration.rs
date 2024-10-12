@@ -492,6 +492,10 @@ impl Duration {
         match bytes.get(position).copied() {
             Some(_) => {
                 let t = Self::parse_time(bytes, position, &TimeConfigBuilder::new().build())?;
+                if t.day > 0 {
+                    // 1d 24:00:00 is not allowed
+                    return Err(ParseError::DurationHourValueTooLarge);
+                }
 
                 Ok(Self {
                     positive: false, // is set above

@@ -1214,6 +1214,7 @@ param_tests! {
     duration_days_time_too_short: err => "1 day 00:", TooShort;
     duration_days_time_wrong: err => "1 day 00:xx", InvalidCharMinute;
     duration_days_time_extra: err => "1 day 00:00:00.123 ", ExtraCharacters;
+    duration_days_time_more_than_24_hour: err => "1d 24:01:03", DurationHourValueTooLarge;
     duration_overflow: err => "18446744073709551616 day 12:00", DurationValueTooLarge;
     duration_fuzz1: err => "P18446744073709551611DT8031M1M1M1M", DurationValueTooLarge;
     duration_fuzz2: err => "P18446744073709550PT9970442H6R15D1D", DurationValueTooLarge;
