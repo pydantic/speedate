@@ -491,12 +491,12 @@ impl Duration {
 
         match bytes.get(position).copied() {
             Some(_) => {
-                let t = Time::parse_bytes_offset(bytes, position, &TimeConfigBuilder::new().build())?;
+                let t = Self::parse_time(bytes, position, &TimeConfigBuilder::new().build())?;
 
                 Ok(Self {
                     positive: false, // is set above
                     day,
-                    second: t.hour as u32 * 3_600 + t.minute as u32 * 60 + t.second as u32,
+                    second: t.second,
                     microsecond: t.microsecond,
                 })
             }

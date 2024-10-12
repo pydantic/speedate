@@ -1207,11 +1207,13 @@ param_tests! {
     duration_days_pos: ok => "+1 day", "P1D";
     duration_days_123days: ok => "123days", "P123D";
     duration_days_time: ok => "1 day 00:00:42", "P1DT42S";
+    duration_days_time_no_leading_0: ok => "1 day 1:00:42", "P1DT1H42S";
+    duration_days_time_comma_no_leading_0: ok => "1 day, 1:00:42", "P1DT1H42S";
     duration_days_time_neg: ok => "-1 day 00:00:42", "-P1DT42S";
     duration_exceeds_day: ok => "PT86500S", "P1DT1M40S";
     duration_days_time_too_short: err => "1 day 00:", TooShort;
     duration_days_time_wrong: err => "1 day 00:xx", InvalidCharMinute;
-    duration_days_time_extra: err => "1 day 00:00:00.123 ", InvalidCharTzSign;
+    duration_days_time_extra: err => "1 day 00:00:00.123 ", ExtraCharacters;
     duration_overflow: err => "18446744073709551616 day 12:00", DurationValueTooLarge;
     duration_fuzz1: err => "P18446744073709551611DT8031M1M1M1M", DurationValueTooLarge;
     duration_fuzz2: err => "P18446744073709550PT9970442H6R15D1D", DurationValueTooLarge;
