@@ -1169,8 +1169,11 @@ param_tests! {
     duration_invalid_day_unit1: err => "P1X", DurationInvalidDateUnit;
     duration_invalid_day_unit2: err => "P1", DurationInvalidDateUnit;
     duration_time_42s: ok => "00:00:42", "PT42S";
+    duration_time_42s_no_leading_0: ok => "0:00:42", "PT42S";
     duration_time_1m: ok => "00:01", "PT1M";
+    duration_time_1m_no_leading_0: ok => "0:01:00", "PT1M";
     duration_time_1h_2m_3s: ok => "01:02:03", "PT1H2M3S";
+    duration_time_1h_2m_3s_no_leading_0: ok => "1:02:03", "PT1H2M3S";
     duration_time_fraction: ok => "00:01:03.123", "PT1M3.123S";
     duration_time_extra: err => "00:01:03.123x", ExtraCharacters;
     duration_time_timezone: err => "00:01:03x", ExtraCharacters;
