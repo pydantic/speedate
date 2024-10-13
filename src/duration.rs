@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::{time::TimeConfig, ParseError, Time, TimeConfigBuilder};
+use crate::{time::TimeConfig, ParseError, TimeConfigBuilder};
 
 /// A Duration
 ///
