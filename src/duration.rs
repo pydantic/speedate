@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::{time::TimeConfig, ParseError, Time, TimeConfigBuilder};
+use crate::{time::TimeConfig, ParseError, TimeConfigBuilder};
 
 /// A Duration
 ///
@@ -491,12 +491,16 @@ impl Duration {
 
         match bytes.get(position).copied() {
             Some(_) => {
-                let t = Time::parse_bytes_offset(bytes, position, &TimeConfigBuilder::new().build())?;
+                let t = Self::parse_time(bytes, position, &TimeConfigBuilder::new().build())?;
+                if t.day > 0 {
+                    // 1d 24:00:00 is not allowed
+                    return Err(ParseError::DurationHourValueTooLarge);
+                }
 
                 Ok(Self {
                     positive: false, // is set above
                     day,
-                    second: t.hour as u32 * 3_600 + t.minute as u32 * 60 + t.second as u32,
+                    second: t.second,
                     microsecond: t.microsecond,
                 })
             }
