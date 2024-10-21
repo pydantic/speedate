@@ -1148,6 +1148,7 @@ param_tests! {
     duration_too_short1: err => "", TooShort;
     duration_too_short2: err => "+", TooShort;
     duration_too_short3: err => "P", TooShort;
+    duration_too_short4: err => "+PT", TooShort;
     duration_1y: ok => "P1Y", "P1Y";
     duration_123y: ok => "P123Y", "P123Y";
     duration_123_8y: ok => "P123.8Y", "P123Y292D";
@@ -1162,6 +1163,9 @@ param_tests! {
     duration_fraction2: ok => "P1Y1DT2H0.5S", "P1Y1DT2H0.5S";
     duration_1: ok => "P1DT1S", "P1DT1S";
     duration_all: ok => "P1Y2M3DT4H5M6S", "P1Y63DT4H5M6S";
+    // FIXME: this is current behaviour, but we should probably error on
+    // out-of order durations (not RFC3339 compliant)
+    duration_all_wrong_order: ok => "P3D2M1YT6S5M4H", "P1Y63DT4H5M6S";
     duration: err => "PD", DurationInvalidNumber;
     duration: err => "P1DT1MT1S", DurationTRepeated;
     duration: err => "P1DT1.1M1S", DurationInvalidFraction;

@@ -289,23 +289,30 @@ impl Duration {
     /// assert_eq!(d.to_string(), "P1Y");
     /// ```
     #[inline]
-    pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
-        let (positive, offset) = match bytes.first().copied() {
-            Some(b'+') => (true, 1),
-            Some(b'-') => (false, 1),
+    pub fn parse_bytes_with_config(mut bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
+        let positive = match bytes.first().copied() {
+            Some(b'+') => {
+                bytes = bytes.get(1..).ok_or(ParseError::TooShort)?;
+                true
+            }
+            Some(b'-') => {
+                bytes = bytes.get(1..).ok_or(ParseError::TooShort)?;
+                false
+            }
             None => return Err(ParseError::TooShort),
-            _ => (true, 0),
+            _ => true,
         };
-        let mut d = match bytes.get(offset).copied() {
-            Some(b'P') => Self::parse_iso_duration(bytes, offset + 1),
-            _ => {
+        let mut d = match bytes {
+            [] => return Err(ParseError::TooShort),
+            [b'P', iso_duration @ ..] => Self::parse_iso_duration(iso_duration)?,
+            bytes => {
                 if Self::is_duration_date_format(bytes) || bytes.len() < 5 {
-                    Self::parse_days_time(bytes, offset)
+                    Self::parse_days_time(bytes, config)?
                 } else {
-                    Self::parse_time(bytes, offset, config)
+                    Self::parse_time(bytes, config)?
                 }
             }
-        }?;
+        };
         d.positive = positive;
 
         d.normalize()?;
@@ -348,10 +355,10 @@ impl Duration {
         }
     }
 
-    fn parse_iso_duration(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
+    fn parse_iso_duration(bytes: &[u8]) -> Result<Self, ParseError> {
         let mut got_t = false;
         let mut last_had_fraction = false;
-        let mut position: usize = offset;
+        let mut position: usize = 0;
         let mut day: u32 = 0;
         let mut second: u32 = 0;
         let mut microsecond: u32 = 0;
@@ -411,7 +418,8 @@ impl Duration {
             }
             position += 1;
         }
-        if position < 3 {
+        // require at least one field
+        if position < 2 {
             return Err(ParseError::TooShort);
         }
 
@@ -427,9 +435,9 @@ impl Duration {
         bytes.iter().any(|&byte| byte == b'd' || byte == b'D')
     }
 
-    fn parse_days_time(bytes: &[u8], offset: usize) -> Result<Self, ParseError> {
-        let (day, offset) = match bytes.get(offset).copied() {
-            Some(c) => Self::parse_number(bytes, c, offset),
+    fn parse_days_time(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
+        let (day, offset) = match bytes.get(0).copied() {
+            Some(c) => Self::parse_number(bytes, c, 0),
             _ => Err(ParseError::TooShort),
         }?;
         let mut position = offset;
@@ -489,9 +497,10 @@ impl Duration {
             _ => 0,
         };
 
-        match bytes.get(position).copied() {
-            Some(_) => {
-                let t = Self::parse_time(bytes, position, &TimeConfigBuilder::new().build())?;
+        match bytes.get(position..) {
+            Some([]) | None => days_only!(day),
+            Some(remaining) => {
+                let t = Self::parse_time(remaining, config)?;
                 if t.day > 0 {
                     // 1d 24:00:00 is not allowed
                     return Err(ParseError::DurationHourValueTooLarge);
@@ -504,22 +513,18 @@ impl Duration {
                     microsecond: t.microsecond,
                 })
             }
-            None => days_only!(day),
         }
     }
 
-    fn parse_time(bytes: &[u8], offset: usize, config: &TimeConfig) -> Result<Self, ParseError> {
+    fn parse_time(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
         let byte_len = bytes.len();
-        if byte_len - offset < 5 {
+        if byte_len < 5 {
             return Err(ParseError::TooShort);
         }
         const HOUR_NUMERIC_LIMIT: i64 = 24 * 10i64.pow(8);
         let mut hour: i64 = 0;
 
-        let mut chunks = bytes
-            .get(offset..)
-            .ok_or(ParseError::TooShort)?
-            .splitn(2, |&byte| byte == b':');
+        let mut chunks = bytes.splitn(2, |&byte| byte == b':');
 
         // can just use `.split_once()` in future maybe, if that stabilises
         let (hour_part, mut remaining) = match (chunks.next(), chunks.next(), chunks.next()) {
