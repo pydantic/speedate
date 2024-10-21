@@ -1166,6 +1166,9 @@ param_tests! {
     // FIXME: this is current behaviour, but we should probably error on
     // out-of order durations (not RFC3339 compliant)
     duration_all_wrong_order: ok => "P3D2M1YT6S5M4H", "P1Y63DT4H5M6S";
+    // FIXME: this is current behaviour, but we should probably error on
+    // repeated units (not RFC3339 compliant)
+    duration_unit_repeated: ok => "P1Y2Y", "P3Y";
     duration: err => "PD", DurationInvalidNumber;
     duration: err => "P1DT1MT1S", DurationTRepeated;
     duration: err => "P1DT1.1M1S", DurationInvalidFraction;
