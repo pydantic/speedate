@@ -228,7 +228,7 @@ impl Date {
     pub fn timestamp(&self) -> i64 {
         let days = (self.year as i64) * 365
             + (self.ordinal_day() - 1) as i64
-            + intervening_leap_years(self.year as i64) as i64;
+            + intervening_leap_years(self.year as i64);
         days * 86400 + UNIX_0000
     }
 
@@ -294,8 +294,8 @@ impl Date {
         }
         let seconds_diff = timestamp_second - UNIX_0000;
         let delta_days = seconds_diff / 86_400;
-        let delta_years = (delta_days / 365) as i64;
-        let leap_years = intervening_leap_years(delta_years) as i64;
+        let delta_years = delta_days / 365;
+        let leap_years = intervening_leap_years(delta_years);
 
         // year day is the day of the year, starting from 1
         let mut ordinal_day: i16 = (delta_days % 365 - leap_years + 1) as i16;
