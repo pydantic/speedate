@@ -55,8 +55,8 @@ impl FromStr for Date {
 }
 
 // 2e10 if greater than this, the number is in ms, if less than or equal, it's in seconds
-// (in seconds this is 3940-01-02, in ms it's 1971-12-21)
-pub(crate) const MS_WATERSHED: i64 = 62_167_219_201;
+// (in seconds this is 11th October 2603, in ms it's 20th August 1970)
+pub(crate) const MS_WATERSHED: i64 = 20_000_000_000;
 // 9999-12-31T23:59:59 as a unix timestamp, used as max allowed value below
 const UNIX_9999: i64 = 253_402_300_799;
 // 0000-01-01T00:00:00+00:00 as a unix timestamp, used as min allowed value below
@@ -184,14 +184,14 @@ impl Date {
     ///
     /// Input must be between `-62,167,219,200,000` (`0000-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
     ///
-    /// If the absolute value is outside the range [`-62,167,219,200`, `62,167,219,201`] it is interpreted as being in milliseconds.
+    /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
     ///
     /// That means:
-    /// * `-62,167,219,200` is `0000-01-01`
-    /// * `-62,167,219,201` is `1968-01-12`
+    /// * `20,000,000,000` is `2603-10-11`
+    /// * `20,000,000,001` is `1970-08-20`
     /// * `-62,167,219,200,001` gives an error - `DateTooSmall` as it would be before 0000-01-01
-    /// * `62,167,219,200` is `3940-01-02`
-    /// * `62,167,219,201` is `1971-12-21`
+    /// * `-20,000,000,001` is `1969-05-14`
+    /// * `-20,000,000,000` is `1336-03-23`
     ///
     /// # Arguments
     ///

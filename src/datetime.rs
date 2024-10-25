@@ -442,14 +442,14 @@ impl DateTime {
     ///
     /// Input must be between `-62,167,219,200,000` (`0000-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
     ///
-    /// If the absolute value is outside the range [`-62,167,219,200`, `62,167,219,201`] it is interpreted as being in milliseconds.
+    /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
     ///
     /// That means:
-    /// * `-62,167,219,200` is `0000-01-01`
-    /// * `-62,167,219,201` is `1968-01-12`
+    /// * `20,000,000,000` is `2603-10-11`
+    /// * `20,000,000,001` is `1970-08-20`
     /// * `-62,167,219,200,001` gives an error - `DateTooSmall` as it would be before 0000-01-01
-    /// * `62,167,219,200` is `3940-01-02`
-    /// * `62,167,219,201` is `1971-12-21`
+    /// * `-20,000,000,001` is `1969-05-14`
+    /// * `-20,000,000,000` is `1336-03-23`
     ///
     /// # Arguments
     ///
