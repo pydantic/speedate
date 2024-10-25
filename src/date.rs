@@ -226,9 +226,8 @@ impl Date {
     /// assert_eq!(d.timestamp(), 1_654_560_000);
     /// ```
     pub fn timestamp(&self) -> i64 {
-        let days = (self.year as i64) * 365
-            + (self.ordinal_day() - 1) as i64
-            + intervening_leap_years(self.year as i64);
+        let days =
+            (self.year as i64) * 365 + (self.ordinal_day() - 1) as i64 + intervening_leap_years(self.year as i64);
         days * 86400 + UNIX_0000
     }
 
