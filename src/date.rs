@@ -182,15 +182,16 @@ impl Date {
     ///
     /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
     ///
-    /// Input must be between `-11,676,096,000` (`1600-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
+    /// Input must be between `-62,167,219,200,000` (`0000-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
     ///
-    /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
+    /// If the absolute value is outside the range [`-62,167,219,200`, `62,167,219,201`] it is interpreted as being in milliseconds.
     ///
     /// That means:
-    /// * `20_000_000_000` is `2603-10-11`
-    /// * `20_000_000_001` is `1970-08-20`
-    /// * `-20_000_000_000` gives an error - `DateTooSmall` as it would be before 1600
-    /// * `-20_000_000_001` is `1969-05-14`
+    /// * `-62,167,219,200` is `0000-01-01`
+    /// * `-62,167,219,201` is `1968-01-12`
+    /// * `-62,167,219,200,001` gives an error - `DateTooSmall` as it would be before 0000-01-01
+    /// * `62,167,219,200` is `3940-01-02`
+    /// * `62,167,219,201` is `1971-12-21`
     ///
     /// # Arguments
     ///
@@ -377,8 +378,8 @@ fn is_leap_year(year: u16) -> bool {
     }
 }
 
-/// internal function to calculate the number of leap years since 1600, `delta_years` is the number of
-/// years since 1600
+/// internal function to calculate the number of leap years since 0000, `delta_years` is the number of
+/// years since 0000
 fn intervening_leap_years(delta_years: i64) -> i64 {
     if delta_years == 0 {
         0

@@ -131,7 +131,7 @@ param_tests! {
     date_special_400_leap: ok => "2000-02-29", "2000-02-29";
     date_unix_before_watershed: ok => "19999872000", "2603-10-10";
     date_unix_after_watershed: ok => "62208000000", "1971-12-22";
-    date_unix_too_low: err => "-62208000000000", DateTooSmall;
+    date_unix_too_low: err => "-62167219200001", DateTooSmall;
 }
 
 #[test]
