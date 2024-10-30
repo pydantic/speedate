@@ -129,6 +129,9 @@ param_tests! {
     date_normal_leap_year: ok => "2004-02-29", "2004-02-29";
     date_special_100_not_leap: err => "1900-02-29", OutOfRangeDay;
     date_special_400_leap: ok => "2000-02-29", "2000-02-29";
+    date_special_1600ad_leap: ok => "1600-02-29", "1600-02-29";
+    date_special_1200ad_leap: ok => "1200-02-29", "1200-02-29";
+    date_special_1bc_leap: ok => "0000-02-29", "0000-02-29";
     date_unix_before_watershed: ok => "19999872000", "2603-10-10";
     date_unix_after_watershed: ok => "20044800000", "1970-08-21";
     date_unix_too_low: err => "-62167219200001", DateTooSmall;
@@ -156,6 +159,18 @@ fn date_from_timestamp_extremes() {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooLarge),
     }
+}
+
+#[test]
+fn date_from_timestamp_special_dates() {
+    let d = Date::from_timestamp(-11_676_096_000 + 1000, false).unwrap();
+    assert_eq!(d.to_string(), "1600-01-01");
+    // check if there is any error regarding offset at the second level
+    // and if rounding down works
+    let d = Date::from_timestamp(-11_676_096_000 + 86399, false).unwrap();
+    assert_eq!(d.to_string(), "1600-01-01");
+    let d = Date::from_timestamp(-11_673_417_600, false).unwrap();
+    assert_eq!(d.to_string(), "1600-02-01");
 }
 
 #[test]
