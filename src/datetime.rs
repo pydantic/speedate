@@ -440,16 +440,16 @@ impl DateTime {
     ///
     /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
     ///
-    /// Input must be between `-11_676_096_000` (`1600-01-01T00:00:00`) and
-    /// `253_402_300_799_000` (`9999-12-31T23:59:59.999999`) inclusive.
+    /// Input must be between `-62,167,219,200,000` (`0000-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
     ///
-    /// If the absolute value is > 2e10 (`20_000_000_000`) it is interpreted as being in milliseconds.
+    /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
     ///
     /// That means:
-    /// * `20_000_000_000` is `2603-10-11T11:33:20`
-    /// * `20_000_000_001` is `1970-08-20T11:33:20.001`
-    /// * `-20_000_000_000` gives an error - `DateTooSmall` as it would be before 1600
-    /// * `-20_000_000_001` is `1969-05-14T12:26:39.999`
+    /// * `20,000,000,000` is `2603-10-11`
+    /// * `20,000,000,001` is `1970-08-20`
+    /// * `-62,167,219,200,001` gives an error - `DateTooSmall` as it would be before 0000-01-01
+    /// * `-20,000,000,001` is `1969-05-14`
+    /// * `-20,000,000,000` is `1336-03-23`
     ///
     /// # Arguments
     ///

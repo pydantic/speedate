@@ -20,7 +20,7 @@ fn check_timestamp(timestamp: i64, microseconds: u32) {
 
         if let Some(mut chrono_dt) = NaiveDateTime::from_timestamp_opt(chrono_seconds, chrono_nano) {
             let year = chrono_dt.year();
-            if year >= 1600 && year <= 9999 {
+            if year >= 0 && year <= 9999 {
                 let dt = match DateTime::from_timestamp(timestamp, microseconds) {
                     Ok(dt) => dt,
                     Err(e) => panic!(

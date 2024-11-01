@@ -57,10 +57,10 @@ impl FromStr for Date {
 // 2e10 if greater than this, the number is in ms, if less than or equal, it's in seconds
 // (in seconds this is 11th October 2603, in ms it's 20th August 1970)
 pub(crate) const MS_WATERSHED: i64 = 20_000_000_000;
-// 1600-01-01 as a unix timestamp used for from_timestamp below
-const UNIX_1600: i64 = -11_676_096_000;
 // 9999-12-31T23:59:59 as a unix timestamp, used as max allowed value below
 const UNIX_9999: i64 = 253_402_300_799;
+// 0000-01-01T00:00:00+00:00 as a unix timestamp, used as min allowed value below
+const UNIX_0000: i64 = -62_167_219_200;
 
 impl Date {
     /// Parse a date from a string using RFC 3339 format
@@ -182,15 +182,16 @@ impl Date {
     ///
     /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
     ///
-    /// Input must be between `-11,676,096,000` (`1600-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
+    /// Input must be between `-62,167,219,200,000` (`0000-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
     ///
     /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
     ///
     /// That means:
-    /// * `20_000_000_000` is `2603-10-11`
-    /// * `20_000_000_001` is `1970-08-20`
-    /// * `-20_000_000_000` gives an error - `DateTooSmall` as it would be before 1600
-    /// * `-20_000_000_001` is `1969-05-14`
+    /// * `20,000,000,000` is `2603-10-11`
+    /// * `20,000,000,001` is `1970-08-20`
+    /// * `-62,167,219,200,001` gives an error - `DateTooSmall` as it would be before 0000-01-01
+    /// * `-20,000,000,001` is `1969-05-14`
+    /// * `-20,000,000,000` is `1336-03-23`
     ///
     /// # Arguments
     ///
@@ -225,10 +226,9 @@ impl Date {
     /// assert_eq!(d.timestamp(), 1_654_560_000);
     /// ```
     pub fn timestamp(&self) -> i64 {
-        let days = (self.year - 1600) as i64 * 365
-            + (self.ordinal_day() - 1) as i64
-            + intervening_leap_years(self.year - 1600) as i64;
-        days * 86400 + UNIX_1600
+        let days =
+            (self.year as i64) * 365 + (self.ordinal_day() - 1) as i64 + intervening_leap_years(self.year as i64);
+        days * 86400 + UNIX_0000
     }
 
     /// Current date. Internally, this uses [DateTime::now].
@@ -285,20 +285,20 @@ impl Date {
     }
 
     pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<(Self, u32), ParseError> {
-        if timestamp_second < UNIX_1600 {
+        if timestamp_second < UNIX_0000 {
             return Err(ParseError::DateTooSmall);
         }
         if timestamp_second > UNIX_9999 {
             return Err(ParseError::DateTooLarge);
         }
-        let seconds_diff = timestamp_second - UNIX_1600;
+        let seconds_diff = timestamp_second - UNIX_0000;
         let delta_days = seconds_diff / 86_400;
-        let delta_years = (delta_days / 365) as u16;
-        let leap_years = intervening_leap_years(delta_years) as i64;
+        let delta_years = delta_days / 365;
+        let leap_years = intervening_leap_years(delta_years);
 
         // year day is the day of the year, starting from 1
         let mut ordinal_day: i16 = (delta_days % 365 - leap_years + 1) as i16;
-        let mut year: u16 = 1600 + delta_years;
+        let mut year: u16 = delta_years as u16;
         let mut leap_year: bool = is_leap_year(year);
         while ordinal_day < 1 {
             year -= 1;
@@ -377,9 +377,9 @@ fn is_leap_year(year: u16) -> bool {
     }
 }
 
-/// internal function to calculate the number of leap years since 1600, `delta_years` is the number of
-/// years since 1600
-fn intervening_leap_years(delta_years: u16) -> u16 {
+/// internal function to calculate the number of leap years since 0000, `delta_years` is the number of
+/// years since 0000
+fn intervening_leap_years(delta_years: i64) -> i64 {
     if delta_years == 0 {
         0
     } else {
