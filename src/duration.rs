@@ -289,18 +289,10 @@ impl Duration {
     /// assert_eq!(d.to_string(), "P1Y");
     /// ```
     #[inline]
-    pub fn parse_bytes_with_config(mut bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
-        let positive = match bytes.first().copied() {
-            Some(b'+') => {
-                bytes = bytes.get(1..).ok_or(ParseError::TooShort)?;
-                true
-            }
-            Some(b'-') => {
-                bytes = bytes.get(1..).ok_or(ParseError::TooShort)?;
-                false
-            }
-            None => return Err(ParseError::TooShort),
-            _ => true,
+    pub fn parse_bytes_with_config(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
+        let (positive, bytes) = match bytes {
+            [b'-', bytes @ ..] => (false, bytes),
+            [b'+', bytes @ ..] | bytes => (true, bytes),
         };
         let mut d = match bytes {
             [] => return Err(ParseError::TooShort),
@@ -355,6 +347,7 @@ impl Duration {
         }
     }
 
+    /// Parse ISO duration (excluding the 'P' prefix)
     fn parse_iso_duration(bytes: &[u8]) -> Result<Self, ParseError> {
         let mut got_t = false;
         let mut last_had_fraction = false;
@@ -371,14 +364,14 @@ impl Duration {
                     got_t = true;
                 }
                 Some(c) => {
-                    let (value, op_fraction, new_pos) = Self::parse_number_frac(bytes, c, position)?;
+                    let (value, op_fraction, offset) = Self::parse_number_frac(&bytes[position..], c)?;
                     if last_had_fraction {
                         return Err(ParseError::DurationInvalidFraction);
                     }
                     if op_fraction.is_some() {
                         last_had_fraction = true;
                     }
-                    position = new_pos;
+                    position += offset;
                     if got_t {
                         let mult: u32 = match bytes.get(position).copied() {
                             Some(b'H') => 3600,
@@ -436,84 +429,71 @@ impl Duration {
     }
 
     fn parse_days_time(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
-        let (day, offset) = match bytes.first().copied() {
-            Some(c) => Self::parse_number(bytes, c, 0),
+        let (day, position) = match bytes.first().copied() {
+            Some(c) => Self::parse_number(bytes, c),
             _ => Err(ParseError::TooShort),
         }?;
-        let mut position = offset;
 
-        // consume a space, but allow for "d/D"
-        position += match bytes.get(position).copied() {
-            Some(b' ') => 1,
-            Some(b'd') | Some(b'D') => 0,
-            _ => return Err(ParseError::DurationInvalidDays),
+        let Some(
+            // expect d or D next, optionally prefixed by a space
+            [b' ', b'd' | b'D', remaining @ ..] | [b'd' | b'D', remaining @ ..],
+        ) = bytes.get(position..)
+        else {
+            return Err(ParseError::DurationInvalidDays);
         };
-
-        // consume "d/D", nothing else is allowed
-        position += match bytes.get(position).copied() {
-            Some(b'd') | Some(b'D') => 1,
-            _ => return Err(ParseError::DurationInvalidDays),
-        };
-
-        macro_rules! days_only {
-            ($day:ident) => {
-                Ok(Self {
-                    positive: false, // is set above
-                    day: $day,
-                    second: 0,
-                    microsecond: 0,
-                })
-            };
-        }
 
         // optionally consume the rest of the word "day/days"
-        position += match bytes.get(position).copied() {
-            Some(b'a') | Some(b'A') => {
-                match bytes.get(position + 1).copied() {
-                    Some(b'y') | Some(b'Y') => (),
-                    _ => return Err(ParseError::DurationInvalidDays),
-                };
-                match bytes.get(position + 2).copied() {
-                    Some(b's') | Some(b'S') => 3,
-                    None => return days_only!(day),
-                    _ => 2,
-                }
+        let remaining = match remaining {
+                // ays
+                [b'a', b'y', b's', remaining @ ..]
+                // ay
+                | [b'a', b'y', remaining @ ..]
+                // AYS
+                | [b'A', b'Y', b'S', remaining @ ..]
+                // AY
+                | [b'A', b'Y', remaining @ ..]
+            => {
+                remaining
             }
-            None => return days_only!(day),
-            _ => 0,
+            // word continued but not finished correctly
+            [b'a', ..] | [b'A', ..] => return Err(ParseError::DurationInvalidDays),
+            remaining => remaining,
         };
 
-        // optionally consume a comma ","
-        position += match bytes.get(position).copied() {
-            Some(b',') => 1,
-            None => return days_only!(day),
-            _ => 0,
+        // days are finished, next prepare to parse the time
+        // optionally consume a comma "," and maybe a space
+        let remaining = match remaining {
+            // b", "
+            [b',', b' ', remaining @ ..]
+            // b","
+            | [b',', remaining @ ..]
+            // b" "
+            | [b' ', remaining @ ..]
+            // no comma / space
+            | remaining => remaining,
         };
 
-        // optionally consume a space " "
-        position += match bytes.get(position).copied() {
-            Some(b' ') => 1,
-            None => return days_only!(day),
-            _ => 0,
-        };
-
-        match bytes.get(position..) {
-            Some([]) | None => days_only!(day),
-            Some(remaining) => {
-                let t = Self::parse_time(remaining, config)?;
-                if t.day > 0 {
-                    // 1d 24:00:00 is not allowed
-                    return Err(ParseError::DurationHourValueTooLarge);
-                }
-
-                Ok(Self {
-                    positive: false, // is set above
-                    day,
-                    second: t.second,
-                    microsecond: t.microsecond,
-                })
-            }
+        if remaining.is_empty() {
+            return Ok(Self {
+                positive: false, // is set above
+                day,
+                second: 0,
+                microsecond: 0,
+            });
         }
+
+        let t = Self::parse_time(remaining, config)?;
+        if t.day > 0 {
+            // 1d 24:00:00 is not allowed
+            return Err(ParseError::DurationHourValueTooLarge);
+        }
+
+        Ok(Self {
+            positive: false, // is set above
+            day,
+            second: t.second,
+            microsecond: t.microsecond,
+        })
     }
 
     fn parse_time(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
@@ -575,12 +555,12 @@ impl Duration {
         })
     }
 
-    fn parse_number(bytes: &[u8], d1: u8, offset: usize) -> Result<(u32, usize), ParseError> {
+    fn parse_number(bytes: &[u8], d1: u8) -> Result<(u32, usize), ParseError> {
         let mut value = match d1 {
             c if d1.is_ascii_digit() => (c - b'0') as u32,
             _ => return Err(ParseError::DurationInvalidNumber),
         };
-        let mut position = offset + 1;
+        let mut position = 1;
         loop {
             match bytes.get(position) {
                 Some(c) if c.is_ascii_digit() => {
@@ -593,9 +573,8 @@ impl Duration {
         }
     }
 
-    fn parse_number_frac(bytes: &[u8], d1: u8, offset: usize) -> Result<(u32, Option<f64>, usize), ParseError> {
-        let (value, offset) = Self::parse_number(bytes, d1, offset)?;
-        let mut position = offset;
+    fn parse_number_frac(bytes: &[u8], d1: u8) -> Result<(u32, Option<f64>, usize), ParseError> {
+        let (value, mut position) = Self::parse_number(bytes, d1)?;
         let next_char = bytes.get(position).copied();
         if next_char == Some(b'.') || next_char == Some(b',') {
             let mut decimal = 0_f64;
