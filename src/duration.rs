@@ -436,7 +436,7 @@ impl Duration {
     }
 
     fn parse_days_time(bytes: &[u8], config: &TimeConfig) -> Result<Self, ParseError> {
-        let (day, offset) = match bytes.get(0).copied() {
+        let (day, offset) = match bytes.first().copied() {
             Some(c) => Self::parse_number(bytes, c, 0),
             _ => Err(ParseError::TooShort),
         }?;
