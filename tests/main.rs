@@ -148,7 +148,7 @@ param_tests! {
     date_special_404ad_leap: ok => "0404-02-29", "0404-02-29";
     date_unix_before_watershed: ok => "19999872000", "2603-10-10";
     date_unix_after_watershed: ok => "20044800000", "1970-08-21";
-    date_unix_too_low: err => "-62167219200001", DateTooSmall;
+    date_unix_too_low: err => "-62135596800001", DateTooSmall;
 }
 
 #[test]
@@ -161,9 +161,9 @@ fn date_from_timestamp_extremes() {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooLarge),
     }
-    let d = Date::from_timestamp(-62_167_219_200_000, false).unwrap();
-    assert_eq!(d.to_string(), "0000-01-01");
-    match Date::from_timestamp(-62_167_219_200_001, false) {
+    let d = Date::from_timestamp(-62_135_596_800_000, false).unwrap();
+    assert_eq!(d.to_string(), "0001-01-01");
+    match Date::from_timestamp(-62_135_596_800_001, false) {
         Ok(dt) => panic!("unexpectedly valid, {dt}"),
         Err(e) => assert_eq!(e, ParseError::DateTooSmall),
     }
@@ -177,14 +177,14 @@ fn date_from_timestamp_extremes() {
 
 #[test]
 fn date_from_timestamp_special_dates() {
-    let d = Date::from_timestamp(-11_676_096_000 + 1000, false).unwrap();
-    assert_eq!(d.to_string(), "1600-01-01");
+    let d = Date::from_timestamp(-62_135_596_800_000 + 1000, false).unwrap();
+    assert_eq!(d.to_string(), "0001-01-01");
     // check if there is any error regarding offset at the second level
     // and if rounding down works
-    let d = Date::from_timestamp(-11_676_096_000 + 86399, false).unwrap();
-    assert_eq!(d.to_string(), "1600-01-01");
-    let d = Date::from_timestamp(-11_673_417_600, false).unwrap();
-    assert_eq!(d.to_string(), "1600-02-01");
+    let d = Date::from_timestamp(-62_135_596_800_000 + 86399, false).unwrap();
+    assert_eq!(d.to_string(), "0001-01-01");
+    let d = Date::from_timestamp(-62_132_918_400_000, false).unwrap();
+    assert_eq!(d.to_string(), "0001-02-01");
 }
 
 #[test]
@@ -468,8 +468,8 @@ fn datetime_from_timestamp_specific() {
     assert_eq!(dt.to_string(), "1970-01-01T00:00:00.667444");
     let dt = DateTime::from_timestamp(32_503_680_000_000, 0).unwrap();
     assert_eq!(dt.to_string(), "3000-01-01T00:00:00");
-    let dt = DateTime::from_timestamp(-11_676_096_000, 0).unwrap();
-    assert_eq!(dt.to_string(), "1600-01-01T00:00:00");
+    let dt = DateTime::from_timestamp(-62_135_596_800_000, 0).unwrap();
+    assert_eq!(dt.to_string(), "0001-01-01T00:00:00");
     let dt = DateTime::from_timestamp(1_095_216_660_480, 3221223).unwrap();
     assert_eq!(dt.to_string(), "2004-09-15T02:51:03.701223");
 

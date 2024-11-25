@@ -59,8 +59,10 @@ impl FromStr for Date {
 pub(crate) const MS_WATERSHED: i64 = 20_000_000_000;
 // 9999-12-31T23:59:59 as a unix timestamp, used as max allowed value below
 const UNIX_9999: i64 = 253_402_300_799;
-// 0000-01-01T00:00:00+00:00 as a unix timestamp, used as min allowed value below
+// 0000-01-01T00:00:00+00:00 as a unix timestamp
 const UNIX_0000: i64 = -62_167_219_200;
+// 0001-01-01T00:00:00+00:00 as a unix timestamp, used as min allowed value below
+const UNIX_0001: i64 = -62_135_596_800;
 
 impl Date {
     /// Parse a date from a string using RFC 3339 format
@@ -182,14 +184,14 @@ impl Date {
     ///
     /// ("Unix Timestamp" means number of seconds or milliseconds since 1970-01-01)
     ///
-    /// Input must be between `-62,167,219,200,000` (`0000-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
+    /// Input must be between `-62,135,596,800,000` (`0001-01-01`) and `253,402,300,799,000` (`9999-12-31`) inclusive.
     ///
     /// If the absolute value is > 2e10 (`20,000,000,000`) it is interpreted as being in milliseconds.
     ///
     /// That means:
     /// * `20,000,000,000` is `2603-10-11`
     /// * `20,000,000,001` is `1970-08-20`
-    /// * `-62,167,219,200,001` gives an error - `DateTooSmall` as it would be before 0000-01-01
+    /// * `-62,135,596,800,001` gives an error - `DateTooSmall` as it would be before 0001-01-01
     /// * `-20,000,000,001` is `1969-05-14`
     /// * `-20,000,000,000` is `1336-03-23`
     ///
@@ -285,7 +287,7 @@ impl Date {
     }
 
     pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<(Self, u32), ParseError> {
-        if timestamp_second < UNIX_0000 {
+        if timestamp_second < UNIX_0001 {
             return Err(ParseError::DateTooSmall);
         }
         if timestamp_second > UNIX_9999 {
