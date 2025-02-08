@@ -17,7 +17,7 @@ pub use time::{MicrosecondsPrecisionOverflowBehavior, Time, TimeConfig, TimeConf
 
 pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
 
-/// Parsing datetime, date, time & duration values
+// Parsing datetime, date, time & duration values
 
 // get a character from the bytes as as a decimal
 macro_rules! get_digit {
