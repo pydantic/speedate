@@ -1,3 +1,5 @@
+use lexical_parse_float::{format as lexical_format, FromLexicalWithOptions, Options as ParseFloatOptions};
+
 /// Parse a string as an int.
 ///
 /// This is around 2x faster than using `str::parse::<i64>()`
@@ -56,6 +58,16 @@ pub fn float_parse_str(s: &str) -> IntFloat {
 
 /// Parse bytes as an float.
 pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
+    // If we know we're working with a float, let's go ahead and parse it with lexical-parse-float
+    // to handle all edge cases related to float parsing
+    if s.contains(&b'.') {
+        let options = ParseFloatOptions::new();
+        match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &options) {
+            Ok(v) => return IntFloat::Float(v),
+            Err(_) => return IntFloat::Err,
+        }
+    }
+
     let (neg, first_digit, digits) = match s {
         [b'-', first, digits @ ..] => (true, first, digits),
         [b'+', first, digits @ ..] | [first, digits @ ..] => (false, first, digits),
@@ -67,8 +79,6 @@ pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
         b'1'..=b'9' => (first_digit & 0x0f) as i64,
         _ => return IntFloat::Err,
     };
-
-    let mut found_dot = false;
 
     let mut bytes = digits.iter().copied();
 
@@ -84,42 +94,11 @@ pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
                     None => return IntFloat::Err,
                 };
             }
-            b'.' => {
-                found_dot = true;
-                break;
-            }
             _ => return IntFloat::Err,
         }
     }
 
-    if found_dot {
-        let mut result = int_part as f64;
-        let mut dec_part: i64 = 0;
-        let mut div = 1_f64;
-        let move_div = 10_f64;
-        for digit in bytes {
-            match digit {
-                b'0'..=b'9' => {
-                    dec_part = match dec_part.checked_mul(10) {
-                        Some(i) => i,
-                        None => return IntFloat::Err,
-                    };
-                    dec_part = match dec_part.checked_add((digit & 0x0f) as i64) {
-                        Some(i) => i,
-                        None => return IntFloat::Err,
-                    };
-                    div *= move_div;
-                }
-                _ => return IntFloat::Err,
-            }
-        }
-        result += dec_part as f64 / div;
-        if neg {
-            IntFloat::Float(-result)
-        } else {
-            IntFloat::Float(result)
-        }
-    } else if neg {
+    if neg {
         IntFloat::Int(-int_part)
     } else {
         IntFloat::Int(int_part)
