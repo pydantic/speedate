@@ -58,16 +58,6 @@ pub fn float_parse_str(s: &str) -> IntFloat {
 
 /// Parse bytes as an float.
 pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
-    // If we know we're working with a float, let's go ahead and parse it with lexical-parse-float
-    // to handle all edge cases related to float parsing
-    if s.contains(&b'.') {
-        let options = ParseFloatOptions::new();
-        match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &options) {
-            Ok(v) => return IntFloat::Float(v),
-            Err(_) => return IntFloat::Err,
-        }
-    }
-
     let (neg, first_digit, digits) = match s {
         [b'-', first, digits @ ..] => (true, first, digits),
         [b'+', first, digits @ ..] | [first, digits @ ..] => (false, first, digits),
@@ -79,6 +69,8 @@ pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
         b'1'..=b'9' => (first_digit & 0x0f) as i64,
         _ => return IntFloat::Err,
     };
+
+    let mut found_dot = false;
 
     let mut bytes = digits.iter().copied();
 
@@ -94,11 +86,21 @@ pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
                     None => return IntFloat::Err,
                 };
             }
+            b'.' => {
+                found_dot = true;
+                break;
+            }
             _ => return IntFloat::Err,
         }
     }
 
-    if neg {
+    if found_dot {
+        let options = ParseFloatOptions::new();
+        match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &options) {
+            Ok(v) => IntFloat::Float(v),
+            Err(_) => IntFloat::Err,
+        }
+    } else if neg {
         IntFloat::Int(-int_part)
     } else {
         IntFloat::Int(int_part)
