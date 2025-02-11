@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Read;
 use std::str::FromStr;
 
-use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, NaiveDateTime, Timelike, Utc as ChronoUtc};
+use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
 use speedate::{
@@ -215,7 +215,7 @@ fn date_from_timestamp_milliseconds() {
 }
 
 fn try_date_timestamp(ts: i64, check_timestamp: bool) {
-    let chrono_date = NaiveDateTime::from_timestamp_opt(ts, 0).unwrap().date();
+    let chrono_date = chrono::DateTime::from_timestamp(ts, 0).unwrap().date_naive();
     let d = Date::from_timestamp(ts, false).unwrap();
     // println!("{} => {:?}", ts, d);
     assert_eq!(
@@ -283,7 +283,7 @@ macro_rules! date_from_timestamp {
             #[test]
             fn [< date_from_timestamp_ $year _ $month _ $day >]() {
                 let chrono_date = NaiveDate::from_ymd_opt($year, $month, $day).unwrap();
-                let ts = chrono_date.and_hms_opt(0, 0, 0).unwrap().timestamp();
+                let ts = chrono_date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp();
                 let d = Date::from_timestamp(ts, false).unwrap();
                 assert_eq!(
                     d,
@@ -404,7 +404,7 @@ fn time_from_timestamp_error() {
     }
 }
 
-fn try_datetime_timestamp(chrono_dt: NaiveDateTime) {
+fn try_datetime_timestamp(chrono_dt: chrono::DateTime<ChronoUtc>) {
     let ts = chrono_dt.timestamp();
     let dt = DateTime::from_timestamp(ts, chrono_dt.nanosecond() / 1_000).unwrap();
     // println!("{} ({}) => {}", ts, chrono_dt, dt);
@@ -435,7 +435,7 @@ macro_rules! datetime_from_timestamp {
         paste::item! {
             #[test]
             fn [< datetime_from_timestamp_ $year _ $month _ $day _t_ $hour _ $minute _ $second _ $microsecond >]() {
-                let chrono_dt = NaiveDate::from_ymd_opt($year, $month, $day).unwrap().and_hms_nano_opt($hour, $minute, $second, $microsecond * 1_000).unwrap();
+                let chrono_dt = NaiveDate::from_ymd_opt($year, $month, $day).unwrap().and_hms_nano_opt($hour, $minute, $second, $microsecond * 1_000).unwrap().and_utc();
                 try_datetime_timestamp(chrono_dt);
             }
         }
@@ -455,8 +455,8 @@ datetime_from_timestamp! {
 #[test]
 fn datetime_from_timestamp_range() {
     for ts in (0..157_766_400).step_by(757) {
-        try_datetime_timestamp(NaiveDateTime::from_timestamp_opt(ts, 0).unwrap());
-        try_datetime_timestamp(NaiveDateTime::from_timestamp_opt(-ts, 0).unwrap());
+        try_datetime_timestamp(chrono::DateTime::from_timestamp(ts, 0).unwrap());
+        try_datetime_timestamp(chrono::DateTime::from_timestamp(-ts, 0).unwrap());
     }
 }
 
