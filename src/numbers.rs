@@ -60,27 +60,13 @@ fn int_parse_bytes_internal(s: &[u8]) -> Result<i64, Option<u8>> {
         [] => return Err(None),
     };
 
-    let int_part = DECODE_MAP[first_digit as usize];
-    debug_assert!(int_part <= 9 || int_part == ERR);
-
-    if int_part == ERR {
-        return Err(Some(first_digit));
-    }
-
-    let mut int_part = int_part as i64;
+    let mut int_part = decoded_i64_value(first_digit)?;
 
     for &digit in digits {
-        let value = DECODE_MAP[digit as usize];
-        debug_assert!(value <= 9 || value == ERR);
-
-        if value == ERR {
-            return Err(Some(digit));
-        }
-
         int_part = int_part.wrapping_mul(10);
-        int_part = int_part.wrapping_add(value as i64);
+        int_part = int_part.wrapping_add(decoded_i64_value(digit)?);
 
-        // if overflow occurred, return an error
+        // only check once for overflow per loop iteration to minimize branching
         if int_part < 0 {
             return Err(Some(digit));
         }
@@ -89,29 +75,41 @@ fn int_parse_bytes_internal(s: &[u8]) -> Result<i64, Option<u8>> {
     Ok(if neg { -int_part } else { int_part })
 }
 
-#[rustfmt::skip]
-static DECODE_MAP: [u8; 256] = {
-    const __: u8 = ERR;
-    [
-        //   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 0
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 1
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 2
-         0,  1,  2,  3,  4,  5,  6,  7,  8,  9, __, __, __, __, __, __, // 3
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 4
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 5
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 6
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 7
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 8
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 9
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // A
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // B
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // C
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // D
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // E
-        __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // F
-    ]
-};
+/// Helper to parse a single ascii digit as an i64.
+fn decoded_i64_value(digit: u8) -> Result<i64, u8> {
+    #[rustfmt::skip]
+    static DECODE_MAP: [u8; 256] = {
+        const __: u8 = ERR;
+        [
+            //   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 0
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 1
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 2
+             0,  1,  2,  3,  4,  5,  6,  7,  8,  9, __, __, __, __, __, __, // 3
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 4
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 5
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 6
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 7
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 8
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // 9
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // A
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // B
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // C
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // D
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // E
+            __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // F
+        ]
+    };
+
+    let value = DECODE_MAP[digit as usize];
+    debug_assert!(value <= 9 || value == ERR);
+
+    if value == ERR {
+        return Err(digit);
+    }
+
+    Ok(value as i64)
+}
 
 /// Count the number of decimal places in a byte slice.
 /// Caution: does not verify the integrity of the input,
