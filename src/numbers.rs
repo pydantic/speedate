@@ -9,31 +9,7 @@ pub fn int_parse_str(s: &str) -> Option<i64> {
 
 /// Parse bytes as an int.
 pub fn int_parse_bytes(s: &[u8]) -> Option<i64> {
-    let (neg, first_digit, digits) = match s {
-        [b'-', first, digits @ ..] => (true, first, digits),
-        [b'+', first, digits @ ..] | [first, digits @ ..] => (false, first, digits),
-        _ => return None,
-    };
-
-    let mut result = match first_digit {
-        b'0' => 0,
-        b'1'..=b'9' => (first_digit & 0x0f) as i64,
-        _ => return None,
-    };
-
-    for digit in digits {
-        result = result.checked_mul(10)?;
-        match digit {
-            b'0' => {}
-            b'1'..=b'9' => result = result.checked_add((digit & 0x0f) as i64)?,
-            _ => return None,
-        }
-    }
-    if neg {
-        Some(-result)
-    } else {
-        Some(result)
-    }
+    int_parse_bytes_internal(s).ok()
 }
 
 #[derive(Debug)]
@@ -58,27 +34,47 @@ pub fn float_parse_str(s: &str) -> IntFloat {
 
 /// Parse bytes as an float.
 pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
+    // optimistically try to parse as an integer
+    match int_parse_bytes_internal(s) {
+        Ok(int) => IntFloat::Int(int),
+        // integer parsing failed on encountering a '.', try as a float
+        Err(Some(b'.')) => {
+            static OPTIONS: ParseFloatOptions = ParseFloatOptions::new();
+            match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &OPTIONS) {
+                Ok(v) => IntFloat::Float(v),
+                Err(_) => IntFloat::Err,
+            }
+        }
+        // any other integer parse error is also a float error
+        Err(_) => IntFloat::Err,
+    }
+}
+
+const ERR: u8 = 0xff;
+
+/// Optimized routine to either parse an integer or return the character which triggered the error.
+fn int_parse_bytes_internal(s: &[u8]) -> Result<i64, Option<u8>> {
     let (neg, first_digit, digits) = match s {
         [b'-', first, digits @ ..] => (true, *first, digits),
         [b'+', first, digits @ ..] | [first, digits @ ..] => (false, *first, digits),
-        [] => return IntFloat::Err,
+        [] => return Err(None),
     };
 
     let int_part = DECODE_MAP[first_digit as usize];
+    debug_assert!(int_part <= 9 || int_part == ERR);
 
     if int_part == ERR {
-        return IntFloat::Err;
+        return Err(Some(first_digit));
     }
 
     let mut int_part = int_part as i64;
 
     for &digit in digits {
         let value = DECODE_MAP[digit as usize];
-
         debug_assert!(value <= 9 || value == ERR);
 
         if value == ERR {
-            return parse_possible_float(s, digit);
+            return Err(Some(digit));
         }
 
         int_part = int_part.wrapping_mul(10);
@@ -86,18 +82,12 @@ pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
 
         // if overflow occurred, return an error
         if int_part < 0 {
-            return IntFloat::Err;
+            return Err(Some(digit));
         }
     }
 
-    if neg {
-        IntFloat::Int(-int_part)
-    } else {
-        IntFloat::Int(int_part)
-    }
+    Ok(if neg { -int_part } else { int_part })
 }
-
-const ERR: u8 = 0xff;
 
 #[rustfmt::skip]
 static DECODE_MAP: [u8; 256] = {
@@ -122,19 +112,6 @@ static DECODE_MAP: [u8; 256] = {
         __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, // F
     ]
 };
-
-#[inline(never)] // avoid making the hot loop large
-fn parse_possible_float(s: &[u8], current_digit: u8) -> IntFloat {
-    if current_digit != b'.' {
-        return IntFloat::Err;
-    }
-
-    static OPTIONS: ParseFloatOptions = ParseFloatOptions::new();
-    match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &OPTIONS) {
-        Ok(v) => IntFloat::Float(v),
-        Err(_) => IntFloat::Err,
-    }
-}
 
 /// Count the number of decimal places in a byte slice.
 /// Caution: does not verify the integrity of the input,
