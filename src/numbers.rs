@@ -130,10 +130,10 @@ fn parse_possible_float(s: &[u8], current_digit: u8) -> IntFloat {
     }
 
     static OPTIONS: ParseFloatOptions = ParseFloatOptions::new();
-    return match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &OPTIONS) {
+    match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &OPTIONS) {
         Ok(v) => IntFloat::Float(v),
         Err(_) => IntFloat::Err,
-    };
+    }
 }
 
 /// Count the number of decimal places in a byte slice.
