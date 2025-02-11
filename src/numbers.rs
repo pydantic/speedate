@@ -1,3 +1,5 @@
+use lexical_parse_float::{format as lexical_format, FromLexicalWithOptions, Options as ParseFloatOptions};
+
 /// Parse a string as an int.
 ///
 /// This is around 2x faster than using `str::parse::<i64>()`
@@ -93,21 +95,10 @@ pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
     }
 
     if found_dot {
-        let mut result = int_part as f64;
-        let mut div = 10_f64;
-        for digit in bytes {
-            match digit {
-                b'0'..=b'9' => {
-                    result += (digit & 0x0f) as f64 / div;
-                    div *= 10_f64;
-                }
-                _ => return IntFloat::Err,
-            }
-        }
-        if neg {
-            IntFloat::Float(-result)
-        } else {
-            IntFloat::Float(result)
+        let options = ParseFloatOptions::new();
+        match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &options) {
+            Ok(v) => IntFloat::Float(v),
+            Err(_) => IntFloat::Err,
         }
     } else if neg {
         IntFloat::Int(-int_part)
