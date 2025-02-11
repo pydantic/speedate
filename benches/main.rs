@@ -123,7 +123,7 @@ fn compare_timestamp_ok_chrono(bench: &mut Bencher) {
     use chrono::{Datelike, Timelike};
     let ts = black_box(1654617803);
     bench.iter(|| {
-        let dt = chrono::NaiveDateTime::from_timestamp_opt(ts, 0).unwrap();
+        let dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
         black_box((
             dt.year(),
             dt.month(),
