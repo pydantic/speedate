@@ -13,8 +13,8 @@ repository = "https://github.com/pydantic/speedate/"
 
 [dependencies]
 lexical-parse-float = "1.0.5"
-strum = { version = "0.26", features = ["derive"] }
-strum_macros = "0.26"
+strum = { version = "0.27", features = ["derive"] }
+strum_macros = "0.27"
 
 [dev-dependencies]
 chrono = "0.4.19"
