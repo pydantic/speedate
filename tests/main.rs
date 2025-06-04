@@ -1625,3 +1625,34 @@ fn test_datetime_parse_timestamp_units() {
     .unwrap();
     assert_eq!(dt_ms.to_string(), "2022-01-01T12:13:14");
 }
+
+#[test]
+fn test_date_from_timestamp_negative_millisecond() {
+    use speedate::{Date, DateConfig, TimestampUnit};
+
+    let d = Date::from_timestamp(
+        -1,
+        false,
+        &DateConfig {
+            timestamp_unit: TimestampUnit::Millisecond,
+        },
+    )
+        .unwrap();
+    assert_eq!(d.to_string(), "1969-12-31");
+}
+
+#[test]
+fn test_datetime_from_timestamp_negative_millisecond() {
+    use speedate::{DateTime, DateTimeConfig, TimeConfig, TimestampUnit};
+
+    let dt = DateTime::from_timestamp_with_config(
+        -1,
+        0,
+        &DateTimeConfig {
+            timestamp_unit: TimestampUnit::Millisecond,
+            time_config: TimeConfig::default(),
+        },
+    )
+        .unwrap();
+    assert_eq!(dt.to_string(), "1969-12-31T23:59:59.999000");
+}
