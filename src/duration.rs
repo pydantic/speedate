@@ -318,6 +318,12 @@ impl Duration {
         sign * (self.day as i64 * 86400 + self.second as i64)
     }
 
+    /// Total number of milliseconds in the duration (days + seconds) with sign.
+    #[inline]
+    pub fn signed_total_ms(&self) -> i64 {
+        self.signed_total_seconds() * 1000 + (self.signed_microseconds() as i64) / 1000
+    }
+
     /// Microseconds in the duration with sign based on `self.positive`
     #[inline]
     pub fn signed_microseconds(&self) -> i32 {

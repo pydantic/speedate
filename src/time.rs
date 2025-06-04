@@ -392,6 +392,20 @@ impl Time {
         total_seconds
     }
 
+    /// Get the total milliseconds of the time.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::Time;
+    ///
+    /// let d = Time::parse_str("12:13:14.123456").unwrap();
+    /// assert_eq!(d.total_ms(), (12 * 3600 + 13 * 60 + 14) * 1000 + 123);
+    /// ```
+    pub fn total_ms(&self) -> u32 {
+        self.total_seconds() * 1000 + self.microsecond / 1000
+    }
+
     /// Clone the time and set a new timezone offset.
     ///
     /// The returned time will represent a different point in time since the timezone offset is changed without

@@ -9,11 +9,13 @@ mod datetime;
 mod duration;
 mod numbers;
 mod time;
+mod config;
 
 pub use date::Date;
 pub use datetime::DateTime;
 pub use duration::Duration;
 pub use time::{MicrosecondsPrecisionOverflowBehavior, Time, TimeConfig, TimeConfigBuilder};
+pub use config::{TimestampUnit, DateConfig, DateTimeConfig};
 
 pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
 
@@ -151,6 +153,8 @@ pub enum ParseError {
 pub enum ConfigError {
     // SecondsPrecisionOverflowBehavior string representation, must be one of "error" or "truncate"
     UnknownMicrosecondsPrecisionOverflowBehaviorString,
+    // TimestampUnit string representation, must be one of "s", "ms" or "infer"
+    UnknownTimestampUnitString,
 }
 
 /// Used internally to write numbers to a buffer for `Display` of speedate types
