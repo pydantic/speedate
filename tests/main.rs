@@ -1637,7 +1637,7 @@ fn test_date_from_timestamp_negative_millisecond() {
             timestamp_unit: TimestampUnit::Millisecond,
         },
     )
-        .unwrap();
+    .unwrap();
     assert_eq!(d.to_string(), "1969-12-31");
 }
 
@@ -1653,6 +1653,6 @@ fn test_datetime_from_timestamp_negative_millisecond() {
             time_config: TimeConfig::default(),
         },
     )
-        .unwrap();
+    .unwrap();
     assert_eq!(dt.to_string(), "1969-12-31T23:59:59.999000");
 }
