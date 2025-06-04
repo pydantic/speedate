@@ -6,9 +6,9 @@ use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, Timelike, Ut
 use strum::EnumMessage;
 
 use speedate::{
-    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateTime, Duration, IntFloat,
-    MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder,
-    DateTimeConfig, DateConfig, TimestampUnit,
+    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateConfig, DateTime, DateTimeConfig,
+    Duration, IntFloat, MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder,
+    TimestampUnit,
 };
 
 /// macro for expected values
@@ -1581,7 +1581,9 @@ fn test_date_parse_timestamp_unit_second() {
     use speedate::{Date, DateConfig, TimestampUnit};
     let d = Date::parse_str_with_config(
         "1640995200",
-        &DateConfig { timestamp_unit: TimestampUnit::Second },
+        &DateConfig {
+            timestamp_unit: TimestampUnit::Second,
+        },
     )
     .unwrap();
     assert_eq!(d.to_string(), "2022-01-01");
@@ -1592,7 +1594,9 @@ fn test_date_parse_timestamp_unit_millisecond() {
     use speedate::{Date, DateConfig, TimestampUnit};
     let d = Date::parse_str_with_config(
         "1640995200000",
-        &DateConfig { timestamp_unit: TimestampUnit::Millisecond },
+        &DateConfig {
+            timestamp_unit: TimestampUnit::Millisecond,
+        },
     )
     .unwrap();
     assert_eq!(d.to_string(), "2022-01-01");

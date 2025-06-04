@@ -1,9 +1,9 @@
+use crate::config::{DateTimeConfig, TimestampUnit};
 use crate::date::MS_WATERSHED;
 use crate::{
     float_parse_bytes, numbers::decimal_digits, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder,
 };
 use crate::{time::TimeConfig, Date, ParseError, Time};
-use crate::config::{DateTimeConfig, TimestampUnit};
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
@@ -358,7 +358,9 @@ impl DateTime {
                 IntFloat::Float(float) => {
                     let timestamp_in_milliseconds = float.abs() > MS_WATERSHED as f64;
 
-                    if config.time_config.microseconds_precision_overflow_behavior == MicrosecondsPrecisionOverflowBehavior::Error {
+                    if config.time_config.microseconds_precision_overflow_behavior
+                        == MicrosecondsPrecisionOverflowBehavior::Error
+                    {
                         let decimal_digits_count = decimal_digits(bytes);
 
                         // If the number of decimal digits exceeds the maximum allowed for the timestamp precision,
@@ -503,11 +505,7 @@ impl DateTime {
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246000");
     /// ```
     pub fn from_timestamp(timestamp: i64, timestamp_microsecond: u32) -> Result<Self, ParseError> {
-        Self::from_timestamp_with_config(
-            timestamp,
-            timestamp_microsecond,
-            &DateTimeConfig::default(),
-        )
+        Self::from_timestamp_with_config(timestamp, timestamp_microsecond, &DateTimeConfig::default())
     }
 
     /// Create a datetime from the system time. This method uses [std::time::SystemTime] to get

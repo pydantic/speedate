@@ -4,18 +4,18 @@ extern crate strum;
 
 use strum::{Display, EnumMessage};
 
+mod config;
 mod date;
 mod datetime;
 mod duration;
 mod numbers;
 mod time;
-mod config;
 
+pub use config::{DateConfig, DateTimeConfig, TimestampUnit};
 pub use date::Date;
 pub use datetime::DateTime;
 pub use duration::Duration;
 pub use time::{MicrosecondsPrecisionOverflowBehavior, Time, TimeConfig, TimeConfigBuilder};
-pub use config::{TimestampUnit, DateConfig, DateTimeConfig};
 
 pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
 

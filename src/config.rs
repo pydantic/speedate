@@ -1,4 +1,4 @@
-use crate::{ConfigError, time::TimeConfig};
+use crate::{time::TimeConfig, ConfigError};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum TimestampUnit {

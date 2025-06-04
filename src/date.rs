@@ -1,9 +1,9 @@
 use std::fmt;
 use std::str::FromStr;
 
+use crate::config::{DateConfig, TimestampUnit};
 use crate::numbers::int_parse_bytes;
 use crate::{get_digit_unchecked, DateTime, ParseError};
-use crate::config::{DateConfig, TimestampUnit};
 
 /// A Date
 ///
@@ -219,11 +219,7 @@ impl Date {
     /// let d = Date::from_timestamp(1_654_560_000, true, &DateConfig::default()).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
-    pub fn from_timestamp(
-        timestamp: i64,
-        require_exact: bool,
-        config: &DateConfig,
-    ) -> Result<Self, ParseError> {
+    pub fn from_timestamp(timestamp: i64, require_exact: bool, config: &DateConfig) -> Result<Self, ParseError> {
         let (seconds, microseconds) = match config.timestamp_unit {
             TimestampUnit::Second => (timestamp, 0),
             TimestampUnit::Millisecond => {
@@ -326,7 +322,6 @@ impl Date {
         }
         Ok((seconds, microseconds as u32))
     }
-
 
     pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<(Self, u32), ParseError> {
         if timestamp_second < UNIX_0000 {
