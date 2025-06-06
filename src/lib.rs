@@ -11,11 +11,11 @@ mod duration;
 mod numbers;
 mod time;
 
-pub use config::{DateConfig, DateTimeConfig, TimestampUnit};
+pub use config::{DateConfig, DateTimeConfig, TimestampUnit,  TimeConfig, TimeConfigBuilder};
 pub use date::Date;
 pub use datetime::DateTime;
 pub use duration::Duration;
-pub use time::{MicrosecondsPrecisionOverflowBehavior, Time, TimeConfig, TimeConfigBuilder};
+pub use time::{MicrosecondsPrecisionOverflowBehavior, Time};
 
 pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
 

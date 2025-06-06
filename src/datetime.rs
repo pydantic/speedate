@@ -3,7 +3,7 @@ use crate::date::MS_WATERSHED;
 use crate::{
     float_parse_bytes, numbers::decimal_digits, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder,
 };
-use crate::{time::TimeConfig, Date, ParseError, Time};
+use crate::{TimeConfig, Date, ParseError, Time};
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;

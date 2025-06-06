@@ -3,7 +3,8 @@ use std::default::Default;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError};
+use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError, TimeConfig};
+use crate::config::TimeConfigBuilder;
 
 /// A Time
 ///
@@ -597,47 +598,6 @@ impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
             "truncate" => Ok(Self::Truncate),
             "error" => Ok(Self::Error),
             _ => Err(ConfigError::UnknownMicrosecondsPrecisionOverflowBehaviorString),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct TimeConfig {
-    pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
-    pub unix_timestamp_offset: Option<i32>,
-}
-
-impl TimeConfig {
-    pub fn builder() -> TimeConfigBuilder {
-        TimeConfigBuilder::new()
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct TimeConfigBuilder {
-    microseconds_precision_overflow_behavior: Option<MicrosecondsPrecisionOverflowBehavior>,
-    unix_timestamp_offset: Option<i32>,
-}
-
-impl TimeConfigBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    pub fn microseconds_precision_overflow_behavior(
-        mut self,
-        microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
-    ) -> Self {
-        self.microseconds_precision_overflow_behavior = Some(microseconds_precision_overflow_behavior);
-        self
-    }
-    pub fn unix_timestamp_offset(mut self, unix_timestamp_offset: Option<i32>) -> Self {
-        self.unix_timestamp_offset = unix_timestamp_offset;
-        self
-    }
-    pub fn build(self) -> TimeConfig {
-        TimeConfig {
-            microseconds_precision_overflow_behavior: self.microseconds_precision_overflow_behavior.unwrap_or_default(),
-            unix_timestamp_offset: self.unix_timestamp_offset,
         }
     }
 }
