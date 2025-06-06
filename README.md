@@ -110,10 +110,10 @@ the value's length. You can force seconds or milliseconds parsing:
 ```rust
 use speedate::{DateTime, DateTimeConfig, TimestampUnit, TimeConfig};
 
-let cfg = DateTimeConfig {
-    timestamp_unit: TimestampUnit::Millisecond,
-    time_config: TimeConfig::builder().unix_timestamp_offset(Some(0)).build(),
-};
+let cfg = DateTimeConfig::builder()
+.timestamp_unit(TimestampUnit::Millisecond)
+.time_config(TimeConfig::builder().unix_timestamp_offset(Some(0)).build())
+.build();
 
 let dt = DateTime::parse_bytes_with_config(b"1641039194000", &cfg).unwrap();
 assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
@@ -124,7 +124,9 @@ Likewise, you can configure `Date` parsing:
 ```rust
 use speedate::{Date, DateConfig, TimestampUnit};
 
-let cfg = DateConfig { timestamp_unit: TimestampUnit::Second };
+let cfg = DateConfig::builder()
+.timestamp_unit(TimestampUnit::Second)
+.build();
 let d = Date::parse_bytes_with_config(b"1640995200", &cfg).unwrap();
 assert_eq!(d.to_string(), "2022-01-01");
 ```

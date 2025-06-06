@@ -30,6 +30,33 @@ pub struct DateConfig {
     pub timestamp_unit: TimestampUnit,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct DateConfigBuilder {
+    timestamp_unit: Option<TimestampUnit>,
+}
+
+impl DateConfigBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn timestamp_unit(mut self, timestamp_unit: TimestampUnit) -> Self {
+        self.timestamp_unit = Some(timestamp_unit);
+        self
+    }
+    pub fn build(self) -> DateConfig {
+        DateConfig {
+            timestamp_unit: self.timestamp_unit.unwrap_or_default(),
+        }
+    }
+}
+
+impl DateConfig {
+    pub fn builder() -> DateConfigBuilder {
+        DateConfigBuilder::new()
+    }
+}
+
 /// Configuration for parsing `DateTime`.
 #[derive(Debug, Clone, Default)]
 pub struct DateTimeConfig {
