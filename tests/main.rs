@@ -5,10 +5,7 @@ use std::str::FromStr;
 use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
-use speedate::{
-    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateConfigBuilder, DateTime, DateTimeConfigBuilder, Duration, IntFloat, MicrosecondsPrecisionOverflowBehavior, ParseError, Time,
-    TimeConfig, TimeConfigBuilder, TimestampUnit,
-};
+use speedate::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateConfig, DateConfigBuilder, DateTime, DateTimeConfig, DateTimeConfigBuilder, Duration, IntFloat, MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder, TimestampUnit};
 
 /// macro for expected values
 macro_rules! expect_ok_or_error {
@@ -1546,6 +1543,31 @@ fn test_time_config_builder() {
         }
     );
     assert_eq!(TimeConfigBuilder::new().build(), TimeConfig::builder().build());
+}
+
+#[test]
+fn test_date_config_builder() {
+    assert_eq!(
+        DateConfigBuilder::new().build(),
+        DateConfig {
+            timestamp_unit: TimestampUnit::Infer
+        }
+    );
+    assert_eq!(DateConfigBuilder::new().build(), DateConfig::builder().build());
+}
+
+#[test]
+fn test_datetimetime_config_builder() {
+    assert_eq!(
+        DateTimeConfigBuilder::new().build(),
+        DateTimeConfig {
+            timestamp_unit: TimestampUnit::Infer,
+            time_config: TimeConfig{
+            microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Error,
+            unix_timestamp_offset: None,
+        }}
+    );
+    assert_eq!(DateTimeConfigBuilder::new().build(), DateTimeConfig::builder().build());
 }
 
 #[test]

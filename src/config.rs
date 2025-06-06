@@ -24,7 +24,7 @@ impl FromStr for TimestampUnit {
     }
 }
 /// Configuration for parsing `Date`.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct DateConfig {
     /// How to interpret numeric timestamps (seconds, milliseconds, etc.).
     pub timestamp_unit: TimestampUnit,
@@ -58,7 +58,7 @@ impl DateConfig {
 }
 
 /// Configuration for parsing `DateTime`.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct DateTimeConfig {
     /// How to interpret numeric timestamps (seconds, milliseconds, etc.).
     pub timestamp_unit: TimestampUnit,
