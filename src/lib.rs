@@ -12,7 +12,9 @@ mod numbers;
 mod time;
 mod util;
 
-pub use config::{DateConfig, DateTimeConfig, TimeConfig, TimeConfigBuilder, TimestampUnit};
+pub use config::{
+    DateConfig, DateConfigBuilder, DateTimeConfig, DateTimeConfigBuilder, TimeConfig, TimeConfigBuilder, TimestampUnit,
+};
 pub use date::Date;
 pub use datetime::DateTime;
 pub use duration::Duration;
