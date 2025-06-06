@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use crate::config::{DateConfig, TimestampUnit};
 use crate::numbers::int_parse_bytes;
+use crate::util::timestamp_to_seconds_micros;
 use crate::{get_digit_unchecked, DateTime, ParseError};
 
 /// A Date
@@ -220,19 +221,7 @@ impl Date {
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
     pub fn from_timestamp(timestamp: i64, require_exact: bool, config: &DateConfig) -> Result<Self, ParseError> {
-        let (seconds, microseconds) = match config.timestamp_unit {
-            TimestampUnit::Second => (timestamp, 0),
-            TimestampUnit::Millisecond => {
-                let mut seconds = timestamp / 1_000;
-                let mut microseconds = ((timestamp % 1_000) * 1000) as i32;
-                if microseconds < 0 {
-                    seconds -= 1;
-                    microseconds += 1_000_000;
-                }
-                (seconds, microseconds as u32)
-            }
-            TimestampUnit::Infer => Self::timestamp_watershed(timestamp)?,
-        };
+        let (seconds, microseconds) = timestamp_to_seconds_micros(timestamp, config.timestamp_unit)?;
         let (d, remaining_seconds) = Self::from_timestamp_calc(seconds)?;
         if require_exact && (remaining_seconds != 0 || microseconds != 0) {
             return Err(ParseError::DateNotExact);
@@ -307,20 +296,6 @@ impl Date {
             11 => day + 304 + leap_extra,
             _ => day + 334 + leap_extra,
         }
-    }
-
-    pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
-        let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
-        if ts_abs <= MS_WATERSHED {
-            return Ok((timestamp, 0));
-        }
-        let mut seconds = timestamp / 1_000;
-        let mut microseconds = ((timestamp % 1_000) * 1000) as i32;
-        if microseconds < 0 {
-            seconds -= 1;
-            microseconds += 1_000_000;
-        }
-        Ok((seconds, microseconds as u32))
     }
 
     pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<(Self, u32), ParseError> {

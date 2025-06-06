@@ -1,5 +1,6 @@
 use crate::config::{DateTimeConfig, TimestampUnit};
 use crate::date::MS_WATERSHED;
+use crate::util::timestamp_to_seconds_micros;
 use crate::{
     float_parse_bytes, numbers::decimal_digits, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder,
 };
@@ -382,7 +383,7 @@ impl DateTime {
                     // if seconds is negative, we round down (left on the number line), so -6.25 -> -7
                     // which allows for a positive number of microseconds to compensate back up to -6.25
                     // which is the equivalent of doing (seconds - 1) and (microseconds + 1_000_000)
-                    // like we do in Date::timestamp_watershed
+                    // like we do in timestamp_watershed
                     let seconds = timestamp_normalized.floor() as i64;
                     let microseconds = ((timestamp_normalized - seconds as f64) * 1_000_000f64).round() as u32;
 
@@ -441,19 +442,7 @@ impl DateTime {
         timestamp_microsecond: u32,
         config: &DateTimeConfig,
     ) -> Result<Self, ParseError> {
-        let (mut second, extra_microsecond) = match config.timestamp_unit {
-            TimestampUnit::Second => (timestamp, 0),
-            TimestampUnit::Millisecond => {
-                let mut seconds = timestamp / 1_000;
-                let mut microseconds = ((timestamp % 1_000) * 1000) as i32;
-                if microseconds < 0 {
-                    seconds -= 1;
-                    microseconds += 1_000_000;
-                }
-                (seconds, microseconds as u32)
-            }
-            TimestampUnit::Infer => Date::timestamp_watershed(timestamp)?,
-        };
+        let (mut second, extra_microsecond) = timestamp_to_seconds_micros(timestamp, config.timestamp_unit)?;
         let mut total_microsecond = timestamp_microsecond
             .checked_add(extra_microsecond)
             .ok_or(ParseError::TimeTooLarge)?;
