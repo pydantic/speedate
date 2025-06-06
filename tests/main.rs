@@ -1605,6 +1605,20 @@ fn test_timestamp_unit_from_str() {
 }
 
 #[test]
+fn test_microseconds_precision_overflow_behavior_from_str() {
+    use speedate::MicrosecondsPrecisionOverflowBehavior;
+    assert_eq!(
+        MicrosecondsPrecisionOverflowBehavior::from_str("truncate").unwrap(),
+        MicrosecondsPrecisionOverflowBehavior::Truncate
+    );
+    assert_eq!(
+        MicrosecondsPrecisionOverflowBehavior::from_str("error").unwrap(),
+        MicrosecondsPrecisionOverflowBehavior::Error
+    );
+    assert!(MicrosecondsPrecisionOverflowBehavior::from_str("invalid").is_err());
+}
+
+#[test]
 fn test_date_parse_timestamp_unit_second() {
     use speedate::{Date, TimestampUnit};
     let d = Date::parse_str_with_config(
