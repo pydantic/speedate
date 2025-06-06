@@ -1569,7 +1569,7 @@ fn number_dash_err() {
     assert!(matches!(float_parse_bytes(b"+"), IntFloat::Err));
 }
 #[test]
-fn test_timestamp_unit_try_from() {
+fn test_timestamp_unit_from_str() {
     use speedate::TimestampUnit;
     assert_eq!(TimestampUnit::from_str("s").unwrap(), TimestampUnit::Second);
     assert_eq!(TimestampUnit::from_str("ms").unwrap(), TimestampUnit::Millisecond);
