@@ -5,7 +5,11 @@ use std::str::FromStr;
 use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
-use speedate::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateConfig, DateConfigBuilder, DateTime, DateTimeConfig, DateTimeConfigBuilder, Duration, IntFloat, MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder, TimestampUnit};
+use speedate::{
+    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateConfig, DateConfigBuilder, DateTime,
+    DateTimeConfig, DateTimeConfigBuilder, Duration, IntFloat, MicrosecondsPrecisionOverflowBehavior, ParseError, Time,
+    TimeConfig, TimeConfigBuilder, TimestampUnit,
+};
 
 /// macro for expected values
 macro_rules! expect_ok_or_error {
@@ -1562,10 +1566,11 @@ fn test_datetimetime_config_builder() {
         DateTimeConfigBuilder::new().build(),
         DateTimeConfig {
             timestamp_unit: TimestampUnit::Infer,
-            time_config: TimeConfig{
-            microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Error,
-            unix_timestamp_offset: None,
-        }}
+            time_config: TimeConfig {
+                microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Error,
+                unix_timestamp_offset: None,
+            }
+        }
     );
     assert_eq!(DateTimeConfigBuilder::new().build(), DateTimeConfig::builder().build());
 }
@@ -1612,7 +1617,7 @@ fn test_date_parse_timestamp_unit_second() {
 
 #[test]
 fn test_date_parse_timestamp_unit_millisecond() {
-    use speedate::{Date, DateConfig, TimestampUnit};
+    use speedate::{Date, TimestampUnit};
     let d = Date::parse_str_with_config(
         "1640995200000",
         &DateConfigBuilder::new()
