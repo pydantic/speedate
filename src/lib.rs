@@ -11,7 +11,7 @@ mod duration;
 mod numbers;
 mod time;
 
-pub use config::{DateConfig, DateTimeConfig, TimestampUnit,  TimeConfig, TimeConfigBuilder};
+pub use config::{DateConfig, DateTimeConfig, TimeConfig, TimeConfigBuilder, TimestampUnit};
 pub use date::Date;
 pub use datetime::DateTime;
 pub use duration::Duration;

@@ -3,8 +3,8 @@ use std::default::Default;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError, TimeConfig};
 use crate::config::TimeConfigBuilder;
+use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError, TimeConfig};
 
 /// A Time
 ///
