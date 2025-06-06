@@ -591,9 +591,9 @@ pub enum MicrosecondsPrecisionOverflowBehavior {
     Error,
 }
 
-impl TryFrom<&str> for MicrosecondsPrecisionOverflowBehavior {
-    type Error = ConfigError;
-    fn try_from(value: &str) -> Result<Self, ConfigError> {
+impl FromStr for MicrosecondsPrecisionOverflowBehavior {
+    type Err = ConfigError;
+    fn from_str(value: &str) -> Result<Self, ConfigError> {
         match value.to_lowercase().as_str() {
             "truncate" => Ok(Self::Truncate),
             "error" => Ok(Self::Error),

@@ -1570,10 +1570,10 @@ fn number_dash_err() {
 #[test]
 fn test_timestamp_unit_try_from() {
     use speedate::TimestampUnit;
-    assert_eq!(TimestampUnit::try_from("s").unwrap(), TimestampUnit::Second);
-    assert_eq!(TimestampUnit::try_from("ms").unwrap(), TimestampUnit::Millisecond);
-    assert_eq!(TimestampUnit::try_from("infer").unwrap(), TimestampUnit::Infer);
-    assert!(TimestampUnit::try_from("invalid").is_err());
+    assert_eq!(TimestampUnit::from_str("s").unwrap(), TimestampUnit::Second);
+    assert_eq!(TimestampUnit::from_str("ms").unwrap(), TimestampUnit::Millisecond);
+    assert_eq!(TimestampUnit::from_str("infer").unwrap(), TimestampUnit::Infer);
+    assert!(TimestampUnit::from_str("invalid").is_err());
 }
 
 #[test]
