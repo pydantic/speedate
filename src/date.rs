@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::config::{DateConfig, TimestampUnit};
+use crate::config::{DateConfig};
 use crate::numbers::int_parse_bytes;
 use crate::util::timestamp_to_seconds_micros;
 use crate::{get_digit_unchecked, DateTime, ParseError};

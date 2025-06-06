@@ -23,24 +23,15 @@ impl FromStr for TimestampUnit {
         }
     }
 }
-
 /// Configuration for parsing `Date`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DateConfig {
     /// How to interpret numeric timestamps (seconds, milliseconds, etc.).
     pub timestamp_unit: TimestampUnit,
 }
 
-impl Default for DateConfig {
-    fn default() -> Self {
-        DateConfig {
-            timestamp_unit: TimestampUnit::Infer,
-        }
-    }
-}
-
 /// Configuration for parsing `DateTime`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DateTimeConfig {
     /// How to interpret numeric timestamps (seconds, milliseconds, etc.).
     pub timestamp_unit: TimestampUnit,
@@ -48,12 +39,39 @@ pub struct DateTimeConfig {
     pub time_config: TimeConfig,
 }
 
-impl Default for DateTimeConfig {
-    fn default() -> Self {
+/// Builder for [`DateTimeConfig`].
+#[derive(Debug, Clone, Default)]
+pub struct DateTimeConfigBuilder {
+    timestamp_unit: Option<TimestampUnit>,
+    time_config: Option<TimeConfig>,
+}
+
+impl DateTimeConfigBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn timestamp_unit(mut self, timestamp_unit: TimestampUnit) -> Self {
+        self.timestamp_unit = Some(timestamp_unit);
+        self
+    }
+
+    pub fn time_config(mut self, time_config: TimeConfig) -> Self {
+        self.time_config = Some(time_config);
+        self
+    }
+
+    pub fn build(self) -> DateTimeConfig {
         DateTimeConfig {
-            timestamp_unit: TimestampUnit::Infer,
-            time_config: TimeConfig::default(),
+            timestamp_unit: self.timestamp_unit.unwrap_or_default(),
+            time_config: self.time_config.unwrap_or_default(),
         }
+    }
+}
+
+impl DateTimeConfig {
+    pub fn builder() -> DateTimeConfigBuilder {
+        DateTimeConfigBuilder::new()
     }
 }
 

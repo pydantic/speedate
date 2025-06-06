@@ -1,5 +1,5 @@
 use crate::date::MS_WATERSHED;
-use crate::{Date, ParseError, TimestampUnit};
+use crate::{ParseError, TimestampUnit};
 
 pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
     let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
