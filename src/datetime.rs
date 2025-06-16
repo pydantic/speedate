@@ -433,7 +433,7 @@ impl DateTime {
     /// let d = DateTime::from_timestamp_with_config(
     ///     1_654_619_320_123,
     ///     123_000,
-    ///     &DateTimeConfig { timestamp_unit: TimestampUnit::Infer, time_config: TimeConfig::default() },
+    ///     &DateTimeConfig::default(),
     /// ).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.246000");
     /// ```
