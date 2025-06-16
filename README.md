@@ -111,9 +111,9 @@ the value's length. You can force seconds or milliseconds parsing:
 use speedate::{DateTime, DateTimeConfig, TimestampUnit, TimeConfig};
 
 let cfg = DateTimeConfig::builder()
-.timestamp_unit(TimestampUnit::Millisecond)
-.time_config(TimeConfig::builder().unix_timestamp_offset(Some(0)).build())
-.build();
+    .timestamp_unit(TimestampUnit::Millisecond)
+    .time_config(TimeConfig::builder().unix_timestamp_offset(Some(0)).build())
+    .build();
 
 let dt = DateTime::parse_bytes_with_config(b"1641039194000", &cfg).unwrap();
 assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
