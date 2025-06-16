@@ -125,8 +125,8 @@ Likewise, you can configure `Date` parsing:
 use speedate::{Date, DateConfig, TimestampUnit};
 
 let cfg = DateConfig::builder()
-.timestamp_unit(TimestampUnit::Second)
-.build();
+    .timestamp_unit(TimestampUnit::Second)
+    .build();
 let d = Date::parse_bytes_with_config(b"1640995200", &cfg).unwrap();
 assert_eq!(d.to_string(), "2022-01-01");
 ```
