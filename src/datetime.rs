@@ -340,7 +340,7 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{DateTime, Date, Time, DateTimeConfig, TimeConfig, TimestampUnit};
+    /// use speedate::{DateTime, Date, Time, DateTimeConfig};
     ///
     /// let dt = DateTime::parse_bytes_with_config(
     ///     b"2022-01-01T12:13:14Z",
