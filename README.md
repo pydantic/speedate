@@ -32,6 +32,9 @@ The following formats are supported:
   positive and negative durations respectively
 
 In addition, unix timestamps (both seconds and milliseconds) can be used to create dates and datetimes.
+The interpretation of numeric timestamps can be controlled via the `TimestampUnit` configuration.
+By default the unit is inferred from the length of the number, but you can set it explicitly using a
+`DateConfig` or `DateTimeConfig`.
 
 See [the documentation](https://docs.rs/speedate/latest/speedate/index.html#structs) for each struct for more details.
 
@@ -66,12 +69,19 @@ assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
 To control the specifics of time parsing you can use provide a `TimeConfig`:
 
 ```rust
-use speedate::{DateTime, Date, Time, TimeConfig, MicrosecondsPrecisionOverflowBehavior};
+use speedate::{
+    DateTime, Date, Time, DateTimeConfig, TimeConfig,
+    MicrosecondsPrecisionOverflowBehavior, TimestampUnit,
+};
 let dt = DateTime::parse_bytes_with_config(
     "1689102037.5586429".as_bytes(),
-    &TimeConfig::builder()
-        .unix_timestamp_offset(Some(0))
-        .microseconds_precision_overflow_behavior(MicrosecondsPrecisionOverflowBehavior::Truncate)
+    &DateTimeConfig::builder()
+        .time_config(
+            TimeConfig::builder()
+                .unix_timestamp_offset(Some(0))
+                .microseconds_precision_overflow_behavior(MicrosecondsPrecisionOverflowBehavior::Truncate)
+                .build(),
+        )
         .build(),
 ).unwrap();
 assert_eq!(
@@ -92,6 +102,34 @@ assert_eq!(
     }
 );
 assert_eq!(dt.to_string(), "2023-07-11T19:00:37.558643Z");
+```
+
+The `timestamp_unit` field on `DateConfig` and `DateTimeConfig` controls how
+numeric timestamps are interpreted. By default, the unit is inferred based on
+the value's length. You can force seconds or milliseconds parsing:
+
+```rust
+use speedate::{DateTime, DateTimeConfig, TimestampUnit, TimeConfig};
+
+let cfg = DateTimeConfig::builder()
+    .timestamp_unit(TimestampUnit::Millisecond)
+    .time_config(TimeConfig::builder().unix_timestamp_offset(Some(0)).build())
+    .build();
+
+let dt = DateTime::parse_bytes_with_config(b"1641039194000", &cfg).unwrap();
+assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
+```
+
+Likewise, you can configure `Date` parsing:
+
+```rust
+use speedate::{Date, DateConfig, TimestampUnit};
+
+let cfg = DateConfig::builder()
+    .timestamp_unit(TimestampUnit::Second)
+    .build();
+let d = Date::parse_bytes_with_config(b"1640995200", &cfg).unwrap();
+assert_eq!(d.to_string(), "2022-01-01");
 ```
 
 ## Performance

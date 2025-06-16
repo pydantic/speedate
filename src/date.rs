@@ -1,7 +1,9 @@
 use std::fmt;
 use std::str::FromStr;
 
+use crate::config::DateConfig;
 use crate::numbers::int_parse_bytes;
+use crate::util::timestamp_to_seconds_micros;
 use crate::{get_digit_unchecked, DateTime, ParseError};
 
 /// A Date
@@ -114,6 +116,12 @@ impl Date {
         Self::parse_bytes(str.as_bytes())
     }
 
+    /// As with [`Date::parse_str`] but with a [`DateConfig`].
+    #[inline]
+    pub fn parse_str_with_config(str: &str, config: &DateConfig) -> Result<Self, ParseError> {
+        Self::parse_bytes_with_config(str.as_bytes(), config)
+    }
+
     /// Parse a date from bytes using RFC 3339 format
     ///
     /// # Arguments
@@ -169,10 +177,16 @@ impl Date {
     /// ```
     #[inline]
     pub fn parse_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+        Self::parse_bytes_with_config(bytes, &DateConfig::default())
+    }
+
+    /// Same as [`Date::parse_bytes`] but with a [`DateConfig`].
+    #[inline]
+    pub fn parse_bytes_with_config(bytes: &[u8], config: &DateConfig) -> Result<Self, ParseError> {
         match Self::parse_bytes_rfc3339(bytes) {
             Ok(d) => Ok(d),
             Err(e) => match int_parse_bytes(bytes) {
-                Some(int) => Self::from_timestamp(int, true),
+                Some(int) => Self::from_timestamp(int, true, config),
                 None => Err(e),
             },
         }
@@ -201,13 +215,13 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// use speedate::Date;
+    /// use speedate::{Date, DateConfig};
     ///
-    /// let d = Date::from_timestamp(1_654_560_000, true).unwrap();
+    /// let d = Date::from_timestamp(1_654_560_000, true, &DateConfig::default()).unwrap();
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
-    pub fn from_timestamp(timestamp: i64, require_exact: bool) -> Result<Self, ParseError> {
-        let (seconds, microseconds) = Self::timestamp_watershed(timestamp)?;
+    pub fn from_timestamp(timestamp: i64, require_exact: bool, config: &DateConfig) -> Result<Self, ParseError> {
+        let (seconds, microseconds) = timestamp_to_seconds_micros(timestamp, config.timestamp_unit)?;
         let (d, remaining_seconds) = Self::from_timestamp_calc(seconds)?;
         if require_exact && (remaining_seconds != 0 || microseconds != 0) {
             return Err(ParseError::DateNotExact);
@@ -229,6 +243,20 @@ impl Date {
         let days =
             (self.year as i64) * 365 + (self.ordinal_day() - 1) as i64 + intervening_leap_years(self.year as i64);
         days * 86400 + UNIX_0000
+    }
+
+    /// Unix timestamp in milliseconds (number of milliseconds between self and 1970-01-01)
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use speedate::Date;
+    ///
+    /// let d = Date::parse_str("2022-06-07").unwrap();
+    /// assert_eq!(d.timestamp_ms(), 1_654_560_000_000);
+    /// ```
+    pub fn timestamp_ms(&self) -> i64 {
+        self.timestamp() * 1000
     }
 
     /// Current date. Internally, this uses [DateTime::now].
@@ -268,20 +296,6 @@ impl Date {
             11 => day + 304 + leap_extra,
             _ => day + 334 + leap_extra,
         }
-    }
-
-    pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
-        let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
-        if ts_abs <= MS_WATERSHED {
-            return Ok((timestamp, 0));
-        }
-        let mut seconds = timestamp / 1_000;
-        let mut microseconds = ((timestamp % 1_000) * 1000) as i32;
-        if microseconds < 0 {
-            seconds -= 1;
-            microseconds += 1_000_000;
-        }
-        Ok((seconds, microseconds as u32))
     }
 
     pub(crate) fn from_timestamp_calc(timestamp_second: i64) -> Result<(Self, u32), ParseError> {
