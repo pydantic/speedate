@@ -75,13 +75,14 @@ use speedate::{
 };
 let dt = DateTime::parse_bytes_with_config(
     "1689102037.5586429".as_bytes(),
-    &DateTimeConfig {
-        timestamp_unit: TimestampUnit::Infer,
-        time_config: TimeConfig::builder()
-            .unix_timestamp_offset(Some(0))
-            .microseconds_precision_overflow_behavior(MicrosecondsPrecisionOverflowBehavior::Truncate)
-            .build(),
-    },
+    &DateTimeConfig::builder()
+        .time_config(
+            TimeConfig::builder()
+                .unix_timestamp_offset(Some(0))
+                .microseconds_precision_overflow_behavior(MicrosecondsPrecisionOverflowBehavior::Truncate)
+                .build(),
+        )
+        .build(),
 ).unwrap();
 assert_eq!(
     dt,
