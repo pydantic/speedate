@@ -344,10 +344,7 @@ impl DateTime {
     ///
     /// let dt = DateTime::parse_bytes_with_config(
     ///     b"2022-01-01T12:13:14Z",
-    ///     &DateTimeConfig {
-    ///         timestamp_unit: TimestampUnit::Infer,
-    ///         time_config: TimeConfig::default(),
-    ///     },
+    ///     &DateTimeConfig::default(),
     /// ).unwrap();
     /// assert_eq!(dt.to_string(), "2022-01-01T12:13:14Z");
     /// ```
