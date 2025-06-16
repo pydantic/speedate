@@ -421,7 +421,7 @@ impl DateTime {
     /// # Examples
     ///
     /// ```
-    /// use speedate::{DateTime, DateTimeConfig, TimeConfig, TimestampUnit};
+    /// use speedate::{DateTime, DateTimeConfig};
     ///
     /// let d = DateTime::from_timestamp_with_config(
     ///     1_654_619_320,
