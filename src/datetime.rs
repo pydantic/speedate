@@ -3,13 +3,13 @@ use crate::date::MS_WATERSHED;
 use crate::util::timestamp_to_seconds_micros;
 use crate::{
     float_parse_bytes, numbers::decimal_digits, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder,
+    TimestampUnit,
 };
 use crate::{Date, ParseError, Time, TimeConfig};
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 use std::time::SystemTime;
-
 /// A DateTime
 ///
 /// Combines a [Date], [Time].
@@ -454,6 +454,25 @@ impl DateTime {
             date,
             time: Time::from_timestamp_with_config(time_second, total_microsecond, &config.time_config)?,
         })
+    }
+
+    pub fn from_float_with_config(timestamp: f64, mode: &DateTimeConfig) -> Result<Self, ParseError> {
+        let microseconds = match mode.timestamp_unit {
+            TimestampUnit::Second => timestamp.fract().abs() * 1_000_000.0,
+            TimestampUnit::Millisecond => timestamp.fract().abs() * 1_000.0,
+            TimestampUnit::Infer => {
+                if timestamp.abs() <= MS_WATERSHED as f64 {
+                    // treat as seconds
+                    timestamp.fract().abs() * 1_000_000.0
+                } else {
+                    // treat as milliseconds
+                    timestamp.fract().abs() * 1_000.0
+                }
+            }
+        };
+        // checking for extra digits in microseconds is unreliable with large floats,
+        // so we just round to the nearest microsecond
+        Self::from_timestamp_with_config(timestamp.floor() as i64, microseconds.round() as u32, mode)
     }
 
     /// Create a datetime from a Unix Timestamp in seconds or milliseconds
