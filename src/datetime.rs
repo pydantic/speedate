@@ -456,6 +456,31 @@ impl DateTime {
         })
     }
 
+    /// Same as `from_timestamp_with_config` where the timestamp and milliseconds
+    /// are encoded as a single float.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - timestamp in either seconds or milliseconds
+    /// * `config` - the `DateTimeConfig` to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use speedate::{DateTime, DateTimeConfig};
+    ///
+    /// let d = DateTime::from_float_with_config(
+    ///     1_654_619_320.000123,
+    ///     &DateTimeConfig::default(),
+    /// ).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.000123");
+    ///
+    /// let d = DateTime::from_float_with_config(
+    ///     1_654_619_320_123.123,
+    ///     &DateTimeConfig::default(),
+    /// ).unwrap();
+    /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.123123");
+    /// ```
     pub fn from_float_with_config(timestamp: f64, mode: &DateTimeConfig) -> Result<Self, ParseError> {
         let microseconds = match mode.timestamp_unit {
             TimestampUnit::Second => timestamp.fract().abs() * 1_000_000.0,
