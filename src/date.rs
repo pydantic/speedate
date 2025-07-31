@@ -25,7 +25,7 @@ use crate::{get_digit_unchecked, DateTime, ParseError};
 /// let d2 = Date::parse_str("2022-01-02").unwrap();
 /// assert!(d2 > d1);
 /// ```
-#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Copy)]
 pub struct Date {
     /// Year: four digits
     pub year: u16,
