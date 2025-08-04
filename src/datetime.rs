@@ -26,7 +26,7 @@ use std::time::SystemTime;
 /// `DateTime` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
 /// See [DateTime::partial_cmp] for how this works.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct DateTime {
     /// date part of the datetime
     pub date: Date,
@@ -589,7 +589,7 @@ impl DateTime {
     /// ```
     pub fn with_timezone_offset(&self, tz_offset: Option<i32>) -> Result<Self, ParseError> {
         Ok(Self {
-            date: self.date.clone(),
+            date: self.date,
             time: self.time.with_timezone_offset(tz_offset)?,
         })
     }

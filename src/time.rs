@@ -23,7 +23,7 @@ use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError, TimeConfig}
 /// `Time` supports equality (`==`) and inequality (`>`, `<`, `>=`, `<=`) comparisons.
 ///
 /// See [Time::partial_cmp] for how this works.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Time {
     /// Hour: 0 to 23
     pub hour: u8,
@@ -435,7 +435,7 @@ impl Time {
                 return Err(ParseError::OutOfRangeTz);
             }
         }
-        let mut time = self.clone();
+        let mut time = *self;
         time.tz_offset = tz_offset;
         Ok(time)
     }
