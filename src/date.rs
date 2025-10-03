@@ -366,7 +366,7 @@ impl Date {
             1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
             4 | 6 | 9 | 11 => 30,
             2 => {
-                if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
+                if is_leap_year(year) {
                     29
                 } else {
                     28
@@ -384,10 +384,10 @@ impl Date {
 }
 
 fn is_leap_year(year: u16) -> bool {
-    if year % 100 == 0 {
-        year % 400 == 0
+    if year.is_multiple_of(100) {
+        year.is_multiple_of(400)
     } else {
-        year % 4 == 0
+        year.is_multiple_of(4)
     }
 }
 
