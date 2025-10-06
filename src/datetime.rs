@@ -439,7 +439,8 @@ impl DateTime {
         timestamp_microsecond: u32,
         config: &DateTimeConfig,
     ) -> Result<Self, ParseError> {
-        let (mut second, extra_microsecond) = timestamp_to_seconds_micros(timestamp, config.timestamp_unit)?;
+        let (mut second, extra_microsecond) =
+            timestamp_to_seconds_micros(timestamp, config.timestamp_unit, MS_WATERSHED)?;
         let mut total_microsecond = timestamp_microsecond
             .checked_add(extra_microsecond)
             .ok_or(ParseError::TimeTooLarge)?;
