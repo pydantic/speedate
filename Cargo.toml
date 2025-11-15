@@ -12,6 +12,7 @@ homepage = "https://github.com/pydantic/speedate/"
 repository = "https://github.com/pydantic/speedate/"
 
 [dependencies]
+arrayvec = { version = "0.7.6", default-features = false }
 lexical-parse-float = { version = "1.0.5", default-features = false }
 strum = { version = "0.27", default-features = false, features = ["derive"] }
 strum_macros = "0.27"

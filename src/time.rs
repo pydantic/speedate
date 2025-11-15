@@ -594,10 +594,12 @@ pub enum MicrosecondsPrecisionOverflowBehavior {
 impl FromStr for MicrosecondsPrecisionOverflowBehavior {
     type Err = ConfigError;
     fn from_str(value: &str) -> Result<Self, ConfigError> {
-        match value.to_lowercase().as_str() {
-            "truncate" => Ok(Self::Truncate),
-            "error" => Ok(Self::Error),
-            _ => Err(ConfigError::UnknownMicrosecondsPrecisionOverflowBehaviorString),
+        if value.eq_ignore_ascii_case("truncate") {
+            Ok(Self::Truncate)
+        } else if value.eq_ignore_ascii_case("error") {
+            Ok(Self::Error)
+        } else {
+            Err(ConfigError::UnknownMicrosecondsPrecisionOverflowBehaviorString)
         }
     }
 }

@@ -1,6 +1,6 @@
-use alloc::format;
 use core::cmp::Ordering;
 use core::fmt;
+use core::fmt::Write;
 use core::str::FromStr;
 
 #[cfg(not(feature = "std"))]
@@ -86,7 +86,8 @@ impl fmt::Display for Duration {
             if sec != 0 || self.microsecond != 0 {
                 write!(f, "{sec}")?;
                 if self.microsecond != 0 {
-                    let s = format!("{:06}", self.microsecond);
+                    let mut s = arrayvec::ArrayString::<6>::new();
+                    write!(s, "{:06}", self.microsecond)?;
                     write!(f, ".{}", s.trim_end_matches('0'))?;
                 }
                 write!(f, "S")?;

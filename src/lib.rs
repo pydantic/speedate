@@ -1,7 +1,6 @@
 #![doc = include_str ! ("../README.md")]
 #![cfg_attr(not(feature = "std"), feature(core_float_math))]
 #![cfg_attr(not(feature = "std"), no_std)]
-extern crate alloc;
 extern crate core;
 extern crate strum;
 
