@@ -201,7 +201,7 @@ impl DateTime {
         Self::parse_bytes_rfc3339(str.as_bytes())
     }
 
-    /// As with [DateTime::parse_str] but also supports unix timestamps.
+    /// As with [DateTime::parse_str_rfc3339] but also supports unix timestamps.
     ///
     /// # Arguments
     ///
