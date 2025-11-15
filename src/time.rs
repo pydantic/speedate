@@ -1,7 +1,7 @@
-use std::cmp::Ordering;
-use std::default::Default;
-use std::fmt;
-use std::str::FromStr;
+use core::cmp::Ordering;
+use core::default::Default;
+use core::fmt;
+use core::str::FromStr;
 
 use crate::config::TimeConfigBuilder;
 use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError, TimeConfig};
@@ -47,13 +47,13 @@ impl fmt::Display for Time {
             crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
             crate::display_num_buf(2, 6, self.second as u32, &mut buf);
             crate::display_num_buf(6, 9, self.microsecond, &mut buf);
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap())?
+            f.write_str(core::str::from_utf8(&buf[..]).unwrap())?
         } else {
             let mut buf: [u8; 8] = *b"00:00:00";
             crate::display_num_buf(2, 0, self.hour as u32, &mut buf);
             crate::display_num_buf(2, 3, self.minute as u32, &mut buf);
             crate::display_num_buf(2, 6, self.second as u32, &mut buf);
-            f.write_str(std::str::from_utf8(&buf[..]).unwrap())?
+            f.write_str(core::str::from_utf8(&buf[..]).unwrap())?
         }
         if let Some(tz_offset) = self.tz_offset {
             if tz_offset == 0 {
@@ -69,7 +69,7 @@ impl fmt::Display for Time {
                 }
                 crate::display_num_buf(2, 1, hours.unsigned_abs(), &mut buf);
                 crate::display_num_buf(2, 4, minutes.unsigned_abs(), &mut buf);
-                f.write_str(std::str::from_utf8(&buf[..]).unwrap())?;
+                f.write_str(core::str::from_utf8(&buf[..]).unwrap())?;
             }
         }
         Ok(())

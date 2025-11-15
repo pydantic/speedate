@@ -6,10 +6,16 @@ use crate::{
     TimestampUnit,
 };
 use crate::{Date, ParseError, Time, TimeConfig};
-use std::cmp::Ordering;
-use std::fmt;
-use std::str::FromStr;
+use core::cmp::Ordering;
+use core::fmt;
+use core::str::FromStr;
+#[cfg(feature = "std")]
 use std::time::SystemTime;
+
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use crate::CoreFloatMath;
+
 /// A DateTime
 ///
 /// Combines a [Date], [Time].
@@ -553,6 +559,7 @@ impl DateTime {
     /// let now = DateTime::now(0).unwrap();
     /// println!("Current date and time: {}", now);
     /// ```
+    #[cfg(feature = "std")]
     pub fn now(tz_offset: i32) -> Result<Self, ParseError> {
         let t = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)

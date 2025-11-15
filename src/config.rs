@@ -1,5 +1,5 @@
 use crate::{ConfigError, MicrosecondsPrecisionOverflowBehavior};
-use std::str::FromStr;
+use core::str::FromStr;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum TimestampUnit {

@@ -1,7 +1,11 @@
-use std::cmp::Ordering;
-use std::fmt;
-use std::str::FromStr;
+use alloc::format;
+use core::cmp::Ordering;
+use core::fmt;
+use core::str::FromStr;
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use crate::CoreFloatMath;
 use crate::{ParseError, TimeConfig, TimeConfigBuilder};
 
 /// A Duration
