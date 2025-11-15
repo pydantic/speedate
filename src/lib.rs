@@ -1,4 +1,6 @@
 #![doc = include_str ! ("../README.md")]
+#![cfg_attr(not(feature = "std"), feature(core_float_math))]
+#![cfg_attr(not(feature = "std"), no_std)]
 extern crate core;
 extern crate strum;
 
@@ -170,5 +172,31 @@ fn display_num_buf(num: usize, start: usize, value: u32, buf: &mut [u8]) {
         } else {
             buf[i + start] = b'0' + (value / (10i32.pow((num - 1 - i) as u32)) as u32 % 10) as u8;
         }
+    }
+}
+
+// https://github.com/rust-lang/rust/issues/137578
+#[cfg(not(feature = "std"))]
+#[allow(dead_code)]
+trait CoreFloatMath {
+    fn floor(self: Self) -> Self;
+    fn fract(self: Self) -> Self;
+    fn round(self: Self) -> Self;
+    fn trunc(self: Self) -> Self;
+}
+
+#[cfg(not(feature = "std"))]
+impl CoreFloatMath for f64 {
+    fn floor(self: f64) -> f64 {
+        core::f64::math::floor(self)
+    }
+    fn fract(self: f64) -> f64 {
+        core::f64::math::fract(self)
+    }
+    fn round(self: f64) -> f64 {
+        core::f64::math::round(self)
+    }
+    fn trunc(self: f64) -> f64 {
+        core::f64::math::trunc(self)
     }
 }

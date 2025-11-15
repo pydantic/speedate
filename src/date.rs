@@ -1,10 +1,12 @@
-use std::fmt;
-use std::str::FromStr;
+use core::fmt;
+use core::str::FromStr;
 
 use crate::config::DateConfig;
 use crate::numbers::int_parse_bytes;
 use crate::util::timestamp_to_seconds_micros;
-use crate::{get_digit_unchecked, DateTime, ParseError};
+#[cfg(feature = "std")]
+use crate::DateTime;
+use crate::{get_digit_unchecked, ParseError};
 
 /// A Date
 ///
@@ -41,7 +43,7 @@ impl fmt::Display for Date {
         crate::display_num_buf(4, 0, self.year as u32, &mut buf);
         crate::display_num_buf(2, 5, self.month as u32, &mut buf);
         crate::display_num_buf(2, 8, self.day as u32, &mut buf);
-        f.write_str(std::str::from_utf8(&buf[..]).unwrap())
+        f.write_str(core::str::from_utf8(&buf[..]).unwrap())
     }
 }
 
@@ -273,6 +275,7 @@ impl Date {
     /// let d = Date::today(0).unwrap();
     /// println!("The date today is: {}", d)
     /// ```
+    #[cfg(feature = "std")]
     pub fn today(tz_offset: i32) -> Result<Self, ParseError> {
         Ok(DateTime::now(tz_offset)?.date)
     }
