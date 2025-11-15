@@ -1,5 +1,5 @@
 use crate::{ConfigError, MicrosecondsPrecisionOverflowBehavior};
-use std::str::FromStr;
+use core::str::FromStr;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum TimestampUnit {
@@ -15,11 +15,14 @@ pub enum TimestampUnit {
 impl FromStr for TimestampUnit {
     type Err = ConfigError;
     fn from_str(value: &str) -> Result<Self, ConfigError> {
-        match value.to_lowercase().as_str() {
-            "s" => Ok(Self::Second),
-            "ms" => Ok(Self::Millisecond),
-            "infer" => Ok(Self::Infer),
-            _ => Err(ConfigError::UnknownTimestampUnitString),
+        if value.eq_ignore_ascii_case("s") {
+            Ok(Self::Second)
+        } else if value.eq_ignore_ascii_case("ms") {
+            Ok(Self::Millisecond)
+        } else if value.eq_ignore_ascii_case("infer") {
+            Ok(Self::Infer)
+        } else {
+            Err(ConfigError::UnknownTimestampUnitString)
         }
     }
 }

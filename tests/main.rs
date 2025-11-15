@@ -2,7 +2,9 @@ use std::fs::File;
 use std::io::Read;
 use std::str::FromStr;
 
-use chrono::{Datelike, FixedOffset as ChronoFixedOffset, NaiveDate, Timelike, Utc as ChronoUtc};
+#[cfg(feature = "std")]
+use chrono::FixedOffset as ChronoFixedOffset;
+use chrono::{Datelike, NaiveDate, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
 use speedate::{
@@ -330,6 +332,7 @@ date_from_timestamp! {
 }
 
 #[test]
+#[cfg(feature = "std")]
 fn date_today() {
     let today = Date::today(0).unwrap();
     let chrono_now = ChronoUtc::now();
@@ -344,6 +347,7 @@ fn date_today() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 fn date_today_offset() {
     for offset in (-86399..86399).step_by(1000) {
         let today = Date::today(offset).unwrap();
@@ -501,6 +505,7 @@ fn datetime_watershed() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 fn datetime_now() {
     let speedate_now = DateTime::now(0).unwrap();
     let chrono_now = ChronoUtc::now();
@@ -509,6 +514,7 @@ fn datetime_now() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 fn datetime_now_offset() {
     let speedate_now = DateTime::now(3600).unwrap();
     let chrono_now = ChronoUtc::now();
