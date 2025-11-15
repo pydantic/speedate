@@ -94,7 +94,9 @@ impl DateTimeConfigBuilder {
     pub fn build(self) -> DateTimeConfig {
         DateTimeConfig {
             timestamp_unit: self.timestamp_unit.unwrap_or_default(),
-            time_config: self.time_config.unwrap_or_default(),
+            time_config: self
+                .time_config
+                .unwrap_or_else(|| TimeConfigBuilder::new().timestamp_unit(TimestampUnit::Second).build()),
         }
     }
 }
@@ -108,6 +110,7 @@ impl DateTimeConfig {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct TimeConfig {
     pub microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior,
+    pub timestamp_unit: TimestampUnit,
     pub unix_timestamp_offset: Option<i32>,
 }
 
@@ -120,6 +123,7 @@ impl TimeConfig {
 #[derive(Debug, Clone, Default)]
 pub struct TimeConfigBuilder {
     microseconds_precision_overflow_behavior: Option<MicrosecondsPrecisionOverflowBehavior>,
+    timestamp_unit: Option<TimestampUnit>,
     unix_timestamp_offset: Option<i32>,
 }
 
@@ -134,6 +138,10 @@ impl TimeConfigBuilder {
         self.microseconds_precision_overflow_behavior = Some(microseconds_precision_overflow_behavior);
         self
     }
+    pub fn timestamp_unit(mut self, timestamp_unit: TimestampUnit) -> Self {
+        self.timestamp_unit = Some(timestamp_unit);
+        self
+    }
     pub fn unix_timestamp_offset(mut self, unix_timestamp_offset: Option<i32>) -> Self {
         self.unix_timestamp_offset = unix_timestamp_offset;
         self
@@ -141,6 +149,7 @@ impl TimeConfigBuilder {
     pub fn build(self) -> TimeConfig {
         TimeConfig {
             microseconds_precision_overflow_behavior: self.microseconds_precision_overflow_behavior.unwrap_or_default(),
+            timestamp_unit: self.timestamp_unit.unwrap_or_default(),
             unix_timestamp_offset: self.unix_timestamp_offset,
         }
     }

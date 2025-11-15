@@ -4,7 +4,10 @@ use core::fmt;
 use core::str::FromStr;
 
 use crate::config::TimeConfigBuilder;
+use crate::util::timestamp_to_seconds_micros;
 use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError, TimeConfig};
+
+pub(crate) const TIME_MS_WATERSHED: i64 = 86_400;
 
 /// A Time
 ///
@@ -259,7 +262,7 @@ impl Time {
     ///
     /// # Arguments
     ///
-    /// * `timestamp_second` - timestamp in seconds
+    /// * `timestamp` - timestamp in seconds
     /// * `timestamp_microsecond` - microseconds fraction of a second timestamp
     /// * `config` - the `TimeConfig` to use
     ///
@@ -274,17 +277,21 @@ impl Time {
     /// assert_eq!(d.to_string(), "01:02:20.000123");
     /// ```
     pub fn from_timestamp_with_config(
-        timestamp_second: u32,
+        timestamp: u32,
         timestamp_microsecond: u32,
         config: &TimeConfig,
     ) -> Result<Self, ParseError> {
-        let mut second = timestamp_second;
-        let mut microsecond = timestamp_microsecond;
-        if microsecond >= 1_000_000 {
+        let (mut second, extra_microsecond) =
+            timestamp_to_seconds_micros(timestamp.into(), config.timestamp_unit, TIME_MS_WATERSHED)?;
+        let mut total_microsecond = timestamp_microsecond
+            .checked_add(extra_microsecond)
+            .ok_or(ParseError::TimeTooLarge)?;
+
+        if total_microsecond >= 1_000_000 {
             second = second
-                .checked_add(microsecond / 1_000_000)
+                .checked_add(total_microsecond as i64 / 1_000_000)
                 .ok_or(ParseError::TimeTooLarge)?;
-            microsecond %= 1_000_000;
+            total_microsecond %= 1_000_000;
         }
         if second >= 86_400 {
             return Err(ParseError::TimeTooLarge);
@@ -293,7 +300,7 @@ impl Time {
             hour: (second / 3600) as u8,
             minute: ((second % 3600) / 60) as u8,
             second: (second % 60) as u8,
-            microsecond,
+            microsecond: total_microsecond,
             tz_offset: config.unix_timestamp_offset,
         })
     }
