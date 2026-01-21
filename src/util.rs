@@ -1,9 +1,8 @@
-use crate::date::MS_WATERSHED;
 use crate::{ParseError, TimestampUnit};
 
-pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseError> {
+pub(crate) fn timestamp_watershed(timestamp: i64, infer_threshold: i64) -> Result<(i64, u32), ParseError> {
     let ts_abs = timestamp.checked_abs().ok_or(ParseError::DateTooSmall)?;
-    if ts_abs <= MS_WATERSHED {
+    if ts_abs <= infer_threshold {
         return Ok((timestamp, 0));
     }
     let mut seconds = timestamp / 1_000;
@@ -15,7 +14,11 @@ pub(crate) fn timestamp_watershed(timestamp: i64) -> Result<(i64, u32), ParseErr
     Ok((seconds, microseconds as u32))
 }
 
-pub fn timestamp_to_seconds_micros(timestamp: i64, unit: TimestampUnit) -> Result<(i64, u32), ParseError> {
+pub fn timestamp_to_seconds_micros(
+    timestamp: i64,
+    unit: TimestampUnit,
+    infer_threshold: i64,
+) -> Result<(i64, u32), ParseError> {
     match unit {
         TimestampUnit::Second => Ok((timestamp, 0)),
         TimestampUnit::Millisecond => {
@@ -27,6 +30,6 @@ pub fn timestamp_to_seconds_micros(timestamp: i64, unit: TimestampUnit) -> Resul
             }
             Ok((seconds, microseconds as u32))
         }
-        TimestampUnit::Infer => timestamp_watershed(timestamp),
+        TimestampUnit::Infer => timestamp_watershed(timestamp, infer_threshold),
     }
 }

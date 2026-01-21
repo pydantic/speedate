@@ -1549,6 +1549,7 @@ fn test_time_config_builder() {
         TimeConfigBuilder::new().build(),
         TimeConfig {
             microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Error,
+            timestamp_unit: TimestampUnit::Infer,
             unix_timestamp_offset: None,
         }
     );
@@ -1574,6 +1575,7 @@ fn test_datetimetime_config_builder() {
             timestamp_unit: TimestampUnit::Infer,
             time_config: TimeConfig {
                 microseconds_precision_overflow_behavior: MicrosecondsPrecisionOverflowBehavior::Error,
+                timestamp_unit: TimestampUnit::Second,
                 unix_timestamp_offset: None,
             }
         }

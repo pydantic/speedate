@@ -223,7 +223,7 @@ impl Date {
     /// assert_eq!(d.to_string(), "2022-06-07");
     /// ```
     pub fn from_timestamp(timestamp: i64, require_exact: bool, config: &DateConfig) -> Result<Self, ParseError> {
-        let (seconds, microseconds) = timestamp_to_seconds_micros(timestamp, config.timestamp_unit)?;
+        let (seconds, microseconds) = timestamp_to_seconds_micros(timestamp, config.timestamp_unit, MS_WATERSHED)?;
         let (d, remaining_seconds) = Self::from_timestamp_calc(seconds)?;
         if require_exact && (remaining_seconds != 0 || microseconds != 0) {
             return Err(ParseError::DateNotExact);
