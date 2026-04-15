@@ -42,7 +42,7 @@ jobs:
 
     - run: cargo test --doc
 
-    - uses: codecov/codecov-action@v5
+    - uses: codecov/codecov-action@v6
 
   bench:
     runs-on: ubuntu-latest
