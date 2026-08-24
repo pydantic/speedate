@@ -40,25 +40,28 @@ jobs:
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust-version }}
+        components: llvm-tools
 
     - id: cache-rust
       uses: Swatinem/rust-cache@v2
 
-    - run: cargo install rustfilt coverage-prepare
-      if: steps.cache-rust.outputs.cache-hit != 'true'
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-llvm-cov
 
     - run: rustup component add llvm-tools-preview
 
-    - run: cargo test --test main
+    - run: cargo llvm-cov test --test main --codecov --output-path coverage.json
       env:
         RUST_BACKTRACE: 1
-        RUSTFLAGS: '-C instrument-coverage'
-
-    - run: coverage-prepare --ignore-filename-regex '/tests/' lcov $(find target/debug/deps -regex '.*/main[^.]*')
 
     - run: cargo test --doc
 
     - uses: codecov/codecov-action@v6
+      with:
+        files: coverage.json
+        disable_search: true
+
 
   bench:
     runs-on: ubuntu-latest
