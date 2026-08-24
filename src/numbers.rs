@@ -1,4 +1,4 @@
-use lexical_parse_float::{format as lexical_format, FromLexicalWithOptions, Options as ParseFloatOptions};
+use lexical_parse_float::{FromLexicalWithOptions, Options as ParseFloatOptions, format as lexical_format};
 
 /// Parse a string as an int.
 ///

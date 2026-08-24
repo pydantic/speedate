@@ -22,7 +22,7 @@ pub use datetime::DateTime;
 pub use duration::Duration;
 pub use time::{MicrosecondsPrecisionOverflowBehavior, Time};
 
-pub use numbers::{float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, IntFloat};
+pub use numbers::{IntFloat, float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str};
 
 // Parsing datetime, date, time & duration values
 

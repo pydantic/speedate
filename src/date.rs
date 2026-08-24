@@ -1,12 +1,12 @@
 use core::fmt;
 use core::str::FromStr;
 
+#[cfg(feature = "std")]
+use crate::DateTime;
 use crate::config::DateConfig;
 use crate::numbers::int_parse_bytes;
 use crate::util::timestamp_to_seconds_micros;
-#[cfg(feature = "std")]
-use crate::DateTime;
-use crate::{get_digit_unchecked, ParseError};
+use crate::{ParseError, get_digit_unchecked};
 
 /// A Date
 ///

@@ -8,9 +8,9 @@ use chrono::{Datelike, NaiveDate, Timelike, Utc as ChronoUtc};
 use strum::EnumMessage;
 
 use speedate::{
-    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str, Date, DateConfig, DateConfigBuilder, DateTime,
-    DateTimeConfig, DateTimeConfigBuilder, Duration, IntFloat, MicrosecondsPrecisionOverflowBehavior, ParseError, Time,
-    TimeConfig, TimeConfigBuilder, TimestampUnit,
+    Date, DateConfig, DateConfigBuilder, DateTime, DateTimeConfig, DateTimeConfigBuilder, Duration, IntFloat,
+    MicrosecondsPrecisionOverflowBehavior, ParseError, Time, TimeConfig, TimeConfigBuilder, TimestampUnit,
+    float_parse_bytes, float_parse_str, int_parse_bytes, int_parse_str,
 };
 
 /// macro for expected values
