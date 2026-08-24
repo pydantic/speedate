@@ -9,12 +9,28 @@ on:
   pull_request: {}
 
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      MSRV: ${{ steps.resolve-msrv.outputs.MSRV }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: resolve MSRV
+        id: resolve-msrv
+        run: echo MSRV=`cargo metadata --format-version 1 --no-deps --frozen --quiet --offline --manifest-path Cargo.toml | jq -r '.packages[0].rust_version'` >> $GITHUB_OUTPUT
+
   test:
     name: test rust-${{ matrix.rust-version }}
+    needs: [resolve]
     strategy:
       fail-fast: false
       matrix:
         rust-version: [stable, beta, nightly]
+        include:
+          - rust-version: ${{ needs.resolve.outputs.MSRV }}
 
     runs-on: ubuntu-latest
 
