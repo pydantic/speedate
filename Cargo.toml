@@ -2,7 +2,7 @@
 name = "speedate"
 authors = ["Samuel Colvin <s@muelcolvin.com>"]
 version = "0.17.0"
-edition = "2021"
+edition = "2024"
 description = "Fast and simple datetime, date, time and duration parsing"
 readme = "README.md"
 license = "MIT"
@@ -10,6 +10,8 @@ keywords = ["ISO8601", "RFC3339", "datetime", "date", "time"]
 categories = ["date-and-time", "parsing"]
 homepage = "https://github.com/pydantic/speedate/"
 repository = "https://github.com/pydantic/speedate/"
+# MSRV should match pydantic-core
+rust-version = "1.88"
 
 [dependencies]
 arrayvec = { version = "0.7.6", default-features = false }

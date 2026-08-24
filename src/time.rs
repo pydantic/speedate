@@ -4,7 +4,7 @@ use core::fmt;
 use core::str::FromStr;
 
 use crate::config::TimeConfigBuilder;
-use crate::{get_digit, get_digit_unchecked, ConfigError, ParseError, TimeConfig};
+use crate::{ConfigError, ParseError, TimeConfig, get_digit, get_digit_unchecked};
 
 /// A Time
 ///
@@ -430,10 +430,10 @@ impl Time {
     /// assert_eq!(t2.to_string(), "12:13:14-08:00");
     /// ```
     pub fn with_timezone_offset(&self, tz_offset: Option<i32>) -> Result<Self, ParseError> {
-        if let Some(offset_val) = tz_offset {
-            if offset_val.abs() >= 24 * 3600 {
-                return Err(ParseError::OutOfRangeTz);
-            }
+        if let Some(offset_val) = tz_offset
+            && offset_val.abs() >= 24 * 3600
+        {
+            return Err(ParseError::OutOfRangeTz);
         }
         let mut time = *self;
         time.tz_offset = tz_offset;
@@ -552,7 +552,7 @@ impl PureTime {
                             match config.microseconds_precision_overflow_behavior {
                                 MicrosecondsPrecisionOverflowBehavior::Truncate => continue,
                                 MicrosecondsPrecisionOverflowBehavior::Error => {
-                                    return Err(ParseError::SecondFractionTooLong)
+                                    return Err(ParseError::SecondFractionTooLong);
                                 }
                             }
                         }

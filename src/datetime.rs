@@ -1,11 +1,11 @@
 use crate::config::DateTimeConfig;
 use crate::date::MS_WATERSHED;
 use crate::util::timestamp_to_seconds_micros;
-use crate::{
-    float_parse_bytes, numbers::decimal_digits, IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder,
-    TimestampUnit,
-};
 use crate::{Date, ParseError, Time, TimeConfig};
+use crate::{
+    IntFloat, MicrosecondsPrecisionOverflowBehavior, TimeConfigBuilder, TimestampUnit, float_parse_bytes,
+    numbers::decimal_digits,
+};
 use core::cmp::Ordering;
 use core::fmt;
 use core::str::FromStr;

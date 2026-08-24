@@ -3,7 +3,7 @@
 extern crate test;
 
 use speedate::{Date, DateTime, Duration, Time};
-use test::{black_box, Bencher};
+use test::{Bencher, black_box};
 
 #[bench]
 fn compare_datetime_ok_speedate(bench: &mut Bencher) {
