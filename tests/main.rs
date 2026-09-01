@@ -1377,6 +1377,9 @@ int_err_tests! {
     empty: "";
     too_big: "092233720368547758089";
     too_big_neg: "-092233720368547758089";
+    wraps_past_u64: "18446744073709551616";
+    wraps_into_range: "18446745728355951616";
+    wraps_from_two: "20000000000000000000";
 }
 
 macro_rules! float_ok_tests {

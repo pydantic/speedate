@@ -63,8 +63,15 @@ fn int_parse_bytes_internal(s: &[u8]) -> Result<i64, Option<u8>> {
     let mut int_part = decoded_i64_value(first_digit)?;
 
     for &digit in digits {
-        int_part = int_part.wrapping_mul(10);
-        int_part = int_part.wrapping_add(decoded_i64_value(digit)?);
+        let value = decoded_i64_value(digit)?;
+
+        // bound the multiply, otherwise a long input can wrap clean past the negative
+        // range and land back in [0, i64::MAX], where the check below cannot see it
+        if int_part > i64::MAX / 10 {
+            return Err(Some(digit));
+        }
+        int_part *= 10;
+        int_part = int_part.wrapping_add(value);
 
         // only check once for overflow per loop iteration to minimize branching
         if int_part < 0 {
