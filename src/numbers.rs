@@ -36,16 +36,18 @@ pub fn float_parse_str(s: &str) -> IntFloat {
 pub fn float_parse_bytes(s: &[u8]) -> IntFloat {
     // optimistically try to parse as an integer
     match int_parse_bytes_internal(s) {
-        Ok(int) => IntFloat::Int(int),
-        // integer parsing failed on encountering a '.', try as a float
-        Err(IntParseError::InvalidDigit(b'.')) => {
-            static OPTIONS: ParseFloatOptions = ParseFloatOptions::new();
-            match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &OPTIONS) {
-                Ok(v) => IntFloat::Float(v),
-                Err(_) => IntFloat::Err,
-            }
-        }
+        Ok(int) => return IntFloat::Int(int),
+        // integer parsing failed on encountering a '.', fall through to try as a float
+        Err(IntParseError::InvalidDigit(b'.')) => {}
+        // alternatively long floats might overflow the integer parser
+        Err(IntParseError::Overflow) if s.contains(&b'.') => {}
         // any other integer parse error is also a float error
+        Err(_) => return IntFloat::Err,
+    }
+
+    static OPTIONS: ParseFloatOptions = ParseFloatOptions::new();
+    match f64::from_lexical_with_options::<{ lexical_format::STANDARD }>(s, &OPTIONS) {
+        Ok(v) => IntFloat::Float(v),
         Err(_) => IntFloat::Err,
     }
 }
