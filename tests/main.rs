@@ -1355,7 +1355,7 @@ int_ok_tests! {
     small_neg: "-123", -123;
     small_plus: "+123", 123;
     large: "1585201087123789", 1585201087123789;
-    // big_neg: "-09223372036854775808", -09223372036854775808;
+    big_neg: "-09223372036854775808", i64::MIN;
 }
 
 macro_rules! int_err_tests {
@@ -1375,8 +1375,11 @@ int_err_tests! {
     text: "xxx";
     double_neg: "--1";
     empty: "";
-    too_big: "092233720368547758089";
-    too_big_neg: "-092233720368547758089";
+    too_big: "92233720368547758089";
+    too_big_neg: "-92233720368547758089";
+    wraps_past_u64: "18446744073709551616";
+    wraps_into_range: "18446745728355951616";
+    wraps_from_two: "20000000000000000000";
 }
 
 macro_rules! float_ok_tests {
@@ -1404,6 +1407,7 @@ float_ok_tests! {
     big_int: "1585201087123789", "Int(1585201087123789)";
     big_int_ones: "1111111111111111", "Int(1111111111111111)";
     big_float: "111111111.11111", "Float(111111111.11111)";
+    huge_float: "1111111111111111111111111111.11111", "Float(1.111111111111111e27)";
 }
 
 macro_rules! float_err_tests {
