@@ -1704,3 +1704,19 @@ fn test_datetime_from_timestamp_negative_millisecond() {
     .unwrap();
     assert_eq!(dt.to_string(), "1969-12-31T23:59:59.999000");
 }
+
+#[test]
+fn test_datetime_from_float_negative_fractional() {
+    let config = DateTimeConfig::default();
+    for (timestamp, expected) in [
+        (0.125, "1970-01-01T00:00:00.125000"),
+        (-0.125, "1969-12-31T23:59:59.875000"),
+        (-1.5, "1969-12-31T23:59:58.500000"),
+        (-1_654_619_320.000123, "1917-07-27T07:31:19.999877"),
+        (-1_654_619_320_123.123, "1917-07-27T07:31:19.876877"),
+        (-1e-9, "1970-01-01T00:00:00"),
+    ] {
+        let dt = DateTime::from_float_with_config(timestamp, &config).unwrap();
+        assert_eq!(dt.to_string(), expected, "timestamp: {timestamp}");
+    }
+}

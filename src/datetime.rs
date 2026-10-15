@@ -488,16 +488,18 @@ impl DateTime {
     /// assert_eq!(d.to_string(), "2022-06-07T16:28:40.123123");
     /// ```
     pub fn from_float_with_config(timestamp: f64, mode: &DateTimeConfig) -> Result<Self, ParseError> {
+        // fractional part in [0, 1), counted forward from the floored second (also for negative timestamps)
+        let fract = timestamp - timestamp.floor();
         let microseconds = match mode.timestamp_unit {
-            TimestampUnit::Second => timestamp.fract().abs() * 1_000_000.0,
-            TimestampUnit::Millisecond => timestamp.fract().abs() * 1_000.0,
+            TimestampUnit::Second => fract * 1_000_000.0,
+            TimestampUnit::Millisecond => fract * 1_000.0,
             TimestampUnit::Infer => {
                 if timestamp.abs() <= MS_WATERSHED as f64 {
                     // treat as seconds
-                    timestamp.fract().abs() * 1_000_000.0
+                    fract * 1_000_000.0
                 } else {
                     // treat as milliseconds
-                    timestamp.fract().abs() * 1_000.0
+                    fract * 1_000.0
                 }
             }
         };
