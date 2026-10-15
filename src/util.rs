@@ -30,3 +30,13 @@ pub fn timestamp_to_seconds_micros(timestamp: i64, unit: TimestampUnit) -> Resul
         TimestampUnit::Infer => timestamp_watershed(timestamp),
     }
 }
+
+/// Resolve `TimestampUnit::Infer` for a float timestamp, so that its integer and fractional parts are interpreted
+/// with the same unit. Never returns `TimestampUnit::Infer`.
+pub(crate) fn resolve_float_timestamp_unit(timestamp: f64, unit: TimestampUnit) -> TimestampUnit {
+    match unit {
+        TimestampUnit::Infer if timestamp.abs() > MS_WATERSHED as f64 => TimestampUnit::Millisecond,
+        TimestampUnit::Infer => TimestampUnit::Second,
+        unit => unit,
+    }
+}

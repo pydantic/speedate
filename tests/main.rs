@@ -1751,3 +1751,69 @@ fn test_datetime_from_float_matches_parse_str() {
         assert_eq!(from_float, from_str, "timestamp: {timestamp}");
     }
 }
+
+#[test]
+fn test_datetime_parse_float_str_timestamp_unit() {
+    use speedate::{DateTime, TimestampUnit};
+
+    let cases = [
+        (TimestampUnit::Millisecond, "125.5", "1970-01-01T00:00:00.125500"),
+        (TimestampUnit::Millisecond, "-125.5", "1969-12-31T23:59:59.874500"),
+        (
+            TimestampUnit::Millisecond,
+            "30000000000000.5",
+            "2920-08-30T05:20:00.000500",
+        ),
+        // above the watershed, but the unit is explicitly seconds:
+        (TimestampUnit::Second, "20000000001.5", "2603-10-11T11:33:21.500000"),
+        // inferred as milliseconds, and must not be inferred again once converted to seconds:
+        (TimestampUnit::Infer, "30000000000000.5", "2920-08-30T05:20:00.000500"),
+        // inferred as milliseconds, although the integer part alone is not above the watershed:
+        (TimestampUnit::Infer, "20000000000.5", "1970-08-20T11:33:20.000500"),
+    ];
+    for (unit, timestamp, expected) in cases {
+        let config = DateTimeConfigBuilder::new().timestamp_unit(unit).build();
+        let from_str = DateTime::parse_str_with_config(timestamp, &config).unwrap();
+        assert_eq!(from_str.to_string(), expected, "timestamp: {timestamp}, unit: {unit:?}");
+        let from_float = DateTime::from_float_with_config(timestamp.parse().unwrap(), &config).unwrap();
+        assert_eq!(
+            from_float.to_string(),
+            expected,
+            "timestamp: {timestamp}, unit: {unit:?}"
+        );
+    }
+}
+
+#[test]
+fn test_datetime_parse_float_str_fraction_too_long() {
+    use speedate::{DateTime, TimestampUnit};
+
+    let cases = [
+        (
+            TimestampUnit::Millisecond,
+            "125.1234",
+            ParseError::MillisecondFractionTooLong,
+        ),
+        (
+            TimestampUnit::Second,
+            "20000000001.1234567",
+            ParseError::SecondFractionTooLong,
+        ),
+        (
+            TimestampUnit::Infer,
+            "20000000001.1234",
+            ParseError::MillisecondFractionTooLong,
+        ),
+        (TimestampUnit::Infer, "125.1234567", ParseError::SecondFractionTooLong),
+    ];
+    for (unit, timestamp, expected) in cases {
+        let config = DateTimeConfigBuilder::new().timestamp_unit(unit).build();
+        let err = DateTime::parse_str_with_config(timestamp, &config).unwrap_err();
+        assert_eq!(err, expected, "timestamp: {timestamp}, unit: {unit:?}");
+    }
+    // within the allowed precision:
+    let config = DateTimeConfigBuilder::new()
+        .timestamp_unit(TimestampUnit::Second)
+        .build();
+    assert!(DateTime::parse_str_with_config("20000000001.123", &config).is_ok());
+}
