@@ -1704,3 +1704,50 @@ fn test_datetime_from_timestamp_negative_millisecond() {
     .unwrap();
     assert_eq!(dt.to_string(), "1969-12-31T23:59:59.999000");
 }
+
+#[test]
+fn test_datetime_from_float_negative_fraction() {
+    use speedate::{DateTime, TimestampUnit};
+
+    let cases = [
+        (TimestampUnit::Second, 0.125, "1970-01-01T00:00:00.125000"),
+        (TimestampUnit::Second, -0.125, "1969-12-31T23:59:59.875000"),
+        (TimestampUnit::Second, -0.5, "1969-12-31T23:59:59.500000"),
+        (TimestampUnit::Second, -1.0, "1969-12-31T23:59:59"),
+        (TimestampUnit::Second, -1.125, "1969-12-31T23:59:58.875000"),
+        (TimestampUnit::Second, -1_654_619_320.25, "1917-07-27T07:31:19.750000"),
+        // rounds up to the next whole second:
+        (TimestampUnit::Second, -0.0000004, "1970-01-01T00:00:00"),
+        (TimestampUnit::Millisecond, 125.5, "1970-01-01T00:00:00.125500"),
+        (TimestampUnit::Millisecond, -125.5, "1969-12-31T23:59:59.874500"),
+        (TimestampUnit::Millisecond, -0.25, "1969-12-31T23:59:59.999750"),
+        (TimestampUnit::Infer, -0.125, "1969-12-31T23:59:59.875000"),
+        (TimestampUnit::Infer, -1.125, "1969-12-31T23:59:58.875000"),
+        // inferred as milliseconds:
+        (TimestampUnit::Infer, -20_000_000_000.25, "1969-05-14T12:26:39.999750"),
+    ];
+    for (unit, timestamp, expected) in cases {
+        let config = DateTimeConfigBuilder::new().timestamp_unit(unit).build();
+        let dt = DateTime::from_float_with_config(timestamp, &config).unwrap();
+        assert_eq!(dt.to_string(), expected, "timestamp: {timestamp}, unit: {unit:?}");
+    }
+}
+
+#[test]
+fn test_datetime_from_float_matches_parse_str() {
+    use speedate::DateTime;
+
+    // the string path already handles negative fractions correctly; the float path should agree with it
+    for timestamp in [
+        "-0.125",
+        "-0.875",
+        "-1.125",
+        "-59.999999",
+        "-1654619320.000123",
+        "-20000000000.25",
+    ] {
+        let from_str = DateTime::parse_str(timestamp).unwrap();
+        let from_float = DateTime::from_float_with_config(timestamp.parse().unwrap(), &Default::default()).unwrap();
+        assert_eq!(from_float, from_str, "timestamp: {timestamp}");
+    }
+}
